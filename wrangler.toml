@@ -1,0 +1,4 @@
+# Cloudflare Pages — direct-upload config for the Finance Dashboard static site.
+name = "finance-dashboard"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-07-27"

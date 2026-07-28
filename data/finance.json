@@ -1,0 +1,73 @@
+{
+  "_comment": "Regenerated monthly on the 25th from the Google Drive workbook 'My Income & Expenses'. This is the ONLY file that should change month to month. index.html renders entirely from it.",
+  "source": "Google Drive — 'My Income & Expenses' (Transactions + Monthly Budget tabs)",
+  "period": {
+    "label": "July 2026",
+    "note": "mid-month, as of 27 Jul",
+    "generatedAt": "2026-07-27"
+  },
+  "status": {
+    "badge": "Data gap flagged",
+    "tone": "red"
+  },
+  "alert": {
+    "show": true,
+    "title": "No transaction data for the reporting month",
+    "body": "The <b>Transactions</b> tab in \"My Income &amp; Expenses\" has no entries after <b>25 Jan 2025</b> — an 18-month gap. The <b>Monthly Budget</b> tab is set to January 2026 but every Budget / Actual / Variance cell is $0.00 (unfilled template). Expenditure, category overspend, and cash runway for July 2026 cannot be computed from this source. This is a data-quality failure, not a read failure — the sheet loaded fully, it's just not been kept up."
+  },
+  "kpis": [
+    { "label": "Take-home pay", "value": "$8,880", "note": "Joseph $4,800 + Melissa $4,080 (combined) — Monthly Budget tab salary assumptions, not July-specific" },
+    { "label": "Total expenditure", "value": "—", "note": "No July transactions logged" },
+    { "label": "Cash runway", "value": "—", "note": "memory/finance.md cash position still blank" },
+    { "label": "Overspend?", "value": "Unknown", "note": "Budget tab actuals all $0.00" }
+  ],
+  "salary": {
+    "source": "Monthly Budget tab, Income Assumptions",
+    "rows": [
+      { "name": "Joseph", "gross": "$6,000", "cpf": "$1,200", "takeHome": "$4,800" },
+      { "name": "Melissa", "gross": "$5,100", "cpf": "$1,020", "takeHome": "$4,080" }
+    ],
+    "total": { "name": "Combined", "gross": "$11,100", "cpf": "$2,220", "takeHome": "$8,880" },
+    "note": "Joseph's gross matches memory/finance.md ($6,000/mo). Shared pool contribution: Joseph $2,400, Melissa $2,040 → $4,440 total pool."
+  },
+  "bills": {
+    "source": "memory/finance.md — could not verify against July postings",
+    "items": [
+      { "name": "Insurance", "detail": "$82/mo + ~$200/yr — posting not verifiable, no July transactions" },
+      { "name": "Mother's loan repayment", "detail": "$1,000/mo — posting not verifiable" },
+      { "name": "Mortgage", "detail": "Starts Q1 2028, $440,000 remaining, split w/ Melissa — not yet active" },
+      { "name": "Renovation", "detail": "Q2 2028, ~$60,000 est. — Monthly Budget tab: $60k, Aug-28 target (consistent)" },
+      { "name": "Wedding", "detail": "⚠ Conflict: memory/finance.md says $50,000 total; Monthly Budget tab says $30,000 ($15k/$15k) — needs reconciling" }
+    ]
+  },
+  "expenditure": {
+    "categories": [],
+    "emptyMessage": "No transactions logged for July 2026. Last recorded expense in the sheet: 25-Jan-2025. Cannot rank spending areas this month."
+  },
+  "overspend": {
+    "verdict": "Cannot determine",
+    "tone": "grey",
+    "note": "Every category in the Monthly Budget tab (Joint Expenses, Joseph Personal, Melissa Personal) shows Budget $0.00 / Actual $0.00 / Variance $0.00. There's nothing to compare against."
+  },
+  "cashRunway": {
+    "value": null,
+    "note": "Cannot estimate. <code>memory/finance.md</code> §Cash Position is still blank (\"Will update again — ping me when I bring up cash reserves\"). This was already flagged as stale before this run."
+  },
+  "savingsGoals": {
+    "source": "Monthly Budget tab",
+    "rows": [
+      { "goal": "BTO", "target": "Mar-28", "totalCost": "$70,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
+      { "goal": "Renovation", "target": "Aug-28", "totalCost": "$60,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
+      { "goal": "Wedding", "target": "Dec-27", "totalCost": "$30,000*", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
+      { "goal": "School Fees", "target": "May-26", "totalCost": "$33,000", "monthly": "$0", "status": "Overdue — target date passed", "tone": "red" },
+      { "goal": "Emergency Fund", "target": "Ongoing", "totalCost": "$10,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" }
+    ],
+    "note": "*Wedding total conflicts with memory/finance.md's $50,000 figure — flagged above. All five goals show $0/month set aside logged; School Fees' May-26 target has already lapsed with no recorded progress."
+  },
+  "decisions": [
+    { "name": "Reconcile wedding budget", "detail": "$50k (memory) vs $30k (sheet) — which is current?" },
+    { "name": "Resume transaction logging", "detail": "18-month gap means Finance can't compute spend, overspend, or runway" },
+    { "name": "Log cash position & CPF balances", "detail": "Both blank in memory/finance.md — blocks runway calc" }
+  ],
+  "footer": "Steven — Finance Agent · Source: Google Drive \"My Income &amp; Expenses\" (read in full — data itself is stale, not the read)"
+}
