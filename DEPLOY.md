@@ -1,8 +1,17 @@
 # Finance Dashboard — go live
 
 Same process as Miles Dashboard, Portfolio Command Center and Wedding Dashboard:
-**private GitHub repo → GitHub Actions → Cloudflare Pages**, live at
-`https://finance-dashboard.pages.dev`.
+**private GitHub repo → GitHub Actions → Cloudflare Pages**.
+
+**Live URL: https://finance-dashboard-153.pages.dev**
+
+> Cloudflare appended `-153` because `finance-dashboard.pages.dev` was already claimed by
+> another account — `pages.dev` subdomains are globally unique. The *project* is still named
+> `finance-dashboard`, which is what `wrangler.toml`, `package.json` and the GitHub workflow
+> all reference. Don't "fix" those to match the URL.
+
+Working copy lives at `~/Projects/finance-dashboard` — **outside iCloud**, because iCloud
+sync corrupts git repos. The copy in the Cowork folder is staging only; don't run git there.
 
 Run everything from this folder.
 
@@ -69,7 +78,7 @@ First deploy — this creates the project:
 npm run deploy
 ```
 
-Returns `https://finance-dashboard.pages.dev`. That's it live.
+Returns `https://finance-dashboard-153.pages.dev`. That's it live.
 
 ---
 
@@ -128,7 +137,8 @@ git push
 
 | File | Role |
 |---|---|
-| `index.html` | Template + renderer. Contains **no figures**. |
+| `index.html` | Template + renderer (Command Centre). Contains **no figures**. |
+| `index.legacy.html` | The original monthly-report renderer, kept verbatim. Linked from the footer. |
 | `data/finance.json` | Every number, sourced from the Drive workbook. The only monthly diff. |
 | `wrangler.toml` | Pages project config (`finance-dashboard`, builds from `dist/`). |
 | `package.json` | `dev` / `build` / `deploy` scripts. |

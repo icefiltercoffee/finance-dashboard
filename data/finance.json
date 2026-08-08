@@ -37,7 +37,7 @@
       { "name": "Mother's loan repayment", "detail": "$1,000/mo — posting not verifiable" },
       { "name": "Mortgage", "detail": "Starts Q1 2028, $440,000 remaining, split w/ Melissa — not yet active" },
       { "name": "Renovation", "detail": "Q2 2028, ~$60,000 est. — Monthly Budget tab: $60k, Aug-28 target (consistent)" },
-      { "name": "Wedding", "detail": "⚠ Conflict: memory/finance.md says $50,000 total; Monthly Budget tab says $30,000 ($15k/$15k) — needs reconciling" }
+      { "name": "Wedding", "detail": "$50,000 total — confirmed by Joseph 8 Aug 2026. This is the settled figure and supersedes the Monthly Budget tab. Update the workbook to match." }
     ]
   },
   "expenditure": {
@@ -58,14 +58,14 @@
     "rows": [
       { "goal": "BTO", "target": "Mar-28", "totalCost": "$70,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
       { "goal": "Renovation", "target": "Aug-28", "totalCost": "$60,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
-      { "goal": "Wedding", "target": "Dec-27", "totalCost": "$30,000*", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
+      { "goal": "Wedding", "target": "Dec-27", "totalCost": "$50,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" },
       { "goal": "School Fees", "target": "May-26", "totalCost": "$33,000", "monthly": "$0", "status": "Overdue — target date passed", "tone": "red" },
       { "goal": "Emergency Fund", "target": "Ongoing", "totalCost": "$10,000", "monthly": "$0", "status": "Behind — review", "tone": "amber" }
     ],
-    "note": "*Wedding total conflicts with memory/finance.md's $50,000 figure — flagged above. All five goals show $0/month set aside logged; School Fees' May-26 target has already lapsed with no recorded progress."
+    "note": "Wedding is set at $50,000 (confirmed by Joseph, 8 Aug 2026). All five goals show $0/month set aside logged; School Fees' May-26 target has already lapsed with no recorded progress."
   },
   "decisions": [
-    { "name": "Reconcile wedding budget", "detail": "$50k (memory) vs $30k (sheet) — which is current?" },
+    { "name": "Update the workbook's wedding figure", "detail": "Wedding is settled at $50,000. The Monthly Budget tab still holds the old number — correct it there so the next monthly refresh doesn't reintroduce it." },
     { "name": "Resume transaction logging", "detail": "18-month gap means Finance can't compute spend, overspend, or runway" },
     { "name": "Log cash position & CPF balances", "detail": "Both blank in memory/finance.md — blocks runway calc" }
   ],

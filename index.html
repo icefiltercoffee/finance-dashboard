@@ -4,177 +4,1598 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Finance — Monthly Report</title>
+<title>Finance — Command Centre</title>
 <style>
-  :root { color-scheme: light; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 32px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    background: #f6f7f9; color: #1a1d23;
+  /* ------------------------------------------------------------------
+     Finance Command Centre — presentation layer only.
+     CONTAINS NO FIGURES. Every number is derived from data/finance.json.
+     ------------------------------------------------------------------ */
+  :root {
+    color-scheme: dark;
+    --bg:        #080a0f;
+    --bg-2:      #0d1017;
+    --panel:     #11151e;
+    --panel-2:   #161b26;
+    --line:      #202737;
+    --line-2:    #2c344a;
+    --ink:       #e8ecf4;
+    --ink-2:     #9aa3b6;
+    --ink-3:     #626c81;
+    --cyan:      #34d8f0;
+    --violet:    #a78bfa;
+    --green:     #3ddc97;
+    --amber:     #f5b544;
+    --rose:      #fb7185;
+    --grid:      rgba(255,255,255,.045);
+    --r:         14px;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; }
-  .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; flex-wrap: wrap; gap: 8px; }
-  .header h1 { font-size: 22px; margin: 0; font-weight: 700; }
-  .header .sub { color: #6b7280; font-size: 13px; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-  .card { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #eceef1; }
-  .card .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-  .card .value { font-size: 24px; font-weight: 700; }
-  .card .note { font-size: 12px; color: #9ca3af; margin-top: 4px; }
-  .panel { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #eceef1; margin-bottom: 20px; }
-  .panel h2 { font-size: 15px; margin: 0 0 12px; font-weight: 700; }
-  .panel h2 .src { font-size: 11px; font-weight: 400; color: #9ca3af; text-transform: none; letter-spacing: 0; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-  .badge-red { background: #fee2e2; color: #991b1b; }
-  .badge-amber { background: #fef3c7; color: #92400e; }
-  .badge-green { background: #dcfce7; color: #166534; }
-  .badge-grey { background: #e5e7eb; color: #374151; }
-  .alert { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
-  .alert .title { font-weight: 700; color: #991b1b; font-size: 14px; margin-bottom: 4px; }
-  .alert .desc { font-size: 13px; color: #7f1d1d; line-height: 1.6; }
-  .list { list-style: none; padding: 0; margin: 0; }
-  .list li { padding: 8px 0; border-bottom: 1px solid #f1f2f4; font-size: 13px; color: #4b5563; display: flex; justify-content: space-between; gap: 12px; }
-  .list li:last-child { border-bottom: none; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #f1f2f4; }
-  th { color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .footer { font-size: 12px; color: #9ca3af; text-align: center; margin-top: 24px; }
-  .who { font-size: 12px; color: #9ca3af; }
-  @media (max-width: 900px) {
-    body { padding: 18px; }
-    .grid { grid-template-columns: repeat(2, 1fr); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background:
+      radial-gradient(1200px 700px at 12% -12%, rgba(52,216,240,.09), transparent 62%),
+      radial-gradient(1000px 600px at 92% 4%, rgba(167,139,250,.08), transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+  .shell { max-width: 1420px; margin: 0 auto; padding: 26px 26px 80px; }
+
+  /* ---------- header ---------- */
+  .topbar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .dot {
+    width: 11px; height: 11px; border-radius: 50%; background: var(--cyan);
+    box-shadow: 0 0 0 4px rgba(52,216,240,.14), 0 0 18px rgba(52,216,240,.7);
+    animation: pulse 3.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+  .brand h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.015em; }
+  .brand .sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; letter-spacing: .01em; }
+  .topbar .spacer { flex: 1; }
+  .tabs { display: flex; gap: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 3px; }
+  .tab {
+    border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 550;
+    padding: 7px 15px; border-radius: 8px; cursor: pointer; transition: .18s; white-space: nowrap;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--panel-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .who { font-size: 11px; color: var(--ink-3); }
+
+  /* ---------- primitives ---------- */
+  .panel {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--line); border-radius: var(--r); padding: 20px 22px;
+    position: relative; overflow: hidden;
+  }
+  .panel-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .panel-h h2 { margin: 0; font-size: 12px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
+  .panel-h .src { font-size: 10.5px; color: var(--ink-3); letter-spacing: .01em; }
+  .panel-h .spacer { flex: 1; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .035em; text-transform: uppercase;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .chip.red    { color: var(--rose);   background: rgba(251,113,133,.1);  border-color: rgba(251,113,133,.26); }
+  .chip.amber  { color: var(--amber);  background: rgba(245,181,68,.1);   border-color: rgba(245,181,68,.26); }
+  .chip.green  { color: var(--green);  background: rgba(61,220,151,.1);   border-color: rgba(61,220,151,.26); }
+  .chip.grey   { color: var(--ink-2);  background: rgba(154,163,182,.09); border-color: rgba(154,163,182,.22); }
+  .chip.cyan   { color: var(--cyan);   background: rgba(52,216,240,.1);   border-color: rgba(52,216,240,.26); }
+  .chip.plain::before { display: none; }
+
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  .unk { color: var(--ink-3); font-style: italic; }
+
+  /* ---------- KPI rail ---------- */
+  .rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px 17px; position: relative; overflow: hidden; }
+  .kpi::after { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background: var(--accent, var(--line-2)); }
+  .kpi .k-label { font-size: 10.5px; letter-spacing: .085em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 7px; }
+  .kpi .k-value { font-size: 25px; font-weight: 640; letter-spacing: -.025em; line-height: 1.05; }
+  .kpi .k-note  { font-size: 11px; color: var(--ink-3); margin-top: 6px; line-height: 1.45; }
+  .kpi .k-spark { position:absolute; right:12px; top:12px; opacity:.5; }
+
+  /* ---------- time machine ---------- */
+  .tm-head { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; margin-bottom: 6px; }
+  .tm-date { font-size: 30px; font-weight: 650; letter-spacing: -.03em; line-height: 1; }
+  .tm-date small { display:block; font-size: 10.5px; font-weight: 500; letter-spacing: .085em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 7px; }
+  .tm-metric { min-width: 132px; }
+  .tm-metric .m-l { font-size: 10.5px; letter-spacing: .085em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
+  .tm-metric .m-v { font-size: 19px; font-weight: 620; letter-spacing: -.02em; }
+
+  .slider-row { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; flex: 1; height: 22px; cursor: grab; }
+  input[type=range]:active { cursor: grabbing; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--cyan), var(--violet)); opacity:.55; }
+  input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--cyan), var(--violet)); opacity:.55; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; margin-top: -7px;
+    background: var(--ink); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--cyan), 0 0 14px rgba(52,216,240,.6);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--ink); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--cyan), 0 0 14px rgba(52,216,240,.6);
+  }
+  .horizon { display:flex; gap:3px; background: var(--panel-2); border:1px solid var(--line); border-radius: 9px; padding: 3px; }
+  .horizon button { border:0; background:transparent; color: var(--ink-3); font: inherit; font-size: 11px; font-weight:600; padding: 5px 10px; border-radius: 6px; cursor:pointer; transition:.15s; }
+  .horizon button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+
+  .chart-wrap { position: relative; margin-top: 6px; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+  .ev-node { cursor: grab; }
+  .ev-node:active { cursor: grabbing; }
+  .ev-node circle.hit { fill: transparent; }
+  .ev-label { font-size: 10px; font-weight: 600; letter-spacing: .01em; fill: var(--ink-2); pointer-events: none; }
+  .ax-label { font-size: 9.5px; fill: var(--ink-3); pointer-events: none; }
+  .assump-bar { display:flex; align-items:center; gap: 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+  .assump { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-2); }
+  .assump label { color: var(--ink-3); letter-spacing: .02em; }
+  .assump input[type=number] {
+    width: 100px; background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
+    border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .assump input[type=number]:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(52,216,240,.12); }
+
+  .btn {
+    border: 1px solid var(--line-2); background: var(--panel-2); color: var(--ink-2);
+    font: inherit; font-size: 11.5px; font-weight: 600; padding: 7px 13px; border-radius: 8px; cursor: pointer; transition: .16s;
+  }
+  .btn:hover { color: var(--ink); border-color: var(--cyan); }
+  .btn.primary { background: rgba(52,216,240,.13); border-color: rgba(52,216,240,.4); color: var(--cyan); }
+  .btn.primary:hover { background: rgba(52,216,240,.2); }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  /* ---------- scenario banner ---------- */
+  .scenario-bar {
+    display: none; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: rgba(167,139,250,.09); border: 1px solid rgba(167,139,250,.3);
+    border-radius: 11px; padding: 11px 15px; margin-top: 14px; font-size: 12px; color: var(--ink-2);
+  }
+  .scenario-bar.on { display: flex; }
+  .scenario-bar b { color: var(--violet); font-weight: 650; }
+
+  /* ---------- constellation ---------- */
+  .const-wrap { display: grid; grid-template-columns: 1.55fr 1fr; gap: 18px; }
+  svg.constellation { display:block; width:100%; height:auto; overflow: visible; }
+  .goal-node { cursor: pointer; }
+  .goal-node .halo { transition: opacity .25s, r .25s; }
+  .goal-node:hover .halo, .goal-node.sel .halo { opacity: .3; }
+  .goal-name { font-size: 10.5px; font-weight: 640; fill: var(--ink); pointer-events: none; text-anchor: middle; }
+  .goal-sub  { font-size: 9px; fill: var(--ink-3); pointer-events: none; text-anchor: middle; }
+  .orbit { fill: none; stroke: var(--grid); stroke-width: 1; }
+  .orbit-label { font-size: 9px; fill: var(--ink-3); letter-spacing:.06em; text-transform: uppercase; }
+
+  .detail .d-title { font-size: 17px; font-weight: 640; letter-spacing: -.02em; margin-bottom: 3px; }
+  .detail .d-rows { margin-top: 14px; }
+  .drow { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .drow:last-child { border-bottom: 0; }
+  .drow .l { color: var(--ink-3); }
+  .drow .v { font-weight: 600; text-align: right; }
+  .meter { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 12px; }
+  .meter > i { display:block; height:100%; border-radius:3px; background: linear-gradient(90deg, var(--cyan), var(--violet)); transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+  /* ---------- ask ---------- */
+  .ask-box { position: relative; }
+  .ask-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--line-2); border-radius: 12px;
+    color: var(--ink); font: inherit; font-size: 14.5px; padding: 16px 112px 16px 44px; transition: .18s;
+  }
+  .ask-input::placeholder { color: var(--ink-3); }
+  .ask-input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(52,216,240,.1); }
+  .ask-icon { position:absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--cyan); pointer-events:none; }
+  .ask-go { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); }
+  .ask-suggest { display:flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .sugg { border:1px solid var(--line); background: var(--panel-2); color: var(--ink-3); font: inherit; font-size: 11.5px; padding: 6px 11px; border-radius: 999px; cursor: pointer; transition:.15s; }
+  .sugg:hover { color: var(--ink); border-color: var(--line-2); }
+
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 14px; margin-top: 18px; }
+  .opt {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 17px;
+    display: flex; flex-direction: column; gap: 11px; transition: .2s;
+    animation: rise .42s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes rise { from { opacity:0; transform: translateY(10px) } to { opacity:1; transform:none } }
+  .opt:hover { border-color: var(--line-2); }
+  .opt.previewing { border-color: rgba(167,139,250,.55); box-shadow: 0 0 0 3px rgba(167,139,250,.1); }
+  .opt .o-head { display:flex; align-items:flex-start; gap: 9px; }
+  .opt .o-title { font-size: 13.5px; font-weight: 640; letter-spacing:-.01em; flex:1; }
+  .opt .o-why { font-size: 12px; color: var(--ink-2); line-height: 1.55; }
+  .impact { display:grid; gap: 7px; }
+  .imp-row { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 9px; font-size: 11px; }
+  .imp-row .il { color: var(--ink-3); letter-spacing:.02em; }
+  .imp-bar { height: 4px; border-radius: 2px; background: var(--line); position: relative; overflow: hidden; }
+  .imp-bar > i { position:absolute; top:0; bottom:0; border-radius:2px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+  .imp-row .iv { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tradeoff { font-size: 11.5px; color: var(--amber); line-height: 1.5; display:flex; gap:7px; }
+  .tradeoff span:first-child { flex-shrink: 0; }
+  .opt .o-foot { margin-top: auto; display:flex; gap: 8px; }
+
+  /* ---------- fill-in fields ---------- */
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 14px 18px; }
+  .field label { display:block; font-size: 11px; color: var(--ink-2); letter-spacing: .03em; margin-bottom: 6px; font-weight: 550; }
+  .field-in { display: flex; align-items: center; background: var(--bg); border: 1px solid var(--line-2); border-radius: 9px; transition: .16s; }
+  .field-in:focus-within { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(52,216,240,.11); }
+  .field-in .pre { padding: 0 2px 0 11px; color: var(--ink-3); font-size: 13px; }
+  .field-in input {
+    flex: 1; width: 100%; background: transparent; border: 0; color: var(--ink);
+    font: inherit; font-size: 13.5px; padding: 9px 11px 9px 4px; font-variant-numeric: tabular-nums;
+  }
+  .field-in input:focus { outline: none; }
+  .field-in input::placeholder { color: var(--ink-3); font-style: italic; font-size: 12.5px; }
+  .field-in input:not(:placeholder-shown) { color: var(--cyan); font-weight: 600; }
+  .field-hint { font-size: 10.5px; color: var(--ink-3); line-height: 1.45; margin-top: 5px; }
+  .sub-h { font-size: 11px; font-weight: 650; letter-spacing: .085em; text-transform: uppercase;
+           color: var(--ink-3); margin: 24px 0 12px; display: flex; align-items: center; }
+  input.cell {
+    width: 100%; background: transparent; border: 1px solid transparent; border-radius: 6px;
+    color: var(--ink); font: inherit; font-size: 12.5px; padding: 5px 7px;
+  }
+  input.cell.r { text-align: right; font-variant-numeric: tabular-nums; }
+  input.cell:hover { border-color: var(--line); }
+  input.cell:focus { outline: none; border-color: var(--cyan); background: var(--bg); }
+  input.cell::placeholder { color: var(--ink-3); font-style: italic; }
+
+  /* ---------- brief ---------- */
+  .brief-list { display: flex; flex-direction: column; gap: 2px; }
+  .bitem { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .bitem:last-child { border-bottom: 0; }
+  .bitem .bi { width: 22px; height: 22px; border-radius: 7px; display:grid; place-items:center; font-size: 11px; font-weight: 700; }
+  .bitem .bt { font-size: 13px; font-weight: 600; margin-bottom: 4px; letter-spacing:-.005em; }
+  .bitem .bd { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+  .bitem .bd b { color: var(--ink); font-weight: 640; }
+
+  /* ---------- ledger (secondary) ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink-3); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+  td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .lst { list-style: none; padding: 0; margin: 0; }
+  .lst li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); display:flex; justify-content: space-between; gap: 16px; }
+  .lst li:last-child { border-bottom: 0; }
+  .lst li > span:first-child { color: var(--ink); font-weight: 550; flex-shrink: 0; }
+  .lst li > span:last-child { text-align: right; }
+
+  .stack { display: grid; gap: 16px; }
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .view { display: none; }
+  .view.on { display: block; animation: fade .3s ease both; }
+  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+  .integrity {
+    display:flex; align-items:center; gap: 10px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--ink-3); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 14px; margin-bottom: 16px;
+  }
+  .integrity a { color: var(--amber); text-decoration: none; border-bottom: 1px dashed rgba(245,181,68,.4); cursor: pointer; }
+
+  .foot { text-align:center; color: var(--ink-3); font-size: 11px; margin-top: 30px; line-height: 1.7; }
+
+  .tip {
+    position: fixed; pointer-events: none; z-index: 90; opacity: 0; transition: opacity .13s;
+    background: rgba(8,10,15,.97); border: 1px solid var(--line-2); border-radius: 9px;
+    padding: 9px 12px; font-size: 11.5px; line-height: 1.55; max-width: 260px;
+    box-shadow: 0 12px 34px rgba(0,0,0,.6); backdrop-filter: blur(8px);
+  }
+  .tip.on { opacity: 1; }
+  .tip .tt { font-weight: 650; margin-bottom: 3px; }
+  .tip .td { color: var(--ink-2); }
+
+  @media (max-width: 1080px) {
+    .rail { grid-template-columns: repeat(2, 1fr); }
+    .const-wrap { grid-template-columns: 1fr; }
     .cols-2 { grid-template-columns: 1fr; }
   }
+  @media (max-width: 640px) {
+    .shell { padding: 16px 14px 60px; }
+    .rail { grid-template-columns: 1fr; }
+    .tm-date { font-size: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<div class="wrap" id="app">
+<div class="shell" id="app">
   <div class="panel">Loading…</div>
 </div>
+<div class="tip" id="tip"></div>
 
 <script>
-const esc = s => String(s ?? "");
-const tone = t => "badge badge-" + (t || "grey");
+"use strict";
+/* ===================================================================
+   0. HELPERS — no figures live here, only parsing and formatting.
+   =================================================================== */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-function render(d) {
-  const p = d.period || {};
-  const kpis = (d.kpis || []).map(k => `
-    <div class="card">
-      <div class="label">${esc(k.label)}</div>
-      <div class="value">${esc(k.value)}</div>
-      <div class="note">${esc(k.note)}</div>
+/** "$8,880" -> 8880 · "~$200/yr" -> 200 · "$30,000*" -> 30000 · "—" -> null */
+function money(str) {
+  if (str == null) return null;
+  if (typeof str === "number") return isFinite(str) ? str : null;
+  const m = String(str).replace(/,/g, "").match(/-?\$?\s*(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return isFinite(n) ? n : null;
+}
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const MON_TITLE = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/** Absolute month index since year 0 — the unit the whole projection runs in. */
+const mi = (y, m) => y * 12 + m;                 // m is 0-based
+const miY = i => Math.floor(i / 12);
+const miM = i => ((i % 12) + 12) % 12;
+const miLabel = i => MON_TITLE[miM(i)] + " " + String(miY(i)).slice(2);
+const miLong  = i => MON_TITLE[miM(i)] + " " + miY(i);
+
+/** Parses every date shape present in the source: "Mar-28", "Dec-27",
+ *  "Q1 2028", "Q2 2028", "2026-07-27", "Aug-28". "Ongoing"/unknown -> null. */
+function parseWhen(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  let m;
+  if ((m = s.match(/^(\d{4})-(\d{2})/)))                       return mi(+m[1], +m[2] - 1);
+  if ((m = s.match(/\bQ([1-4])\s*(\d{4})\b/i)))                return mi(+m[2], (+m[1] - 1) * 3);
+  if ((m = s.match(/\b([A-Za-z]{3})[a-z]*[-\s](\d{2,4})\b/))) {
+    const idx = MONTHS.indexOf(m[1].toLowerCase());
+    if (idx >= 0) { let y = +m[2]; if (y < 100) y += 2000; return mi(y, idx); }
+  }
+  return null;
+}
+
+const fmtMoney = (n, opts) => {
+  if (n == null || !isFinite(n)) return "—";
+  const o = opts || {};
+  const sign = n < 0 ? "−" : (o.signed && n > 0 ? "+" : "");
+  const a = Math.abs(n);
+  if (o.compact && a >= 1000) {
+    const k = a / 1000;
+    return sign + "$" + (k >= 100 ? Math.round(k) : k.toFixed(k >= 10 ? 0 : 1)) + "k";
+  }
+  return sign + "$" + Math.round(a).toLocaleString("en-SG");
+};
+
+/* ===================================================================
+   0b. STORE — figures Joseph types in for values the source doesn't
+       hold. Kept in this browser only; `Export` turns them into a
+       finance.json patch. Nothing here is ever invented — an untouched
+       field stays null and renders as "unknown".
+   =================================================================== */
+const STORE_KEY = "finance-inputs-v1";
+const Store = {
+  d: { openingCash: null, livingCost: null, funded: {}, cpfBalance: {}, expenditure: [] },
+  load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) Object.assign(this.d, JSON.parse(raw));
+    } catch (_) { /* private mode / disabled storage — run in memory */ }
+    return this.d;
+  },
+  save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(this.d)); } catch (_) {} },
+  set(path, value) {
+    const v = (value === "" || value == null || !isFinite(+value)) ? null : +value;
+    if (path.includes(".")) { const [a, b] = path.split("."); if (v == null) delete this.d[a][b]; else this.d[a][b] = v; }
+    else this.d[path] = v;
+    this.save();
+  },
+  count() {
+    return (this.d.openingCash != null ? 1 : 0) + (this.d.livingCost != null ? 1 : 0)
+         + Object.keys(this.d.funded).length + Object.keys(this.d.cpfBalance).length
+         + this.d.expenditure.length;
+  },
+  clear() { this.d = { openingCash: null, livingCost: null, funded: {}, cpfBalance: {}, expenditure: [] }; this.save(); }
+};
+
+/* ===================================================================
+   1. MODEL — built strictly from data/finance.json.
+      Nothing is invented. Anything the source doesn't state is `null`
+      and is rendered as "unknown", never as zero.
+   =================================================================== */
+const M = {                 // the model
+  raw: null, today: 0, goals: [], events: [], recurring: [],
+  income: {}, unknowns: [], conflicts: []
+};
+
+function buildModel(d) {
+  M.raw = d;
+  M.today = parseWhen(d.period?.generatedAt) ?? parseWhen(d.period?.label) ?? mi(new Date().getFullYear(), new Date().getMonth());
+
+  /* --- income (source: salary block) --- */
+  const t = d.salary?.total || {};
+  M.income = {
+    gross:    money(t.gross),
+    cpf:      money(t.cpf),
+    takeHome: money(t.takeHome),
+    people:   (d.salary?.rows || []).map(r => ({
+      name: r.name, gross: money(r.gross), cpf: money(r.cpf), takeHome: money(r.takeHome)
+    })),
+    source: d.salary?.source, note: d.salary?.note
+  };
+
+  /* --- recurring commitments (source: bills.items) ---
+     A bill is only treated as a monthly cash outflow when the source
+     actually states a per-month figure. Everything else is carried as
+     `unmodelled` and shown on the map without touching the maths.      */
+  M.recurring = (d.bills?.items || []).map(b => {
+    const txt = String(b.detail || "");
+    const perMo = txt.match(/\$\s?([\d,]+(?:\.\d+)?)\s*\/\s*mo/i);
+    const perYr = txt.match(/\$\s?([\d,]+(?:\.\d+)?)\s*\/\s*yr/i);
+    const monthly = perMo ? money(perMo[0]) : null;
+    const annual  = perYr ? money(perYr[0]) : null;
+    const starts  = parseWhen(txt);
+    const notYet  = /not yet active|starts/i.test(txt);
+    const conflict = /conflict/i.test(txt) || /⚠/.test(txt);
+    return {
+      name: b.name, detail: b.detail, monthly, annual, starts,
+      active: !!(monthly || annual) && !notYet,
+      unmodelled: !monthly && !annual,
+      conflict
+    };
+  });
+
+  /* --- goals (source: savingsGoals.rows) --- */
+  M.goals = (d.savingsGoals?.rows || []).map((g, i) => {
+    const total = money(g.totalCost);
+    const when  = parseWhen(g.target);
+    // "funded" is NOT in the source. The source records monthly set-aside
+    // only. We therefore carry funded as null (unknown) — never 0-as-fact.
+    const monthly = money(g.monthly);
+    // Source first; a figure Joseph typed in fills the gap when the source is silent.
+    const typed = Store.d.funded[g.goal];
+    const fundedStated = g.funded !== undefined ? money(g.funded) : (typed != null ? typed : null);
+    const noProgress = monthly === 0;
+    return {
+      id: "g" + i, name: g.goal, targetLabel: g.target, target: when,
+      total, monthly, funded: fundedStated,
+      fundedAssumed: fundedStated == null ? (noProgress ? 0 : null) : fundedStated,
+      fundedIsRecorded: fundedStated != null,
+      fundedIsTyped: g.funded === undefined && typed != null,
+      status: g.status, tone: g.tone || "grey",
+      ongoing: when == null,
+      conflict: /\*/.test(String(g.totalCost || "")) || /\*/.test(String(g.goal || ""))
+    };
+  });
+
+  /* --- timeline events: goals with a dated target become cash calls,
+         plus any dated-but-unmodelled bill (e.g. mortgage start). --- */
+  M.events = [];
+  M.goals.forEach(g => {
+    if (g.target == null || g.total == null) return;
+    M.events.push({
+      id: "e_" + g.id, goalId: g.id, name: g.name, amount: g.total,
+      month: g.target, baseMonth: g.target, kind: "goal",
+      overdue: g.target < M.today, conflict: g.conflict
+    });
+  });
+  const goalNames = new Set(M.goals.map(g => g.name.toLowerCase()));
+  M.recurring.forEach((b, i) => {
+    // A bill that mirrors a goal already on the timeline isn't plotted twice;
+    // its own stated date is surfaced in the goal's tooltip instead.
+    if (goalNames.has(String(b.name).toLowerCase())) {
+      const ev = M.events.find(e => e.name.toLowerCase() === String(b.name).toLowerCase());
+      if (ev) { ev.altDate = b.starts; ev.altNote = b.detail; if (b.conflict) ev.conflict = true; }
+      return;
+    }
+    if (b.unmodelled && b.starts != null) {
+      M.events.push({
+        id: "eb" + i, name: b.name, amount: null, month: b.starts, baseMonth: b.starts,
+        kind: "marker", note: b.detail
+      });
+    }
+  });
+  M.events.sort((a, b) => a.month - b.month);
+
+  /* --- what the source does not tell us --- */
+  M.unknowns = [];
+  if (money(d.cashRunway?.value) == null && Store.d.openingCash == null)
+    M.unknowns.push({ k: "opening", label: "Opening cash balance", why: d.cashRunway?.note });
+  if (!(d.expenditure?.categories || []).length && !Store.d.expenditure.length && Store.d.livingCost == null)
+    M.unknowns.push({ k: "spend", label: "Monthly living expenses", why: d.expenditure?.emptyMessage });
+  if (M.goals.filter(g => !g.fundedIsRecorded).length)
+    M.unknowns.push({ k: "funded", label: "Amount already funded per goal", why: d.savingsGoals?.note });
+
+  /* --- conflicts carried verbatim from the source --- */
+  M.conflicts = [];
+  M.recurring.filter(b => b.conflict).forEach(b => M.conflicts.push({ name: b.name, detail: b.detail }));
+  return M;
+}
+
+/* ===================================================================
+   2. SCENARIO — session-only. Never written back to finance.json
+      unless the user explicitly exports and applies the change.
+   =================================================================== */
+const S = {
+  horizon: 24,
+  cursor: 0,                    // months from today
+  opening: null,                // user-supplied assumption, default unknown
+  livingCost: null,             // user-supplied assumption, default unknown
+  shifts: {},                   // eventId -> new absolute month (drag)
+  overrides: {},                // eventId -> amount override (conflict toggle)
+  preview: null,                // { label, amount, month, goalId } from Ask
+  dirty: false,
+  selectedGoal: null
+};
+
+/** The projection. Returns one row per month over the horizon.
+ *  `cash` is a DELTA from the opening balance when opening is unknown. */
+function project(scn) {
+  const s = scn || S;
+  const rows = [];
+  const open = s.opening == null ? 0 : s.opening;
+  const monthlyIn  = M.income.takeHome ?? 0;
+  const monthlyOut = M.recurring.reduce((a, b) => a + (b.active ? (b.monthly || 0) + (b.annual || 0) / 12 : 0), 0)
+                   + (s.livingCost || 0);
+  let cash = open;
+
+  // Overdue cash calls land in month 0 — they are already due.
+  for (let k = 0; k <= s.horizon; k++) {
+    const month = M.today + k;
+    if (k > 0) cash += monthlyIn - monthlyOut;
+
+    const hits = [];
+    M.events.forEach(e => {
+      if (e.kind !== "goal") return;
+      const when = s.shifts[e.id] != null ? s.shifts[e.id] : e.month;
+      const due  = Math.max(when, M.today);              // overdue => now
+      if (due === month) {
+        const amt = s.overrides[e.id] != null ? s.overrides[e.id] : e.amount;
+        cash -= amt; hits.push({ name: e.name, amount: amt, id: e.id });
+      }
+    });
+    if (s.preview && s.preview.month === month) { cash -= s.preview.amount; hits.push({ name: s.preview.label, amount: s.preview.amount, preview: true }); }
+
+    rows.push({ k, month, cash, in: monthlyIn, out: monthlyOut, hits });
+  }
+  return { rows, monthlyIn, monthlyOut, net: monthlyIn - monthlyOut };
+}
+
+/** Deep-ish clone of scenario for hypotheticals (Ask previews). */
+const cloneScn = over => Object.assign({}, S, { shifts: Object.assign({}, S.shifts), overrides: Object.assign({}, S.overrides) }, over || {});
+
+/* ===================================================================
+   3. RENDER — shell
+   =================================================================== */
+function renderShell() {
+  const d = M.raw, p = d.period || {};
+  $("#app").innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <h1>Finance — Command Centre</h1>
+          <div class="sub">${esc(p.label)}${p.note ? " · " + esc(p.note) : ""} · source ${esc(d.source || "")}</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="who" id="who"></div>
+      <span class="chip ${esc(d.status?.tone || "grey")}">${esc(d.status?.badge || "")}</span>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-view="map"     aria-selected="true">Cash Map</button>
+        <button class="tab" role="tab" data-view="goals"   aria-selected="false">Goals</button>
+        <button class="tab" role="tab" data-view="ledger"  aria-selected="false">Ledger</button>
+      </div>
+    </div>
+
+    <div class="integrity" id="integrity"></div>
+    <div class="rail" id="rail"></div>
+
+    <div class="view on" id="view-map">
+      <div class="stack">
+        <div class="panel" id="p-timemachine"></div>
+        <div class="panel" id="p-inputs"></div>
+        <div class="panel" id="p-ask"></div>
+        <div class="panel" id="p-brief"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-goals">
+      <div class="stack">
+        <div class="panel" id="p-const"></div>
+        <div class="panel" id="p-brief-goals"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-ledger">
+      <div class="stack" id="p-ledger"></div>
+    </div>
+
+    <div class="foot">${d.footer || ""} · generated ${esc(p.generatedAt || "")}<br>
+      Presentation layer redesigned — every figure still reads from <code>data/finance.json</code>.
+      <a href="index.legacy.html" style="color:var(--ink-3)">original report view</a>
+    </div>`;
+
+  $$(".tab").forEach(b => b.onclick = () => {
+    $$(".tab").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+    $$(".view").forEach(v => v.classList.toggle("on", v.id === "view-" + b.dataset.view));
+    if (b.dataset.view === "goals") drawConstellation();
+    if (b.dataset.view === "map") drawChart();
+  });
+}
+
+/* ---------- integrity strip (secondary infrastructure) ---------- */
+function renderIntegrity() {
+  const d = M.raw;
+  const bits = [];
+  if (d.alert?.show) bits.push(`<span class="chip amber">${esc(d.alert.title)}</span>`);
+  M.conflicts.forEach(c => bits.push(`<span class="chip red">${esc(c.name)} conflict</span>`));
+  M.unknowns.forEach(u => bits.push(`<span class="chip grey">${esc(u.label)} unknown</span>`));
+  $("#integrity").innerHTML =
+    `<span style="letter-spacing:.08em;text-transform:uppercase;font-size:10px">Data integrity</span>
+     ${bits.join("")}
+     <span style="flex:1"></span>
+     <a data-goto="ledger">Open ledger &amp; warnings →</a>`;
+  const a = $("#integrity a");
+  if (a) a.onclick = () => $$(".tab").find(t => t.dataset.view === "ledger").click();
+}
+
+/* ===================================================================
+   4. KPI RAIL — recomputed at the time-machine cursor
+   =================================================================== */
+function renderRail() {
+  const pr = project();
+  const row = pr.rows[S.cursor] || pr.rows[0];
+  const openKnown = S.opening != null;
+  const spendKnown = S.livingCost != null;
+
+  const cashCell = openKnown
+    ? `<div class="k-value num">${fmtMoney(row.cash)}</div>
+       <div class="k-note">${S.cursor === 0 ? "today, on your stated opening balance" : "projected at " + miLong(row.month)}</div>`
+    : `<div class="k-value num" style="color:${row.cash < 0 ? "var(--rose)" : "var(--ink)"}">${fmtMoney(row.cash, { signed: true })}</div>
+       <div class="k-note"><span class="unk">change from today</span> — opening balance not in source</div>`;
+
+  const runway = (() => {
+    if (pr.net >= 0 && !pr.rows.some(r => r.cash < (S.opening == null ? 0 : 0))) return null;
+    const hit = pr.rows.find(r => r.cash < 0);
+    return hit ? hit : null;
+  })();
+
+  const tiles = [
+    { accent: "var(--cyan)", label: "Take-home / month",
+      value: fmtMoney(M.income.takeHome),
+      note: M.income.people.map(p => `${esc(p.name)} ${fmtMoney(p.takeHome)}`).join(" + ") + " · combined" },
+    { accent: "var(--violet)", label: "CPF / month",
+      value: fmtMoney(M.income.cpf),
+      note: `on ${fmtMoney(M.income.gross)} gross · not spendable cash` },
+    { accent: openKnown ? "var(--green)" : "var(--ink-3)", label: openKnown ? "Cash position" : "Cash movement", html: cashCell },
+    { accent: runway ? "var(--rose)" : "var(--amber)", label: "First shortfall",
+      value: runway ? miLong(runway.month) : (spendKnown ? "None in horizon" : "—"),
+      note: runway
+        ? `cash goes negative on ${esc(runway.hits.map(h => h.name).join(", ") || "recurring burn")}`
+        : (spendKnown ? `at ${fmtMoney(S.livingCost)}/mo living cost` : `<span class="unk">living expenses unknown</span> — set an assumption below`) }
+  ];
+
+  $("#rail").innerHTML = tiles.map(t => `
+    <div class="kpi" style="--accent:${t.accent}">
+      <div class="k-label">${esc(t.label)}</div>
+      ${t.html || `<div class="k-value num">${esc(t.value)}</div><div class="k-note">${t.note}</div>`}
+    </div>`).join("");
+}
+
+/* ===================================================================
+   5. TIME MACHINE + FUTURE CASH MAP
+   =================================================================== */
+function renderTimeMachine() {
+  $("#p-timemachine").innerHTML = `
+    <div class="panel-h">
+      <h2>Future Cash Map</h2>
+      <span class="src">projected from salary, CPF and stated commitments — drag an event to test a scenario</span>
+      <span class="spacer"></span>
+      <div class="horizon" id="horizon">
+        <button data-h="12">12m</button><button data-h="24" aria-pressed="true">24m</button><button data-h="36">36m</button>
+      </div>
+    </div>
+    <div class="tm-head" id="tm-head"></div>
+    <div class="slider-row">
+      <span style="font-size:10.5px;color:var(--ink-3);letter-spacing:.06em">NOW</span>
+      <input type="range" id="slider" min="0" max="24" step="1" value="0" aria-label="Time machine">
+      <span style="font-size:10.5px;color:var(--ink-3);letter-spacing:.06em" id="slider-end"></span>
+    </div>
+    <div class="chart-wrap"><svg class="chart" id="chart" viewBox="0 0 1000 340"></svg></div>
+    <div class="scenario-bar" id="scenario-bar"></div>
+    <div class="assump-bar">
+      <div class="assump">
+        <label for="a-open">Opening cash</label>
+        <input type="number" id="a-open" placeholder="unknown" step="1000">
+      </div>
+      <div class="assump">
+        <label for="a-live">Living cost / mo</label>
+        <input type="number" id="a-live" placeholder="unknown" step="100">
+      </div>
+      <span class="spacer" style="flex:1"></span>
+      <span style="font-size:11px;color:var(--ink-3);max-width:520px;line-height:1.5">
+        Both are <b style="color:var(--amber)">assumptions you type</b>, held in this session only.
+        They are not in <code>finance.json</code> and are never written to it.
+        Until set, the line shows cash <em>movement</em>, not a balance.
+      </span>
+    </div>`;
+
+  $("#slider").oninput = e => { S.cursor = +e.target.value; refreshTime(); };
+  $$("#horizon button").forEach(b => b.onclick = () => {
+    S.horizon = +b.dataset.h;
+    $$("#horizon button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    S.cursor = clamp(S.cursor, 0, S.horizon);
+    const sl = $("#slider"); sl.max = S.horizon; sl.value = S.cursor;
+    refreshTime();
+  });
+  $("#a-open").oninput = e => { Store.set("openingCash", e.target.value); S.opening = Store.d.openingCash; recalc(); };
+  $("#a-live").oninput = e => { Store.set("livingCost", e.target.value); S.livingCost = Store.d.livingCost; recalc(); };
+}
+
+function renderTMHead() {
+  const pr = project();
+  const row = pr.rows[S.cursor] || pr.rows[0];
+  const cum = row.cash - (S.opening == null ? 0 : S.opening);
+  const goalsDue = M.events.filter(e => e.kind === "goal").filter(e => {
+    const w = S.shifts[e.id] != null ? S.shifts[e.id] : e.month;
+    return Math.max(w, M.today) > row.month;
+  }).length;
+  const committed = M.events.filter(e => e.kind === "goal").reduce((a, e) => {
+    const w = S.shifts[e.id] != null ? S.shifts[e.id] : e.month;
+    return Math.max(w, M.today) > row.month ? a + (S.overrides[e.id] != null ? S.overrides[e.id] : e.amount) : a;
+  }, 0);
+
+  $("#tm-head").innerHTML = `
+    <div class="tm-date"><small>Viewing</small>${S.cursor === 0 ? "Today" : miLong(row.month)}</div>
+    <div class="tm-metric">
+      <div class="m-l">${S.opening == null ? "Cash movement" : "Cash position"}</div>
+      <div class="m-v num" style="color:${row.cash < 0 ? "var(--rose)" : (S.cursor ? "var(--cyan)" : "var(--ink)")}">
+        ${S.opening == null ? fmtMoney(cum, { signed: true }) : fmtMoney(row.cash)}</div>
+    </div>
+    <div class="tm-metric">
+      <div class="m-l">Net / month</div>
+      <div class="m-v num" style="color:${pr.net < 0 ? "var(--rose)" : "var(--green)"}">${fmtMoney(pr.net, { signed: true })}</div>
+    </div>
+    <div class="tm-metric">
+      <div class="m-l">Still to fund</div>
+      <div class="m-v num">${fmtMoney(committed)}<span style="font-size:11px;color:var(--ink-3);font-weight:500"> · ${goalsDue} goal${goalsDue === 1 ? "" : "s"}</span></div>
+    </div>`;
+  $("#slider-end").textContent = miLabel(M.today + S.horizon);
+}
+
+/* ---------- the chart ---------- */
+const CH = { w: 1000, h: 340, pad: { l: 46, r: 46, t: 62, b: 34 } };
+
+function drawChart() {
+  const svg = $("#chart"); if (!svg) return;
+  const pr = project();
+  const rows = pr.rows;
+  const ghost = S.preview ? project(cloneScn({ preview: null })).rows : null;
+
+  const all = rows.map(r => r.cash).concat(ghost ? ghost.map(r => r.cash) : []);
+  let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+  const padv = (hi - lo) * .16 || 1000; lo -= padv; hi += padv;
+
+  const X = k => CH.pad.l + (k / S.horizon) * (CH.w - CH.pad.l - CH.pad.r);
+  const Y = v => CH.pad.t + (1 - (v - lo) / (hi - lo)) * (CH.h - CH.pad.t - CH.pad.b);
+
+  const path = rs => rs.map((r, i) => (i ? "L" : "M") + X(r.k).toFixed(1) + " " + Y(r.cash).toFixed(1)).join(" ");
+  const area = rs => path(rs) + ` L ${X(S.horizon).toFixed(1)} ${Y(lo).toFixed(1)} L ${X(0).toFixed(1)} ${Y(lo).toFixed(1)} Z`;
+
+  // year gridlines
+  let grid = "";
+  for (let k = 0; k <= S.horizon; k++) {
+    const m = M.today + k;
+    if (miM(m) === 0 || k === 0) {
+      grid += `<line x1="${X(k)}" y1="${CH.pad.t - 12}" x2="${X(k)}" y2="${CH.h - CH.pad.b}" stroke="var(--grid)"/>
+               <text class="ax-label" x="${X(k) + 5}" y="${CH.h - CH.pad.b + 15}">${miLabel(m)}</text>`;
+    }
+  }
+  const zeroY = Y(0);
+
+  const cur = rows[S.cursor];
+  const cursorX = X(S.cursor);
+
+  // event nodes — labels stagger across two rows so neighbours don't collide
+  const placed = M.events.map(e => {
+    const w0 = S.shifts[e.id] != null ? S.shifts[e.id] : e.month;
+    return { e, k: Math.max(w0, M.today) - M.today };
+  }).filter(p => p.k >= 0 && p.k <= S.horizon).sort((a, b) => a.k - b.k);
+  let lastX = -999, lastRow = 1;
+  placed.forEach(p => {
+    const x = X(p.k);
+    p.row = (x - lastX < 92) ? (lastRow === 0 ? 1 : 0) : 0;
+    lastX = x; lastRow = p.row;
+  });
+  const labelRow = new Map(placed.map(p => [p.e.id, p.row]));
+
+  const nodes = M.events.map(e => {
+    const w0 = S.shifts[e.id] != null ? S.shifts[e.id] : e.month;
+    const w = Math.max(w0, M.today);
+    const k = w - M.today;
+    if (k < 0 || k > S.horizon) return "";
+    const amt = S.overrides[e.id] != null ? S.overrides[e.id] : e.amount;
+    const isMarker = e.kind === "marker";
+    const rowAt = rows[k] || rows[rows.length - 1];
+    const y = isMarker ? CH.pad.t - 4 : Y(rowAt.cash);
+    const lblY = CH.pad.t - 26 - (labelRow.get(e.id) || 0) * 16;
+    const anchor = X(k) < CH.pad.l + 60 ? "start" : (X(k) > CH.w - CH.pad.r - 60 ? "end" : "middle");
+    const col = isMarker ? "var(--ink-3)" : (e.overdue ? "var(--rose)" : (S.shifts[e.id] != null ? "var(--violet)" : "var(--amber)"));
+    const r = isMarker ? 4 : clamp(4 + Math.sqrt((amt || 0) / 70000) * 8, 5, 13);
+    return `
+      <g class="ev-node" data-ev="${esc(e.id)}" data-marker="${isMarker}">
+        <line x1="${X(k)}" y1="${lblY + 4}" x2="${X(k)}" y2="${CH.h - CH.pad.b}" stroke="${col}" stroke-opacity=".22" stroke-dasharray="3 4"/>
+        <circle class="hit" cx="${X(k)}" cy="${y}" r="20"/>
+        <circle cx="${X(k)}" cy="${y}" r="${r}" fill="var(--bg)" stroke="${col}" stroke-width="2"/>
+        ${isMarker ? "" : `<circle cx="${X(k)}" cy="${y}" r="${r * .38}" fill="${col}"/>`}
+        <text class="ev-label" x="${X(k)}" y="${lblY}" text-anchor="${anchor}" fill="${col}">${esc(e.name)}${e.conflict ? " ⚠" : ""}</text>
+      </g>`;
+  }).join("");
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--cyan)" stop-opacity=".30"/>
+        <stop offset="100%" stop-color="var(--cyan)" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gLine" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="var(--cyan)"/><stop offset="100%" stop-color="var(--violet)"/>
+      </linearGradient>
+    </defs>
+    ${grid}
+    <line x1="${CH.pad.l}" y1="${zeroY}" x2="${CH.w - CH.pad.r}" y2="${zeroY}" stroke="var(--line-2)" stroke-dasharray="4 4"/>
+    <text class="ax-label" x="${CH.pad.l + 2}" y="${zeroY - 5}">${S.opening == null ? "today’s balance" : "$0"}</text>
+    ${ghost ? `<path d="${path(ghost)}" fill="none" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".55"/>` : ""}
+    <path d="${area(rows)}" fill="url(#gArea)"/>
+    <path d="${path(rows)}" fill="none" stroke="url(#gLine)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${cursorX}" y1="${CH.pad.t - 28}" x2="${cursorX}" y2="${CH.h - CH.pad.b}" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1"/>
+    <circle cx="${cursorX}" cy="${Y(cur.cash)}" r="5.5" fill="var(--ink)" stroke="var(--bg)" stroke-width="2.5"/>
+    ${nodes}`;
+
+  wireChart(svg, X);
+}
+
+/* ---------- drag-to-test + hover ---------- */
+function wireChart(svg, X) {
+  const tip = $("#tip");
+  const toK = clientX => {
+    const b = svg.getBoundingClientRect();
+    const vx = ((clientX - b.left) / b.width) * CH.w;
+    return clamp(Math.round(((vx - CH.pad.l) / (CH.w - CH.pad.l - CH.pad.r)) * S.horizon), 0, S.horizon);
+  };
+
+  $$(".ev-node", svg).forEach(node => {
+    const id = node.dataset.ev;
+    const e = M.events.find(x => x.id === id);
+    const isMarker = node.dataset.marker === "true";
+
+    node.addEventListener("mousemove", ev => {
+      const w = S.shifts[id] != null ? S.shifts[id] : e.month;
+      const amt = S.overrides[id] != null ? S.overrides[id] : e.amount;
+      tip.className = "tip on";
+      tip.innerHTML = `<div class="tt">${esc(e.name)}</div><div class="td">
+        ${amt != null ? fmtMoney(amt) + " · " : ""}${miLong(Math.max(w, M.today))}
+        ${e.overdue ? '<br><span style="color:var(--rose)">target date already passed</span>' : ""}
+        ${e.conflict ? '<br><span style="color:var(--amber)">figure conflicts between sources</span>' : ""}
+        ${e.altDate != null && e.altDate !== e.baseMonth ? '<br><span style="color:var(--amber)">bills tab dates this ' + miLong(e.altDate) + '</span>' : ""}
+        ${isMarker ? '<br><span style="color:var(--ink-3)">' + esc(e.note || "") + '</span><br><span style="color:var(--ink-3)">no monthly amount in source — not in the maths</span>' : "<br>drag to test a different date"}
+      </div>`;
+      tip.style.left = Math.min(ev.clientX + 14, innerWidth - 280) + "px";
+      tip.style.top = (ev.clientY - 12) + "px";
+    });
+    node.addEventListener("mouseleave", () => tip.className = "tip");
+
+    if (isMarker) return;
+    node.addEventListener("pointerdown", ev => {
+      ev.preventDefault();
+      node.setPointerCapture(ev.pointerId);
+      const move = m => {
+        S.shifts[id] = M.today + toK(m.clientX);
+        S.dirty = true;
+        refreshTime();
+      };
+      const up = () => {
+        node.removeEventListener("pointermove", move);
+        node.removeEventListener("pointerup", up);
+        if (S.shifts[id] === e.baseMonth) delete S.shifts[id];
+        refreshTime();
+      };
+      node.addEventListener("pointermove", move);
+      node.addEventListener("pointerup", up);
+    });
+  });
+
+  svg.addEventListener("click", ev => {
+    if (ev.target.closest(".ev-node")) return;
+    S.cursor = toK(ev.clientX);
+    $("#slider").value = S.cursor;
+    refreshTime();
+  });
+}
+
+/* ---------- scenario banner ---------- */
+function renderScenarioBar() {
+  const bar = $("#scenario-bar"); if (!bar) return;
+  const moved = Object.keys(S.shifts);
+  const over  = Object.keys(S.overrides);
+  const on = moved.length || over.length || S.preview;
+  bar.classList.toggle("on", !!on);
+  if (!on) return;
+
+  const parts = moved.map(id => {
+    const e = M.events.find(x => x.id === id);
+    return `<b>${esc(e.name)}</b> ${miLabel(e.baseMonth)} → ${miLabel(S.shifts[id])}`;
+  }).concat(over.map(id => {
+    const e = M.events.find(x => x.id === id);
+    return `<b>${esc(e.name)}</b> ${fmtMoney(e.amount)} → ${fmtMoney(S.overrides[id])}`;
+  })).concat(S.preview ? [`previewing <b>${esc(S.preview.label)}</b>`] : []);
+
+  bar.innerHTML = `
+    <span>Scenario (not saved)</span>
+    <span style="flex:1">${parts.join(" &nbsp;·&nbsp; ")}</span>
+    <button class="btn" id="scn-reset">Reset</button>
+    <button class="btn primary" id="scn-save">Save…</button>`;
+  $("#scn-reset").onclick = () => { S.shifts = {}; S.overrides = {}; S.preview = null; S.dirty = false; refreshTime(); renderAskResults(null); };
+  $("#scn-save").onclick = exportScenario;
+}
+
+/** Explicit save = produce the JSON patch. Nothing is written silently:
+ *  this is a static site and finance.json stays the source of truth. */
+function exportScenario() {
+  const patch = { savingsGoals: { rows: [] } };
+  M.goals.forEach(g => {
+    const e = M.events.find(x => x.goalId === g.id);
+    const row = { goal: g.name, target: g.targetLabel, totalCost: M.raw.savingsGoals.rows.find(r => r.goal === g.name).totalCost };
+    if (e && S.shifts[e.id] != null) row.target = miLabel(S.shifts[e.id]).replace(" ", "-");
+    if (e && S.overrides[e.id] != null) row.totalCost = fmtMoney(S.overrides[e.id]);
+    patch.savingsGoals.rows.push(row);
+  });
+  const text = JSON.stringify(patch, null, 2);
+  navigator.clipboard?.writeText(text);
+  alert("Scenario copied to clipboard as a finance.json patch.\n\n" +
+        "Nothing has been changed. Paste it into data/finance.json yourself if you want it to become real:\n\n" + text);
+}
+
+/* ===================================================================
+   6. GOAL CONSTELLATION
+   =================================================================== */
+function renderConstellation() {
+  $("#p-const").innerHTML = `
+    <div class="panel-h">
+      <h2>Goal Constellation</h2>
+      <span class="src">source: ${esc(M.raw.savingsGoals?.source || "")} · size = total required · ring = funded · orbit = time remaining</span>
+    </div>
+    <div class="const-wrap">
+      <div><svg class="constellation" id="const" viewBox="0 0 620 540"></svg></div>
+      <div class="detail" id="goal-detail"></div>
+    </div>`;
+  drawConstellation();
+}
+
+function drawConstellation() {
+  const svg = $("#const"); if (!svg) return;
+  const cx = 310, cy = 270, R0 = 92, RSPAN = 116;
+  const maxTotal = Math.max(...M.goals.map(g => g.total || 0), 1);
+
+  // orbit radius by months remaining (from cursor position in time)
+  const nowM = M.today + S.cursor;
+  const rem = g => g.target == null ? 30 : (g.target - nowM);
+  const maxRem = Math.max(12, ...M.goals.map(g => Math.max(0, rem(g))));
+  const orbitR = g => {
+    const r = rem(g);
+    if (r <= 0) return R0;                            // overdue: pulled to the innermost orbit
+    return R0 + (Math.min(r, maxRem) / maxRem) * RSPAN;
+  };
+
+  const rings = [0, .5, 1].map(f =>
+    `<circle class="orbit" cx="${cx}" cy="${cy}" r="${R0 + f * RSPAN}"/>`).join("");
+
+  const nodes = M.goals.map((g, i) => {
+    const a = (-Math.PI / 2) + (i / M.goals.length) * Math.PI * 2;
+    const R = orbitR(g);
+    const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+    const rad = 15 + Math.sqrt((g.total || 0) / maxTotal) * 24;
+    const col = g.tone === "red" ? "var(--rose)" : g.tone === "amber" ? "var(--amber)" : g.tone === "green" ? "var(--green)" : "var(--ink-3)";
+    const frac = g.total && g.fundedAssumed != null ? clamp(g.fundedAssumed / g.total, 0, 1) : 0;
+    const C = 2 * Math.PI * (rad + 6);
+    const known = g.fundedIsRecorded;
+    return `
+      <g class="goal-node ${S.selectedGoal === g.id ? "sel" : ""}" data-goal="${g.id}" style="animation:rise .5s ${i * 60}ms both">
+        <circle class="halo" cx="${x}" cy="${y}" r="${rad + 18}" fill="${col}" opacity="0"/>
+        <line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${col}" stroke-opacity=".13"/>
+        <circle cx="${x}" cy="${y}" r="${rad}" fill="${col}" fill-opacity=".1" stroke="${col}" stroke-opacity=".5"/>
+        <circle cx="${x}" cy="${y}" r="${rad + 6}" fill="none"
+                stroke="${known ? col : "var(--line-2)"}" stroke-opacity="${known ? 1 : .8}" stroke-width="3"
+                stroke-dasharray="${(frac * C).toFixed(1)} ${C}"
+                stroke-linecap="round" transform="rotate(-90 ${x} ${y})"/>
+        ${known ? "" : `<circle cx="${x}" cy="${y}" r="${rad + 6}" fill="none" stroke="var(--line-2)" stroke-width="1" stroke-dasharray="2 5" opacity=".7"/>`}
+        <text class="goal-name" x="${x}" y="${y + 1}">${esc(g.name)}</text>
+        <text class="goal-sub"  x="${x}" y="${y + 13}">${fmtMoney(g.total, { compact: true })}</text>
+      </g>`;
+  }).join("");
+
+  svg.innerHTML = `
+    ${rings}
+    <circle cx="${cx}" cy="${cy}" r="46" fill="var(--panel-2)" stroke="var(--line-2)"/>
+    <text x="${cx}" y="${cy - 3}" class="goal-name" style="font-size:11px">${S.cursor ? miLabel(nowM) : "TODAY"}</text>
+    <text x="${cx}" y="${cy + 12}" class="goal-sub">${M.goals.length} goals</text>
+    <text class="orbit-label" x="${cx + R0 + 6}" y="${cy - 5}">sooner</text>
+    <text class="orbit-label" x="${cx + R0 + RSPAN - 26}" y="${cy - 5}">later</text>
+    ${nodes}`;
+
+  $$(".goal-node", svg).forEach(n => n.onclick = () => { S.selectedGoal = n.dataset.goal; drawConstellation(); renderGoalDetail(); });
+  renderGoalDetail();
+}
+
+function renderGoalDetail() {
+  const host = $("#goal-detail"); if (!host) return;
+  const g = M.goals.find(x => x.id === S.selectedGoal);
+  if (!g) {
+    host.innerHTML = `<div style="color:var(--ink-3);font-size:12.5px;line-height:1.7;padding:20px 0">
+      Select a goal to see funding, deadline, required monthly contribution and its effect on future cash.<br><br>
+      <b style="color:var(--ink-2)">Reading the map:</b> circle size is the total required, the outer ring is how much is funded,
+      and distance from the centre is time remaining — anything sitting on the core is due now or overdue.
+      Dashed rings mean the funded amount isn't recorded in the source.
+      </div>`;
+    return;
+  }
+  const nowM = M.today + S.cursor;
+  const monthsLeft = g.target == null ? null : g.target - nowM;
+  const funded = g.fundedIsRecorded ? g.fundedAssumed : null;
+  const remaining = g.total != null ? g.total - (funded || 0) : null;
+  const required = (monthsLeft != null && monthsLeft > 0 && remaining != null) ? remaining / monthsLeft : null;
+  const pr = project();
+  const shareOfNet = required != null && pr.net > 0 ? required / pr.net : null;
+
+  host.innerHTML = `
+    <div class="d-title">${esc(g.name)}</div>
+    <span class="chip ${esc(g.tone)}">${esc(g.status)}</span>
+    ${g.conflict ? `<span class="chip amber">figure disputed</span>` : ""}
+    <div class="meter"><i style="width:${g.total && funded ? clamp(funded / g.total * 100, 0, 100) : 0}%"></i></div>
+    <div class="d-rows">
+      <div class="drow"><span class="l">Total required</span><span class="v num">${fmtMoney(g.total)}</span></div>
+      <div class="drow"><span class="l">Funded so far</span><span class="v num">${
+        g.fundedIsRecorded
+          ? fmtMoney(funded) + (g.fundedIsTyped ? ' <span class="unk" style="font-weight:400">your entry</span>' : "")
+          : '<span class="unk">not recorded — enter it below</span>'}</span></div>
+      <div class="drow"><span class="l">Remaining</span><span class="v num">${g.fundedIsRecorded ? fmtMoney(remaining) : fmtMoney(g.total) + ' <span class="unk" style="font-weight:400">if unfunded</span>'}</span></div>
+      <div class="drow"><span class="l">Deadline</span><span class="v">${esc(g.targetLabel)}${monthsLeft != null ? ` · <span style="color:${monthsLeft <= 0 ? "var(--rose)" : "var(--ink-3)"};font-weight:500">${monthsLeft <= 0 ? Math.abs(monthsLeft) + " mo overdue" : monthsLeft + " mo left"}</span>` : ""}</span></div>
+      <div class="drow"><span class="l">Logged set-aside</span><span class="v num">${fmtMoney(g.monthly)} / mo</span></div>
+      <div class="drow"><span class="l">Required contribution</span><span class="v num" style="color:${required ? "var(--cyan)" : "var(--rose)"}">
+        ${required != null ? fmtMoney(required) + " / mo" : (monthsLeft != null && monthsLeft <= 0 ? "due now — in full" : "—")}</span></div>
+      <div class="drow"><span class="l">Share of monthly net</span><span class="v num">${
+        shareOfNet != null ? Math.round(shareOfNet * 100) + "%" : '<span class="unk">n/a</span>'}</span></div>
+    </div>
+    <div style="font-size:11.5px;color:var(--ink-3);line-height:1.6;margin-top:14px">
+      Effect on cash: funding this in full moves the projected line down by ${fmtMoney(remaining)} at
+      ${g.target != null ? miLong(g.target) : "no fixed date"}.
+      ${g.conflict ? "<br>⚠ " + esc(M.raw.savingsGoals?.note || "") : ""}
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn" id="g-map">Show on cash map</button>
+    </div>`;
+  $("#g-map").onclick = () => {
+    const e = M.events.find(x => x.goalId === g.id);
+    $$(".tab").find(t => t.dataset.view === "map").click();
+    if (e) { S.cursor = clamp(Math.max(e.month, M.today) - M.today, 0, S.horizon); $("#slider").value = S.cursor; refreshTime(); }
+  };
+}
+
+/* ===================================================================
+   6b. FILL IN WHAT'S MISSING — placeholders for every figure the
+       source doesn't carry. Typed values live in this browser and are
+       exported as a finance.json patch; they never overwrite the source.
+   =================================================================== */
+function fieldRow(id, label, value, placeholder, hint) {
+  return `
+    <div class="field">
+      <label for="${id}">${esc(label)}</label>
+      <div class="field-in">
+        <span class="pre">$</span>
+        <input type="number" id="${id}" value="${value == null ? "" : value}" placeholder="${esc(placeholder)}" step="100">
+      </div>
+      ${hint ? `<div class="field-hint">${hint}</div>` : ""}
+    </div>`;
+}
+
+function renderInputs() {
+  const d = M.raw;
+  const filled = Store.count();
+  const exp = Store.d.expenditure;
+
+  $("#p-inputs").innerHTML = `
+    <div class="panel-h">
+      <h2>Fill in what's missing</h2>
+      <span class="src">${filled ? filled + " field" + (filled === 1 ? "" : "s") + " entered — saved in this browser only" : "these figures aren't in finance.json — type them and the whole dashboard recalculates"}</span>
+      <span class="spacer"></span>
+      <button class="btn" id="in-clear" ${filled ? "" : "disabled"}>Clear</button>
+      <button class="btn primary" id="in-export" ${filled ? "" : "disabled"}>Export to finance.json</button>
+    </div>
+
+    <div class="field-grid">
+      ${fieldRow("in-open", "Opening cash balance", Store.d.openingCash, "not recorded",
+        `Blocks the runway calculation. Source says: <span class="unk">${esc(String(d.cashRunway?.note || "").replace(/<[^>]+>/g, "").slice(0, 90))}…</span>`)}
+      ${fieldRow("in-live", "Monthly living expenses", Store.d.livingCost, "not logged",
+        `Everything spent that isn't a listed commitment. Until set, the cash map is a ceiling.`)}
+      ${(d.salary?.rows || []).map((r, i) =>
+        fieldRow("in-cpf" + i, r.name + " — CPF balance", Store.d.cpfBalance[r.name], "not recorded",
+          `Accrues ${esc(r.cpf)}/mo. Not spendable cash — tracked separately.`)).join("")}
+    </div>
+
+    <div class="sub-h">Funded so far, per goal</div>
+    <div class="field-grid">
+      ${M.goals.map((g, i) => fieldRow("in-f" + i, g.name, Store.d.funded[g.name], "nothing recorded",
+        `of ${fmtMoney(g.total)} required by ${esc(g.targetLabel)}`)).join("")}
+    </div>
+
+    <div class="sub-h">Expenditure by category
+      <button class="btn" id="in-addcat" style="margin-left:10px;padding:4px 10px">+ Add category</button>
+    </div>
+    ${exp.length ? `
+      <table style="margin-top:4px">
+        <tr><th>Category</th><th class="r">Spend</th><th class="r">Budget</th><th></th></tr>
+        ${exp.map((c, i) => `
+          <tr>
+            <td><input class="cell" data-ci="${i}" data-cf="name" value="${esc(c.name)}" placeholder="Category"></td>
+            <td class="r"><input class="cell r" type="number" data-ci="${i}" data-cf="spend"  value="${c.spend ?? ""}" placeholder="0"></td>
+            <td class="r"><input class="cell r" type="number" data-ci="${i}" data-cf="budget" value="${c.budget ?? ""}" placeholder="0"></td>
+            <td class="r"><button class="btn" data-cdel="${i}" style="padding:3px 9px">×</button></td>
+          </tr>`).join("")}
+      </table>`
+      : `<div style="font-size:12px;color:var(--ink-3);padding:8px 0 2px">${esc(d.expenditure?.emptyMessage || "")}</div>`}
+
+    <div style="font-size:11.5px;color:var(--ink-3);line-height:1.6;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+      These stay in this browser. <b style="color:var(--ink-2)">Export to finance.json</b> copies them as a patch to paste into
+      <code>data/finance.json</code> — that's what makes them permanent and visible on any other device.
+      The workbook remains the source of truth for everything already in the file.
+    </div>`;
+
+  $("#in-open").oninput = e => { Store.set("openingCash", e.target.value); S.opening = Store.d.openingCash; recalc(); };
+  $("#in-live").oninput = e => { Store.set("livingCost", e.target.value); S.livingCost = Store.d.livingCost; recalc(); };
+  (M.raw.salary?.rows || []).forEach((r, i) => {
+    $("#in-cpf" + i).oninput = e => { Store.set("cpfBalance." + r.name, e.target.value); recalc(); };
+  });
+  M.goals.forEach((g, i) => {
+    $("#in-f" + i).oninput = e => { Store.set("funded." + g.name, e.target.value); recalc(); };
+  });
+
+  $("#in-addcat").onclick = () => { Store.d.expenditure.push({ name: "", spend: null, budget: null }); Store.save(); rebuild(); };
+  $$("#p-inputs .cell").forEach(inp => inp.oninput = e => {
+    const c = Store.d.expenditure[+e.target.dataset.ci], f = e.target.dataset.cf;
+    c[f] = f === "name" ? e.target.value : (e.target.value === "" ? null : +e.target.value);
+    Store.save();
+  });
+  $$("#p-inputs [data-cdel]").forEach(b => b.onclick = () => {
+    Store.d.expenditure.splice(+b.dataset.cdel, 1); Store.save(); rebuild();
+  });
+  $("#in-clear").onclick = () => {
+    if (!confirm("Clear every figure you've typed in? The data from finance.json is untouched.")) return;
+    Store.clear(); S.opening = null; S.livingCost = null; syncAssumptions(); rebuild();
+  };
+  $("#in-export").onclick = exportInputs;
+}
+
+function exportInputs() {
+  const p = {};
+  if (Store.d.openingCash != null)
+    p.cashRunway = { value: Store.d.openingCash, note: "Opening cash balance entered by Joseph." };
+  if (Store.d.livingCost != null)
+    p.livingCost = { monthly: Store.d.livingCost, note: "Monthly living expenses entered by Joseph." };
+  if (Object.keys(Store.d.cpfBalance).length)
+    p.cpfBalances = Store.d.cpfBalance;
+  if (Object.keys(Store.d.funded).length)
+    p.savingsGoals = { rows: M.goals.map(g => {
+      const row = { goal: g.name };
+      if (Store.d.funded[g.name] != null) row.funded = Store.d.funded[g.name];
+      return row;
+    }).filter(r => r.funded !== undefined) };
+  if (Store.d.expenditure.length)
+    p.expenditure = { categories: Store.d.expenditure.map(c => ({
+      name: c.name, spend: fmtMoney(c.spend), budget: fmtMoney(c.budget),
+      variance: (c.spend != null && c.budget != null) ? fmtMoney(c.budget - c.spend, { signed: true }) : "—"
+    })) };
+
+  const text = JSON.stringify(p, null, 2);
+  navigator.clipboard?.writeText(text);
+  alert("Copied to clipboard as a finance.json patch.\n\n" +
+        "Merge these keys into data/finance.json and push — then they're permanent and no longer browser-only:\n\n" + text);
+}
+
+/** Keeps the two inline assumption boxes on the chart in step with the store.
+ *  Never writes to the field being typed in — that would reset the caret. */
+function syncAssumptions() {
+  const a = $("#a-open"), b = $("#a-live");
+  if (a && document.activeElement !== a) a.value = S.opening == null ? "" : S.opening;
+  if (b && document.activeElement !== b) b.value = S.livingCost == null ? "" : S.livingCost;
+}
+
+/** Live path: a typed figure can change goal status, so the model is rebuilt —
+ *  but the inputs panel is left standing so focus and caret survive. */
+function recalc() {
+  buildModel(M.raw);
+  renderIntegrity();
+  renderLedger();
+  syncAssumptions();
+  updateInputsHeader();
+  refreshTime();
+}
+
+/** Structural path: rows added or removed, so the panel is redrawn too. */
+function rebuild() { recalc(); renderInputs(); }
+
+function updateInputsHeader() {
+  const filled = Store.count(), h = $("#p-inputs .src");
+  if (h) h.textContent = filled
+    ? filled + " field" + (filled === 1 ? "" : "s") + " entered — saved in this browser only"
+    : "these figures aren't in finance.json — type them and the whole dashboard recalculates";
+  const c = $("#in-clear"), x = $("#in-export");
+  if (c) c.disabled = !filled;
+  if (x) x.disabled = !filled;
+}
+
+/* ===================================================================
+   7. "WHAT CAN I DO?" — decision engine
+      Deterministic and local: this is a static site with no backend,
+      so every option below is computed from finance.json, not guessed.
+   =================================================================== */
+function renderAsk() {
+  $("#p-ask").innerHTML = `
+    <div class="panel-h">
+      <h2>What can I do?</h2>
+      <span class="src">answers computed from your data · options preview on the map before anything is committed</span>
+    </div>
+    <div class="ask-box">
+      <svg class="ask-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+      </svg>
+      <input class="ask-input" id="ask" autocomplete="off"
+             placeholder="I have $5,000 available. What should I do with it?">
+      <button class="btn primary ask-go" id="ask-go">Ask</button>
+    </div>
+    <div class="ask-suggest" id="sugg"></div>
+    <div class="options" id="ask-out"></div>`;
+
+  const suggestions = [
+    "I have $5,000 available. What should I do with it?",
+    "Can I afford a $4,000 trip?",
+    "What happens if renovation costs $10k more?",
+    "What can I deploy this month?"
+  ];
+  $("#sugg").innerHTML = suggestions.map(s => `<button class="sugg">${esc(s)}</button>`).join("");
+  $$("#sugg .sugg").forEach(b => b.onclick = () => { $("#ask").value = b.textContent; ask(); });
+  $("#ask-go").onclick = ask;
+  $("#ask").onkeydown = e => { if (e.key === "Enter") ask(); };
+}
+
+/** Intent parse: amount + verb. Deliberately small and explainable. */
+function parseAsk(q) {
+  const s = q.toLowerCase();
+  const amtM = s.replace(/,/g, "").match(/\$?\s*(\d+(?:\.\d+)?)\s*(k\b)?/);
+  let amount = amtM ? parseFloat(amtM[1]) * (amtM[2] ? 1000 : 1) : null;
+  if (amount != null && amount < 100 && !/\bk\b/.test(s)) amount = null;   // "12 months" isn't money
+  const goal = M.goals.find(g => s.includes(g.name.toLowerCase()));
+  if (/afford|can i buy|trip|holiday|spend/.test(s))       return { kind: "afford", amount, goal };
+  if (/costs? more|more expensive|overrun|goes up|\+/.test(s)) return { kind: "overrun", amount, goal };
+  if (/deploy|spare|available|do with|invest|put/.test(s)) return { kind: "deploy", amount, goal };
+  return { kind: amount ? "deploy" : "brief", amount, goal };
+}
+
+function ask() {
+  const q = $("#ask").value.trim();
+  if (!q) return;
+  renderAskResults(buildOptions(parseAsk(q), q));
+}
+
+/** Deployable = net monthly surplus, minus what dated goals demand
+ *  between now and their deadline. All inputs come from the source. */
+function deployable() {
+  const pr = project();
+  let claim = 0, overdueNow = 0;
+  M.goals.forEach(g => {
+    if (g.total == null) return;
+    const need = g.total - (g.fundedIsRecorded ? g.fundedAssumed : 0);
+    // An overdue goal is a lump already due — amortising it would make the
+    // monthly claim meaningless, so it's reported separately.
+    if (g.target != null && g.target <= M.today) { overdueNow += need; return; }
+    const left = g.target == null ? Math.max(S.horizon, 12) : Math.max(1, g.target - M.today);
+    claim += need / left;
+  });
+  return { net: pr.net, claim, overdueNow, free: pr.net - claim, pr };
+}
+
+function buildOptions(intent, q) {
+  const D = deployable();
+  const amt = intent.amount;
+  const opts = [];
+  const overdue = M.goals.filter(g => g.target != null && g.target < M.today);
+  const soonest = M.goals.filter(g => g.target != null).sort((a, b) => a.target - b.target)[0];
+  const biggest = M.goals.slice().sort((a, b) => (b.total || 0) - (a.total || 0))[0];
+
+  const mk = (title, why, impacts, tradeoff, preview) => opts.push({ title, why, impacts, tradeoff, preview });
+
+  if (intent.kind === "afford" && amt) {
+    const monthsOfNet = D.net > 0 ? amt / D.net : null;
+    mk(`Pay it from surplus over ${monthsOfNet ? Math.ceil(monthsOfNet) : "?"} month${Math.ceil(monthsOfNet || 2) === 1 ? "" : "s"}`,
+      `${fmtMoney(amt)} is ${monthsOfNet ? Math.round(monthsOfNet * 10) / 10 : "—"}× your monthly net of ${fmtMoney(D.net)}. Spreading it keeps every goal deadline where it is.`,
+      [["Cash now", 0, "neutral"], ["Goals", 0, "neutral"], ["Liquidity", -amt, "warn"], ["Timeline", 0, "neutral"]],
+      monthsOfNet && monthsOfNet > 3 ? `Takes ${Math.ceil(monthsOfNet)} months of your entire surplus — nothing goes to goals in that window.` : null,
+      { label: q.slice(0, 24), amount: amt, month: M.today });
+
+    mk(`Take it now, in one hit`,
+      `Pulls ${fmtMoney(amt)} out of this month. Your projected line drops by that amount immediately and never recovers the gap — it simply shifts every later balance down.`,
+      [["Cash now", -amt, "bad"], ["Goals", 0, "neutral"], ["Liquidity", -amt, "bad"], ["Timeline", 0, "neutral"]],
+      `You cannot verify this is affordable: opening cash balance and monthly living expenses are both missing from the source.`,
+      { label: q.slice(0, 24), amount: amt, month: M.today });
+
+    if (soonest) {
+      mk(`Don't — ${esc(soonest.name)} lands first`,
+        `${soonest.name} needs ${fmtMoney(soonest.total)} by ${soonest.targetLabel} and has ${soonest.fundedIsRecorded ? fmtMoney(soonest.fundedAssumed) + " funded" : "no recorded funding"}. That claim outranks discretionary spend.`,
+        [["Cash now", 0, "good"], ["Goals", amt, "good"], ["Liquidity", 0, "good"], ["Timeline", 0, "neutral"]],
+        `Defers the spend indefinitely — there's no date at which it becomes affordable without expense data.`, null);
+    }
+  }
+
+  else if (intent.kind === "overrun") {
+    const g = intent.goal || M.goals.find(x => /renovation/i.test(x.name)) || biggest;
+    const bump = amt || 10000;
+    const e = M.events.find(x => x.goalId === g?.id);
+    mk(`Absorb it — extend the runway`,
+      `${g?.name} rises from ${fmtMoney(g?.total)} to ${fmtMoney((g?.total || 0) + bump)}. At ${fmtMoney(D.net)}/mo net that's ${Math.ceil(bump / Math.max(D.net, 1))} extra months of saving before the same date is met.`,
+      [["Cash now", 0, "neutral"], ["Goals", -bump, "warn"], ["Liquidity", -bump, "warn"], ["Timeline", -bump, "warn"]],
+      `Only works if the extra months exist before ${esc(g?.targetLabel || "the deadline")}.`,
+      e ? { label: g.name + " +" + fmtMoney(bump, { compact: true }), amount: bump, month: Math.max(e.month, M.today) } : null);
+
+    mk(`Push the date instead`,
+      `Keep the contribution flat and move ${g?.name} later. Drag its node on the map to see exactly how far it has to slide.`,
+      [["Cash now", 0, "good"], ["Goals", 0, "neutral"], ["Liquidity", 0, "good"], ["Timeline", -bump, "bad"]],
+      `${g?.name} collides with the other goals already sitting in that window.`, null);
+
+    mk(`Fund it by trimming another goal`,
+      `${biggest?.name} is the largest single claim at ${fmtMoney(biggest?.total)}. Reducing it by ${fmtMoney(bump)} covers the overrun without changing any date.`,
+      [["Cash now", 0, "good"], ["Goals", -bump, "warn"], ["Liquidity", 0, "neutral"], ["Timeline", 0, "good"]],
+      `Trades a known commitment for an estimate — ${esc(g?.name)} is still marked "est." in the source.`, null);
+  }
+
+  else {  // deploy / brief
+    const a = amt || Math.max(D.free, 0);
+    if (overdue.length) {
+      const o = overdue[0];
+      mk(`Clear ${esc(o.name)} first — it's overdue`,
+        `${o.name} was due ${o.targetLabel} and the source records no progress against it. ${fmtMoney(Math.min(a, o.total || a))} of ${fmtMoney(a)} closes ${o.total && a >= o.total ? "it entirely" : Math.round(Math.min(a / (o.total || a), 1) * 100) + "% of it"}.`,
+        [["Cash now", -Math.min(a, o.total || a), "warn"], ["Goals", Math.min(a, o.total || a), "good"], ["Liquidity", -Math.min(a, o.total || a), "warn"], ["Timeline", Math.min(a, o.total || a), "good"]],
+        `Leaves ${fmtMoney(Math.max(a - (o.total || 0), 0))} for everything else this month.`,
+        { label: o.name, amount: Math.min(a, o.total || a), month: M.today });
+    }
+    const ef = M.goals.find(g => /emergency/i.test(g.name));
+    if (ef) {
+      mk(`Top up ${esc(ef.name)}`,
+        `${ef.name} targets ${fmtMoney(ef.total)} with no recorded balance. Until it exists, every other goal is exposed — and your cash runway can't even be calculated.`,
+        [["Cash now", -Math.min(a, ef.total || a), "warn"], ["Goals", Math.min(a, ef.total || a), "good"], ["Liquidity", Math.min(a, ef.total || a), "good"], ["Timeline", 0, "neutral"]],
+        `Emergency cash earns least — but it's the only goal with no deadline pressure to trade against.`,
+        { label: ef.name, amount: Math.min(a, ef.total || a), month: M.today });
+    }
+    mk(`Hold it until the ledger is current`,
+      `You have ${fmtMoney(a)} nominally free, but ${M.unknowns.length} of the inputs that decide "free" are missing: ${M.unknowns.map(u => u.label.toLowerCase()).join(", ")}. Deploying now is a guess wearing a number.`,
+      [["Cash now", 0, "good"], ["Goals", 0, "neutral"], ["Liquidity", a, "good"], ["Timeline", 0, "neutral"]],
+      `Costs you a month of progress on five goals that are all already marked behind.`, null);
+  }
+  return opts.slice(0, 3);
+}
+
+function renderAskResults(opts) {
+  const out = $("#ask-out"); if (!out) return;
+  if (!opts) { out.innerHTML = ""; return; }
+  const maxAbs = Math.max(...opts.flatMap(o => o.impacts.map(i => Math.abs(i[1]))), 1);
+  const COL = { good: "var(--green)", warn: "var(--amber)", bad: "var(--rose)", neutral: "var(--line-2)" };
+
+  out.innerHTML = opts.map((o, i) => `
+    <div class="opt" data-opt="${i}" style="animation-delay:${i * 80}ms">
+      <div class="o-head">
+        <span class="chip cyan plain">Option ${i + 1}</span>
+        <div class="o-title">${o.title}</div>
+      </div>
+      <div class="o-why">${o.why}</div>
+      <div class="impact">
+        ${o.impacts.map(([l, v, t]) => `
+          <div class="imp-row">
+            <span class="il">${esc(l)}</span>
+            <span class="imp-bar"><i style="left:50%;width:${Math.abs(v) / maxAbs * 48}%;background:${COL[t]};${v < 0 ? "transform:translateX(-100%)" : ""}"></i></span>
+            <span class="iv" style="color:${COL[t]}">${v === 0 ? "—" : fmtMoney(v, { signed: true, compact: true })}</span>
+          </div>`).join("")}
+      </div>
+      ${o.tradeoff ? `<div class="tradeoff"><span>Trade-off</span><span>${o.tradeoff}</span></div>` : ""}
+      <div class="o-foot">
+        ${o.preview ? `<button class="btn" data-prev="${i}">Preview on map</button>` : `<span style="font-size:11px;color:var(--ink-3);align-self:center">no cash movement to preview</span>`}
+      </div>
     </div>`).join("");
 
-  const alert = d.alert && d.alert.show ? `
-    <div class="alert">
-      <div class="title">⚠ ${esc(d.alert.title)}</div>
-      <div class="desc">${d.alert.body}</div>
-    </div>` : "";
+  $$("[data-prev]", out).forEach(b => b.onclick = () => {
+    const i = +b.dataset.prev, o = opts[i];
+    const already = S.preview && S.preview.label === o.preview.label;
+    S.preview = already ? null : o.preview;
+    $$(".opt", out).forEach(x => x.classList.toggle("previewing", !already && +x.dataset.opt === i));
+    b.textContent = already ? "Preview on map" : "Clear preview";
+    $$("[data-prev]", out).forEach(x => { if (x !== b) x.textContent = "Preview on map"; });
+    refreshTime();
+    $("#p-timemachine").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
 
-  const salaryRows = (d.salary?.rows || []).map(r => `
-    <tr><td>${esc(r.name)}</td><td class="num">${esc(r.gross)}</td><td class="num">${esc(r.cpf)}</td><td class="num">${esc(r.takeHome)}</td></tr>`).join("");
+/* ===================================================================
+   8. AI FINANCE BRIEF — decisions, not statistics
+   =================================================================== */
+function briefItems() {
+  const D = deployable();
+  const out = [];
+  const push = (tone, icon, title, desc) => out.push({ tone, icon, title, desc });
+
+  // 1. the deployable sentence
+  const freeTxt = D.free > 0
+    ? `You have roughly <b>${fmtMoney(D.free)}</b> deployable this month without touching any currently funded goal — that's ${fmtMoney(D.net)} net less the ${fmtMoney(D.claim)}/mo your dated goals need to land on time.`
+    : `Your dated goals need <b>${fmtMoney(D.claim)}/month</b> to land on time, against a net of <b>${fmtMoney(D.net)}</b> — you are <b>${fmtMoney(Math.abs(D.free))}/month short</b> before a single dollar of living expense. Nothing is deployable until a goal moves, shrinks, or income rises.`;
+  push(D.free > 0 ? "green" : "red", D.free > 0 ? "$" : "!", D.free > 0 ? "Deployable this month" : "Goals outrun income",
+    freeTxt
+    + (D.overdueNow > 0 ? ` Separately, <b>${fmtMoney(D.overdueNow)}</b> is already past its date and sits outside that monthly figure.` : "")
+    + (S.livingCost == null ? ` This assumes <b>no living expenses at all</b> — none are logged, so treat it as a ceiling, not a budget.` : ""));
+
+  // 2. overdue
+  const overdue = M.goals.filter(g => g.target != null && g.target < M.today);
+  overdue.forEach(g => push("red", "!", `${g.name} is past its date`,
+    `Target was <b>${esc(g.targetLabel)}</b>, ${M.today - g.target} months ago, against <b>${fmtMoney(g.total)}</b> required and <b>${fmtMoney(g.monthly)}/mo</b> logged. Decide now: refund it, re-date it, or drop it — it is currently neither.`));
+
+  // 3. conflicts — a decision, not a warning
+  M.conflicts.forEach(c => push("amber", "?", `Reconcile ${c.name.toLowerCase()}`,
+    esc(c.detail) + ` Until you pick one, every projection past that date is wrong by the difference.`));
+
+  // 4. pressure ahead
+  const window12 = M.events.filter(e => e.kind === "goal" && e.month >= M.today && e.month <= M.today + 12);
+  const sum12 = window12.reduce((a, e) => a + (e.amount || 0), 0);
+  if (window12.length) push("amber", "⌁", "Pressure in the next 12 months",
+    `<b>${fmtMoney(sum12)}</b> across ${window12.length} commitment${window12.length === 1 ? "" : "s"} — ${window12.map(e => esc(e.name) + " " + miLabel(e.month)).join(", ")}. At ${fmtMoney(D.net)}/mo you can generate ${fmtMoney(D.net * 12)} in that window.`);
+  const cluster = M.events.filter(e => e.kind === "goal").reduce((acc, e) => { const y = miY(e.month); acc[y] = (acc[y] || 0) + (e.amount || 0); return acc; }, {});
+  const worst = Object.entries(cluster).sort((a, b) => b[1] - a[1])[0];
+  if (worst) push("amber", "⌁", `${worst[0]} is the crunch year`,
+    `<b>${fmtMoney(worst[1])}</b> falls due in ${worst[0]} alone. Drag those events apart on the Cash Map to see which pairing your income can actually carry.`);
+
+  // 5. missing information that blocks decisions
+  M.unknowns.forEach(u => push("grey", "·", `Blocked: ${u.label.toLowerCase()}`,
+    esc(String(u.why || "").replace(/<[^>]+>/g, "")) + ` Nothing downstream of this can be trusted until it's filled in.`));
+
+  // 6. explicit decisions from the source, preserved
+  (M.raw.decisions || []).forEach(x => push("cyan", "→", esc(x.name), esc(x.detail)));
+
+  return out;
+}
+
+function renderBrief(hostId) {
+  const host = $("#" + hostId); if (!host) return;
+  const items = briefItems();
+  const TONE = { red: "var(--rose)", amber: "var(--amber)", green: "var(--green)", cyan: "var(--cyan)", grey: "var(--ink-3)" };
+  host.innerHTML = `
+    <div class="panel-h">
+      <h2>Finance Brief</h2>
+      <span class="src">decisions ahead of statistics · regenerated from the same figures</span>
+    </div>
+    <div class="brief-list">
+      ${items.map(it => `
+        <div class="bitem">
+          <div class="bi" style="background:${TONE[it.tone]}1f;color:${TONE[it.tone]}">${it.icon}</div>
+          <div>
+            <div class="bt" style="color:${TONE[it.tone]}">${it.title}</div>
+            <div class="bd">${it.desc}</div>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+
+/* ===================================================================
+   9. LEDGER — the original report, preserved in full, as backup
+   =================================================================== */
+function renderLedger() {
+  const d = M.raw;
+  const salaryRows = (d.salary?.rows || []).map(r =>
+    `<tr><td>${esc(r.name)}</td><td class="r">${esc(r.gross)}</td><td class="r">${esc(r.cpf)}</td><td class="r">${esc(r.takeHome)}</td></tr>`).join("");
   const t = d.salary?.total;
-  const salaryTotal = t ? `
-    <tr><td><b>${esc(t.name)}</b></td><td class="num"><b>${esc(t.gross)}</b></td><td class="num"><b>${esc(t.cpf)}</b></td><td class="num"><b>${esc(t.takeHome)}</b></td></tr>` : "";
-
-  const bills = (d.bills?.items || []).map(b => `
-    <li><span>${esc(b.name)}</span><span>${esc(b.detail)}</span></li>`).join("");
-
-  const cats = d.expenditure?.categories || [];
-  const expenditure = cats.length
-    ? `<table><tr><th>Category</th><th class="num">Spend</th><th class="num">Budget</th><th class="num">Variance</th></tr>` +
-      cats.map(c => `<tr><td>${esc(c.name)}</td><td class="num">${esc(c.spend)}</td><td class="num">${esc(c.budget)}</td><td class="num">${esc(c.variance)}</td></tr>`).join("") +
-      `</table>`
-    : `<div style="text-align:center; padding:24px 0; color:#6b7280; font-size:13px;">${esc(d.expenditure?.emptyMessage)}</div>`;
-
-  const goals = (d.savingsGoals?.rows || []).map(g => `
-    <tr><td>${esc(g.goal)}</td><td>${esc(g.target)}</td><td class="num">${esc(g.totalCost)}</td><td class="num">${esc(g.monthly)}</td>
-    <td><span class="${tone(g.tone)}">${esc(g.status)}</span></td></tr>`).join("");
-
-  const decisions = (d.decisions || []).map(x => `
-    <li><span>${esc(x.name)}</span><span>${esc(x.detail)}</span></li>`).join("");
-
-  document.getElementById("app").innerHTML = `
-    <div class="header">
-      <div>
-        <h1>Finance — Monthly Report</h1>
-        <div class="sub">Reporting period: ${esc(p.label)}${p.note ? " (" + esc(p.note) + ")" : ""} · Salary · CPF · Bills · Expenditure · Cash runway · Savings plan</div>
-        <div class="who" id="who"></div>
-      </div>
-      <span class="${tone(d.status?.tone)}">${esc(d.status?.badge)}</span>
-    </div>
-    ${alert}
-    <div class="grid">${kpis}</div>
+  // Source categories, plus any Joseph has typed in (marked as his entries).
+  const cats = (d.expenditure?.categories || []).concat(
+    Store.d.expenditure.filter(c => c.name).map(c => ({
+      name: c.name + " *", spend: fmtMoney(c.spend), budget: fmtMoney(c.budget),
+      variance: (c.spend != null && c.budget != null) ? fmtMoney(c.budget - c.spend, { signed: true }) : "—"
+    })));
+  $("#p-ledger").innerHTML = `
+    ${d.alert?.show ? `
+    <div class="panel" style="border-color:rgba(245,181,68,.32);background:linear-gradient(180deg,rgba(245,181,68,.07),var(--bg-2))">
+      <div class="panel-h"><h2 style="color:var(--amber)">⚠ ${esc(d.alert.title)}</h2></div>
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.7">${d.alert.body}</div>
+    </div>` : ""}
 
     <div class="panel">
-      <h2>Salary &amp; CPF <span class="src">source: ${esc(d.salary?.source)}</span></h2>
+      <div class="panel-h"><h2>Salary &amp; CPF</h2><span class="src">source: ${esc(d.salary?.source)}</span></div>
       <table>
-        <tr><th></th><th class="num">Gross</th><th class="num">CPF (20%)</th><th class="num">Take-home</th></tr>
-        ${salaryRows}${salaryTotal}
+        <tr><th></th><th class="r">Gross</th><th class="r">CPF</th><th class="r">Take-home</th></tr>
+        ${salaryRows}
+        ${t ? `<tr><td><b>${esc(t.name)}</b></td><td class="r"><b>${esc(t.gross)}</b></td><td class="r"><b>${esc(t.cpf)}</b></td><td class="r"><b>${esc(t.takeHome)}</b></td></tr>` : ""}
       </table>
-      <div style="margin-top:10px; color:#6b7280; font-size:12px;">${esc(d.salary?.note)}</div>
+      <div style="margin-top:12px;color:var(--ink-3);font-size:12px;line-height:1.6">${esc(d.salary?.note)}</div>
     </div>
 
     <div class="panel">
-      <h2>Bills &amp; Commitments <span class="src">source: ${esc(d.bills?.source)}</span></h2>
-      <ul class="list">${bills}</ul>
+      <div class="panel-h"><h2>Bills &amp; Commitments</h2><span class="src">source: ${esc(d.bills?.source)}</span></div>
+      <ul class="lst">${(d.bills?.items || []).map(b => `<li><span>${esc(b.name)}</span><span>${esc(b.detail)}</span></li>`).join("")}</ul>
     </div>
 
     <div class="cols-2">
       <div class="panel">
-        <h2>Expenditure by Category</h2>
-        ${expenditure}
+        <div class="panel-h"><h2>Expenditure by category</h2></div>
+        ${cats.length ? `<table><tr><th>Category</th><th class="r">Spend</th><th class="r">Budget</th><th class="r">Variance</th></tr>
+          ${cats.map(c => `<tr><td>${esc(c.name)}</td><td class="r">${esc(c.spend)}</td><td class="r">${esc(c.budget)}</td><td class="r">${esc(c.variance)}</td></tr>`).join("")}</table>`
+          : `<div style="color:var(--ink-3);font-size:12.5px;line-height:1.7;padding:14px 0">${esc(d.expenditure?.emptyMessage)}</div>`}
       </div>
       <div class="panel">
-        <h2>Overspend Verdict</h2>
-        <div style="text-align:center; padding:12px 0;">
-          <span class="${tone(d.overspend?.tone)}" style="font-size:13px; padding:6px 16px;">${esc(d.overspend?.verdict)}</span>
-        </div>
-        <div style="font-size:12px; color:#6b7280;">${esc(d.overspend?.note)}</div>
+        <div class="panel-h"><h2>Overspend verdict</h2></div>
+        <div style="padding:10px 0 14px"><span class="chip ${esc(d.overspend?.tone)}">${esc(d.overspend?.verdict)}</span></div>
+        <div style="font-size:12.5px;color:var(--ink-3);line-height:1.65">${esc(d.overspend?.note)}</div>
+        <div class="panel-h" style="margin-top:22px"><h2>Cash runway</h2></div>
+        <div style="font-size:12.5px;color:var(--ink-3);line-height:1.65">${d.cashRunway?.value ?? ""} ${d.cashRunway?.note || ""}</div>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Cash Runway</h2>
-      <div style="font-size:13px; color:#6b7280;">${d.cashRunway?.value ?? ""} ${d.cashRunway?.note || ""}</div>
-    </div>
-
-    <div class="panel">
-      <h2>Savings Goals <span class="src">source: ${esc(d.savingsGoals?.source)}</span></h2>
+      <div class="panel-h"><h2>Savings goals</h2><span class="src">source: ${esc(d.savingsGoals?.source)}</span></div>
       <table>
-        <tr><th>Goal</th><th>Target</th><th class="num">Total Cost</th><th class="num">Monthly Set-Aside</th><th>Status</th></tr>
-        ${goals}
+        <tr><th>Goal</th><th>Target</th><th class="r">Total cost</th><th class="r">Monthly set-aside</th><th>Status</th></tr>
+        ${(d.savingsGoals?.rows || []).map(g => `<tr><td>${esc(g.goal)}</td><td>${esc(g.target)}</td><td class="r">${esc(g.totalCost)}</td><td class="r">${esc(g.monthly)}</td><td><span class="chip ${esc(g.tone)}">${esc(g.status)}</span></td></tr>`).join("")}
       </table>
-      <div style="margin-top:10px; font-size:12px; color:#6b7280;">${esc(d.savingsGoals?.note)}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--ink-3);line-height:1.6">${esc(d.savingsGoals?.note)}</div>
     </div>
 
     <div class="panel">
-      <h2>Decision needed from Joseph</h2>
-      <ul class="list">${decisions}</ul>
-    </div>
-
-    <div class="footer">${d.footer || ""} · generated ${esc(p.generatedAt)}</div>`;
+      <div class="panel-h"><h2>Decision needed from Joseph</h2></div>
+      <ul class="lst">${(d.decisions || []).map(x => `<li><span>${esc(x.name)}</span><span>${esc(x.detail)}</span></li>`).join("")}</ul>
+    </div>`;
 }
 
-// Show which Access-authenticated identity is viewing, when behind Cloudflare Access.
+/* ===================================================================
+   10. WIRING
+   =================================================================== */
+function refreshTime() {
+  renderRail(); renderTMHead(); drawChart(); renderScenarioBar();
+  renderBrief("p-brief"); renderBrief("p-brief-goals");
+  if ($("#const")) drawConstellation();
+}
+
+function boot(d) {
+  Store.load();
+  buildModel(d);
+  S.opening = Store.d.openingCash;
+  S.livingCost = Store.d.livingCost;
+  renderShell();
+  renderIntegrity();
+  renderTimeMachine();
+  renderInputs();
+  renderConstellation();
+  renderAsk();
+  renderLedger();
+  syncAssumptions();
+  refreshTime();
+  whoami();
+}
+
 async function whoami() {
   try {
     const r = await fetch("/cdn-cgi/access/get-identity", { credentials: "include" });
     if (!r.ok) return;
     const id = await r.json();
-    if (id && id.email) document.getElementById("who").textContent = "Signed in as " + id.email;
+    if (id && id.email) $("#who").textContent = "Signed in as " + id.email;
   } catch (_) { /* not behind Access — ignore */ }
 }
 
 fetch("data/finance.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(d => { render(d); whoami(); })
+  .then(boot)
   .catch(e => {
-    document.getElementById("app").innerHTML =
-      '<div class="alert"><div class="title">⚠ Could not load data/finance.json</div><div class="desc">' + esc(e.message) + '</div></div>';
+    $("#app").innerHTML =
+      `<div class="panel" style="border-color:rgba(251,113,133,.4)">
+         <div class="panel-h"><h2 style="color:var(--rose)">⚠ Could not load data/finance.json</h2></div>
+         <div style="font-size:13px;color:var(--ink-2)">${esc(e.message)}</div>
+       </div>`;
   });
 </script>
 </body>

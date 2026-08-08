@@ -5,7 +5,7 @@
   "description": "Joseph's monthly finance dashboard — static site on Cloudflare Pages, gated by Cloudflare Access.",
   "scripts": {
     "dev": "python3 -m http.server 4124",
-    "build": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp -R data dist/",
+    "build": "rm -rf dist && mkdir -p dist && cp index.html index.legacy.html dist/ && cp -R data dist/",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=finance-dashboard --commit-dirty=true"
   },
   "devDependencies": {
