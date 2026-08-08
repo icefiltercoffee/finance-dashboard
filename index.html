@@ -499,8 +499,10 @@ function buildModel(d) {
     M.unknowns.push({ k: "opening", label: "Opening cash balance", why: d.cashRunway?.note });
   if (!(d.expenditure?.categories || []).length && !Store.d.expenditure.length && Store.d.livingCost == null)
     M.unknowns.push({ k: "spend", label: "Monthly living expenses", why: d.expenditure?.emptyMessage });
-  if (M.goals.filter(g => !g.fundedIsRecorded).length)
-    M.unknowns.push({ k: "funded", label: "Amount already funded per goal", why: d.savingsGoals?.note });
+  const unfunded = M.goals.filter(g => !g.fundedIsRecorded);
+  if (unfunded.length)
+    M.unknowns.push({ k: "funded", label: "Amount already funded per goal",
+      why: `The source records a monthly set-aside per goal but never a running balance, so progress against ${unfunded.length === M.goals.length ? "every target" : unfunded.map(g => g.name).join(", ")} is unknown. Every "remaining" figure below assumes nothing has been put aside.` });
 
   /* --- conflicts carried verbatim from the source --- */
   M.conflicts = [];
