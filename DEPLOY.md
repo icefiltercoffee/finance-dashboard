@@ -141,6 +141,8 @@ git push
 | File | Role |
 |---|---|
 | `index.html` | Template + renderer (Finance Intern). Contains **no figures**. |
+| `functions/_middleware.js` | Server-side PIN gate. Runs before every request, including `/data/finance.json`. |
+| `.dev.vars` | Local secrets. **Gitignored — never commit.** |
 | `data/finance.json` | Every number, sourced from the Drive workbook. The only monthly diff. |
 | `wrangler.toml` | Pages project config (`finance-dashboard`, builds from `dist/`). |
 | `package.json` | `dev` / `build` / `deploy` scripts. |
@@ -149,57 +151,70 @@ git push
 
 ---
 
-## The login gate — READ THIS BEFORE YOU TRUST IT
+## The login gate — server-side PIN
 
-There are two separate things here, and only one of them is security.
+The dashboard is behind a real PIN check enforced by Cloudflare Pages Functions.
+`functions/_middleware.js` runs in front of **every** request — `/`, HTML, JS, CSS and
+`/data/finance.json` — and calls `context.next()` only once a valid session cookie is present.
+An unauthenticated request to the JSON gets the login screen with a `401`, not your data.
 
-| | What it is | Does it protect anything? |
-|---|---|---|
-| **PIN screen** in `index.html` | The Steven-style passcode screen you see on load | **No.** It accepts any 4 digits and checks nothing. Anyone can press Enter, view source, or fetch `/data/finance.json` directly. It is a visual lock, matching Steven. |
-| **Cloudflare Access** | Edge auth in front of the whole site | **Yes.** Nothing is served — not the HTML, not the JSON — until Cloudflare has verified your email. |
+### Required secrets
 
-Right now `finance-dashboard-153.pages.dev` is **public**, and it shows your and Melissa's
-salaries, CPF, balances and liabilities. Until step 5 below is done, treat the URL as fully
-public — anyone with the link has everything.
+Set both in **Workers & Pages → finance-dashboard → Settings → Variables and Secrets**,
+type **Secret** (encrypted), for the **Production** environment (and Preview if you use it):
 
-### Turning on Cloudflare Access
+| Name | Value |
+|---|---|
+| `FINANCE_PIN` | Your 4-digit PIN. The login screen draws one dot per digit, so a 4-digit PIN keeps the original design. Longer works — you just get more dots. |
+| `SESSION_SECRET` | A long random string used to sign the session cookie. Generate one with `openssl rand -base64 48`. Changing it invalidates every existing session. |
 
-Access can't attach to a bare `pages.dev` hostname, so it needs a custom domain on a
-Cloudflare zone. That's the only reason a domain enters the picture.
+Neither value is ever sent to the browser, written to `finance.json`, committed to git, or
+placed in `wrangler.toml`. The only thing the login page discloses is how many digits to draw.
 
-1. **Get a domain onto Cloudflare** (skip if you already have one). Cloudflare dashboard →
-   *Add a site* → follow the nameserver change at your registrar. Free plan is fine.
-2. **Workers & Pages → finance-dashboard → Custom domains** → *Set up a custom domain* →
-   e.g. `finance.yourdomain.com`. Wait for it to go green.
-3. **Zero Trust → Settings → Authentication → Login methods** → *Add new* → **One-time PIN**.
-   This emails a 6-digit code; no Google/GitHub OAuth app to register.
-4. **Zero Trust → Access → Applications** → *Add an application* → **Self-hosted**:
-   - Application name: `Finance Intern`
-   - Session duration: 24 hours (or 1 week if the re-auth annoys you)
-   - Public hostname: `finance.yourdomain.com`
-   - Policy → name `Household`, action **Allow**, Include → **Emails** →
-     `josephneoh25@gmail.com` **and Melissa's email**
-   - Leave everything else default → *Save*.
-5. **Cover the raw pages.dev URL too.** Workers & Pages → finance-dashboard → *Settings* →
-   **Deployment protection** (called *Access policy* in some accounts) → enable Access on
-   **Production** *and* **Preview**. Without this step the original
-   `finance-dashboard-153.pages.dev` stays wide open and steps 1–4 achieve nothing.
-6. **Verify it.** Open the site in a private window. You should get a Cloudflare
-   email-code screen *before* the PIN screen. Then confirm the JSON is gated too:
+**If either secret is missing the site returns 503 and serves nothing.** It fails closed on
+purpose — a misconfiguration must not silently make the dashboard public.
 
-```bash
-curl -sI https://finance-dashboard-153.pages.dev/data/finance.json | head -1
+### How the session works
+
+- `POST /__auth/login` with `{"pin":"…"}` → compared server-side against `FINANCE_PIN` using a
+  constant-time digest comparison.
+- Correct → `Set-Cookie: fi_session=<payload>.<HMAC-SHA256>; HttpOnly; Secure; SameSite=Strict;
+  Path=/; Max-Age=604800` (7 days).
+- Wrong → `401 {"error":"Incorrect passcode."}`. The response never reveals the PIN or its value.
+- `POST /__auth/logout` clears the cookie. The **Sign out** link in the dashboard header calls it.
+
+### Rate limiting
+
+Per-IP attempt counters live in the Cache API — no KV, D1 or other infrastructure. Failed
+attempts get an exponential delay (250 ms doubling to a 4 s cap) and the 8th attempt within
+15 minutes returns `429` until the window expires.
+
+This is **best effort**: the Cache API is per-datacentre and evictable, and an attacker with
+many IPs gets more attempts. With a 4-digit PIN (10,000 combinations) the delay is doing real
+work — if you want more margin, use a 6-digit PIN and the screen will render 6 dots.
+
+### Local development
+
+`.dev.vars` holds the local values and is gitignored — never commit it. Use throwaway
+values here; they must not match the production secrets:
+
+```
+FINANCE_PIN="0000"          # any 4 digits, local only
+SESSION_SECRET="anything-long-and-random-local-only"
 ```
 
-A `302` to `cloudflareaccess.com` means it's protected. A `200` means it is still public —
-step 5 didn't take.
+```bash
+npm run dev            # wrangler pages dev — runs the middleware, port 4124
+```
 
-Free tier covers 50 users. Once Access is live, `index.html` reads
-`/cdn-cgi/access/get-identity` and shows "Signed in as …" in the header, and the gate's
-footer switches from "Private" to "Cloudflare Access". Until then it silently no-ops.
+`npm run dev:static` still serves the raw files with Python, but that bypasses the middleware
+entirely, so use it only for pure layout work.
 
-### If you want the PIN to actually check a code
+### Verifying it after deploy
 
-Say the word and I'll wire it to a real comparison. Be clear-eyed about what that buys:
-it stops someone casually clicking through, but the passcode would sit in the page source
-and `data/finance.json` would still be fetchable. It is not a substitute for step 5.
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://finance-dashboard-153.pages.dev/data/finance.json
+```
+
+`401` means the gate is live. `200` means it is still public — check the secrets are set on the
+**Production** environment and redeploy.

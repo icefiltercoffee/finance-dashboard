@@ -2,9 +2,10 @@
   "name": "finance-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Joseph's monthly finance dashboard — static site on Cloudflare Pages, gated by Cloudflare Access.",
+  "description": "Joseph's monthly finance dashboard — static site on Cloudflare Pages, gated by a server-side PIN (functions/_middleware.js).",
   "scripts": {
-    "dev": "python3 -m http.server 4124",
+    "dev": "npm run build && wrangler pages dev dist --port 4124",
+    "dev:static": "python3 -m http.server 4124",
     "build": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp -R data dist/",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=finance-dashboard --commit-dirty=true"
   },

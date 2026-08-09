@@ -35,30 +35,13 @@
        -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.5;}
   ::selection{background:var(--clay-soft);}
 
-  /* ============ GATE ============ */
-  .gate{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
-        background:#241c12; overflow:hidden; transition:opacity .7s ease, visibility .7s;}
-  .gate::before{content:""; position:absolute; inset:0;
-    background:radial-gradient(900px 600px at 20% 10%, rgba(175,106,62,.30), transparent 60%),
-      radial-gradient(800px 520px at 85% 90%, rgba(94,107,77,.26), transparent 62%),
-      linear-gradient(180deg, rgba(38,26,14,.55), rgba(26,18,9,.88));}
-  .gate.hide{opacity:0; visibility:hidden;}
-  .gate-card{position:relative; z-index:2; width:min(88vw,340px); text-align:center; color:#f6ecda; padding:8px;}
-  .gate-mark{font-family:var(--serif); font-weight:500; font-size:15px; letter-spacing:.34em;
-             text-transform:uppercase; opacity:.78; margin-bottom:24px;}
-  .gate-title{font-family:var(--serif); font-weight:500; font-size:52px; line-height:1; margin:0 0 10px;}
-  .gate-sub{font-size:13.5px; opacity:.72; margin-bottom:34px;}
-  .pin{display:flex; gap:11px; justify-content:center; margin-bottom:22px;}
-  .pin i{width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(246,236,218,.55); display:block; transition:.2s;}
-  .pin i.on{background:#f6ecda; border-color:#f6ecda;}
-  .enter{appearance:none; border:0; cursor:pointer; font-family:var(--sans); font-size:14px; font-weight:500;
-         color:#241c12; background:#f6ecda; padding:12px 30px; border-radius:100px; transition:.2s;}
-  .enter:hover{transform:translateY(-1px); background:#fff;}
-  .gate-lock{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; letter-spacing:.06em;
-             text-transform:uppercase; opacity:.55; margin-top:26px;}
-
   /* ============ APP ============ */
-  .app{display:none;} .app.show{display:block;}
+  /* The gate styles moved to functions/_middleware.js, which now serves the
+     PIN screen as its own document before this file is ever reachable. */
+  .app{display:block;}
+  .signout{border:0; background:none; padding:0; font:inherit; font-size:11.5px; color:var(--ink-faint);
+    cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
+  .signout:hover{color:var(--clay-deep);}
   .wrap{max-width:1400px; margin:0 auto; padding:24px clamp(16px,3vw,38px) 70px;}
   .topbar{display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
           padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--line);}
@@ -292,16 +275,8 @@
 </head>
 <body>
 
-<div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="gate-mark">Steven</div>
-    <h1 class="gate-title">Finance Intern</h1>
-    <div class="gate-sub">Enter your passcode to continue.</div>
-    <div class="pin" id="pin"><i></i><i></i><i></i><i></i></div>
-    <button class="enter" id="enterBtn">Enter</button>
-    <div class="gate-lock" id="gateLock">🔒 Private</div>
-  </div>
-</div>
+<!-- The PIN screen is served by functions/_middleware.js. Reaching this file at
+     all means the session cookie already verified, so the app renders directly. -->
 
 <div class="app" id="app"><div class="wrap" id="root"><div class="card pad">Loading…</div></div></div>
 <div class="tip" id="tip"></div>
@@ -493,6 +468,7 @@ function renderShell(){
         <div class="brand-sub">SGD · Monthly Overview + Annual Overview · Jan 2026 onwards</div></div></div>
       <div class="topbar-right">
         <span class="who" id="who"></span>
+        <button class="signout" id="signout" type="button">Sign out</button>
         <button class="tab-faq" id="tab-faq" role="tab" aria-selected="false">FAQ</button>
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" data-view="joseph" aria-selected="true">Joseph</button>
@@ -545,6 +521,7 @@ function renderShell(){
   };
   $$(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.view));
   $("#tab-faq").onclick=()=>setTab("faq");
+  $("#signout").onclick=signOut;
 }
 
 function renderBlankTab(id,name){
@@ -1405,21 +1382,15 @@ async function whoami(){
     const id=await r.json();
     if(id&&id.email){
       const w=$("#who"); if(w) w.textContent="Signed in as "+id.email;
-      const g=$("#gateLock"); if(g) g.textContent="🔒 Cloudflare Access";
     }
   }catch(_){}
 }
-(function(){
-  const gate=$("#gate"), pins=$$("#pin i"); let filled=0;
-  function enter(){gate.classList.add("hide"); $("#app").classList.add("show");
-    setTimeout(()=>{gate.style.display="none";},700);}
-  $("#enterBtn").onclick=enter;
-  addEventListener("keydown",e=>{
-    if(gate.classList.contains("hide")) return;
-    if(e.key==="Enter") enter();
-    else if(/^[0-9]$/.test(e.key)&&filled<4){pins[filled].classList.add("on"); filled++; if(filled===4) setTimeout(enter,260);}
-    else if(e.key==="Backspace"&&filled>0){filled--; pins[filled].classList.remove("on");}});
-})();
+/* Sign out — clears the session cookie server-side, then reloads into the
+   PIN screen. The cookie is HttpOnly, so only the server can clear it. */
+async function signOut(){
+  try{ await fetch("/__auth/logout",{method:"POST",credentials:"same-origin"}); }catch(_){}
+  location.replace("/");
+}
 
 fetch("data/finance.json",{cache:"no-store"})
   .then(r=>{if(!r.ok) throw new Error("HTTP "+r.status); return r.json();})
