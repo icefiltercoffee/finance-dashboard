@@ -212,6 +212,9 @@
   .fill-f input.set{border-color:var(--pine); background:var(--pine-soft);}
   .fill-f .wrapin.readonly input{background:var(--paper-2); color:var(--ink-soft); cursor:default;}
   .fill-f .wrapin.readonly input.set{border-color:var(--pine); background:var(--pine-soft); color:inherit;}
+  .linkbtn{border:0; background:none; padding:0; margin-left:5px; font:inherit; font-size:10.5px;
+           color:var(--pine-deep); text-decoration:underline; cursor:pointer;}
+  .linkbtn:hover{color:var(--ink);}
 
   .bitem{display:grid; grid-template-columns:24px 1fr; gap:13px; padding:14px 0; border-bottom:1px solid var(--line-soft);}
   .bitem:last-child{border-bottom:0;}
@@ -401,15 +404,128 @@ function buildCombinedRaw(dJ,dM){
 const LS="financeIntern.v3";
 const S={tab:"joseph", horizon:24, cursor:0, month:null, balances:{}, goalAmt:{},
          includeMelissa:false, shifts:{}, preview:null, selectedGoal:null};
-function loadLocal(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
-  S.balances=j.balances||{}; S.goalAmt=j.goalAmt||{}; S.includeMelissa=!!j.includeMelissa;}catch(_){}}
-function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(
+/* ---- persistence ----------------------------------------------------------
+   Typed numbers live server-side in KV (functions/api/state.js) so they survive
+   a refresh and follow you to any device behind the same PIN. localStorage is
+   kept only as an offline mirror — if the server is unreachable the dashboard
+   keeps working and says which mode it is in, rather than quietly losing input. */
+const SYNC={mode:"loading", at:null, err:null, inflight:false, timer:null,
+            pending:{set:{},unset:[],goalAmt:{},unsetGoalAmt:[]}};
+const emptyPatch=()=>({set:{},unset:[],goalAmt:{},unsetGoalAmt:[]});
+const pendingEmpty=p=>!Object.keys(p.set).length&&!p.unset.length
+                    &&!Object.keys(p.goalAmt).length&&!p.unsetGoalAmt.length;
+
+function cacheLocal(){try{localStorage.setItem(LS,JSON.stringify(
   {balances:S.balances,goalAmt:S.goalAmt,includeMelissa:S.includeMelissa}));}catch(_){}}
+function loadCache(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
+  S.balances=j.balances||{}; S.goalAmt=j.goalAmt||{}; S.includeMelissa=!!j.includeMelissa;}catch(_){}}
+
+function setSync(mode,err){SYNC.mode=mode; if(err!==undefined) SYNC.err=err; paintSync();}
+function syncText(){
+  if(SYNC.mode==="loading") return ["grey","Loading…"];
+  if(SYNC.mode==="saving")  return ["grey","Saving…"];
+  if(SYNC.mode==="server")  return ["pine","Saved · syncs across devices"];
+  return ["clay","This device only — "+(SYNC.err||"server unavailable")];
+}
+function paintSync(){
+  const el=$("#sync-chip"); if(!el) return;
+  const [tone,text]=syncText();
+  el.className="chip "+tone; el.textContent=text;
+  el.title=SYNC.at?"Last saved "+new Date(SYNC.at).toLocaleString():"";
+}
+
+async function pullServer(){
+  const r=await fetch("/api/state",{credentials:"same-origin",cache:"no-store"});
+  if(!r.ok){
+    let m="HTTP "+r.status;
+    try{const j=await r.json(); if(j&&j.message) m=j.message;}catch(_){}
+    throw new Error(m);
+  }
+  return r.json();
+}
+
+/** First load: server is authoritative. If it has nothing yet but this browser
+ *  does, the local values are pushed up rather than discarded — that carries
+ *  across anything typed before the dashboard could save. */
+async function loadState(){
+  loadCache();
+  const localVals=Object.assign({},S.balances), localGoals=Object.assign({},S.goalAmt);
+  try{
+    const j=await pullServer();
+    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{};
+    SYNC.at=j.updatedAt; setSync("server",null);
+    const serverEmpty=!Object.keys(S.balances).length&&!Object.keys(S.goalAmt).length;
+    const haveLocal=Object.keys(localVals).length||Object.keys(localGoals).length;
+    if(serverEmpty&&haveLocal){
+      S.balances=localVals; S.goalAmt=localGoals;
+      queueSave({set:localVals,goalAmt:localGoals});
+      await flushSave();
+    }
+  }catch(e){
+    S.balances=localVals; S.goalAmt=localGoals;      // keep working offline
+    setSync("local",e.message);
+  }
+  cacheLocal();
+}
+
+function queueSave(patch){
+  const p=SYNC.pending;
+  Object.assign(p.set,patch.set||{});
+  Object.assign(p.goalAmt,patch.goalAmt||{});
+  (patch.unset||[]).forEach(k=>{delete p.set[k]; if(!p.unset.includes(k)) p.unset.push(k);});
+  (patch.unsetGoalAmt||[]).forEach(k=>{delete p.goalAmt[k]; if(!p.unsetGoalAmt.includes(k)) p.unsetGoalAmt.push(k);});
+  cacheLocal();
+  setSync("saving");
+  clearTimeout(SYNC.timer);
+  SYNC.timer=setTimeout(flushSave,600);
+}
+
+async function flushSave(){
+  clearTimeout(SYNC.timer);
+  if(SYNC.inflight){SYNC.timer=setTimeout(flushSave,300); return;}
+  if(pendingEmpty(SYNC.pending)) return;
+  const body=SYNC.pending; SYNC.pending=emptyPatch();
+  SYNC.inflight=true;
+  try{
+    const r=await fetch("/api/state",{method:"PATCH",credentials:"same-origin",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok){
+      let m="HTTP "+r.status;
+      try{const j=await r.json(); if(j&&j.message) m=j.message;}catch(_){}
+      throw new Error(m);
+    }
+    const j=await r.json();
+    // Adopt the merged record so a field the other device changed shows up here.
+    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{};
+    SYNC.at=j.updatedAt; setSync("server",null);
+    cacheLocal();
+    refreshExceptFill();          // never re-renders #p-fill, so typing isn't interrupted
+  }catch(e){
+    setSync("local",e.message);   // the local mirror already holds it
+  }finally{SYNC.inflight=false;}
+}
+
+/* Coming back to the tab picks up anything the other device saved. */
+async function syncOnFocus(){
+  if(SYNC.mode==="local"||SYNC.inflight||!pendingEmpty(SYNC.pending)) return;
+  try{
+    const j=await pullServer();
+    if(j.updatedAt===SYNC.at) return;
+    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{};
+    SYNC.at=j.updatedAt; setSync("server",null); cacheLocal();
+    if(!/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||"")){
+      renderFill(); refresh();
+    }
+  }catch(_){/* transient — the chip only changes on a failed write */}
+}
 
 /* Balance keys are unique across scopes, so one flat store serves all tabs.
    The combined trio is derived, never typed — see DERIVED. */
 const FIELDS={};
-const DERIVED={
+/* The combined trio is typed in its own right — a joint account is a real
+   balance, not an arithmetic result. Where it hasn't been typed it falls back
+   to the sum of the two sides so the tab isn't blank for no reason. */
+const PARTS={
   cashCombined :["cashJoseph","cashMelissa"],
   invCombined  :["invJoseph","invMelissa"],
   cpfOaCombined:["cpfOaJoseph","cpfOaMelissa"]
@@ -420,12 +536,16 @@ function rawBal(k){
   const f=FIELDS[k];
   return f&&f.value!=null?f.value:null;
 }
-function balVal(k){
-  const parts=DERIVED[k];
-  if(!parts) return rawBal(k);
+function sumParts(k){
+  const parts=PARTS[k]; if(!parts) return null;
   const vs=parts.map(rawBal);
   return vs.every(v=>v==null)?null:vs.reduce((a,v)=>a+(v||0),0);   // unknown, never 0
 }
+function balVal(k){
+  const v=rawBal(k);
+  return v!=null?v:sumParts(k);
+}
+const isTyped=k=>rawBal(k)!=null;
 const anyBalanceSet=()=>M.balanceFields.some(f=>balVal(f.key)!=null);
 /* Goals are household-scale, so they always resolve against the combined
    figures regardless of which tab you happen to be on. */
@@ -708,7 +828,8 @@ function renderMap(){
     <div class="scenario-bar" id="scenario-bar"></div>`;
   $("#slider").oninput=e=>{S.cursor=+e.target.value; refresh();};
   const im=$("#inc-mel");
-  if(im) im.onchange=e=>{S.includeMelissa=e.target.checked; saveLocal(); renderIntegrity(); refresh();};
+  // A view preference, not data — stays on this device.
+  if(im) im.onchange=e=>{S.includeMelissa=e.target.checked; cacheLocal(); renderIntegrity(); refresh();};
   $$("#horizon button").forEach(b=>b.onclick=()=>{
     S.horizon=+b.dataset.h;
     $$("#horizon button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
@@ -1093,52 +1214,59 @@ function renderAskResults(opts){
 /* ================= 9. FILL IN WHAT'S MISSING ================= */
 function renderFill(){
   const host=$("#p-fill"); if(!host) return;
-  const derived=ACTIVE==="combined";
   const file=ACTIVE==="melissa"?"finance-melissa.json":"finance.json";
 
-  if(derived){
-    // Nothing to type here: each figure is Joseph's plus Melissa's. Showing an
-    // editable box would invite a third, conflicting number.
-    host.innerHTML=`<div class="sec-head"><h2>Fill in what's missing</h2>
-        <span class="hint">derived — enter the parts on the Joseph and Melissa tabs</span></div>
-      <div class="fill-grid">${M.balanceFields.map(f=>{
-        const v=balVal(f.key), parts=DERIVED[f.key]||[];
-        const bits=parts.map(k=>`${esc(FIELDS[k]?.label||k)} ${rawBal(k)==null?"—":fmt(rawBal(k))}`).join("  +  ");
-        return `<div class="fill-f"><label>${esc(f.label)}</label>
-          <div class="wrapin readonly"><span class="cur">$</span>
-          <input type="number" value="${v!=null?v:""}" placeholder="not set" disabled
-                 class="${v!=null?"set":""}"></div>
-          <div style="font-size:10.5px;color:var(--ink-faint);margin-top:5px">${bits}</div></div>`;}).join("")}</div>
-      <div style="font-size:11.5px;color:var(--ink-faint);margin-top:14px;line-height:1.6">
-        These three are <b>sums, not inputs</b> — each is Joseph's figure plus Melissa's, and updates the
-        moment either side is filled in. If only one side is entered, the total shows that side alone rather
-        than treating the missing half as zero. Enter the parts on the <b>Joseph</b> and <b>Melissa</b> tabs.</div>`;
-    return;
-  }
-
   host.innerHTML=`<div class="sec-head"><h2>Fill in what's missing</h2>
-      <span class="hint">saved in this browser only · never written to <code>${esc(file)}</code></span><span class="sp"></span>
+      <span class="chip grey" id="sync-chip">Loading…</span><span class="sp"></span>
       <button class="btn" id="fill-export">Copy as JSON patch</button>
       <button class="btn" id="fill-clear">Clear</button></div>
-    <div class="fill-grid">${M.balanceFields.map(f=>{const v=balVal(f.key);
+    <div class="fill-grid">${M.balanceFields.map(f=>{
+      const typed=rawBal(f.key), sum=sumParts(f.key), v=balVal(f.key);
+      const showing=typed==null&&sum!=null;
+      const mismatch=typed!=null&&sum!=null&&Math.round(typed)!==Math.round(sum);
+      let sub="";
+      if(PARTS[f.key]){
+        const bits=PARTS[f.key].map(k=>`${esc(FIELDS[k]?.label||k).replace(/ Balance$/,"")} ${rawBal(k)==null?"—":fmt(rawBal(k))}`).join(" + ");
+        if(showing) sub=`<span style="color:var(--pine-deep)">showing the sum · ${bits}</span>`;
+        else if(mismatch) sub=`<span style="color:var(--clay-deep)">the two sides add to ${fmt(sum)}</span>
+          <button class="linkbtn" data-usesum="${f.key}">use that</button>`;
+        else sub=bits;
+      }
       return `<div class="fill-f"><label for="b_${f.key}">${esc(f.label)}</label>
         <div class="wrapin"><span class="cur">$</span>
         <input type="number" id="b_${f.key}" data-bal="${f.key}" step="100" class="${v!=null?"set":""}"
-               placeholder="not set" value="${v!=null?v:""}"></div></div>`;}).join("")}</div>
+               placeholder="${showing?fmt(sum)+" (sum)":"not set"}" value="${typed!=null?typed:""}"></div>
+        ${sub?`<div style="font-size:10.5px;color:var(--ink-faint);margin-top:5px">${sub}</div>`:""}</div>`;}).join("")}</div>
     <div style="font-size:11.5px;color:var(--ink-faint);margin-top:14px;line-height:1.6">
-      All figures SGD. Net worth, the assets chart and the BTO funding split recalculate as you type.
-      The CPF OA field is what lets BTO draw CPF before cash — until both halves exist BTO is costed as
-      <b>100% cash</b>, the worst case. These feed the <b>Combined</b> tab, which is their sum.
+      All figures SGD, and saved for everyone with the passcode — not just this browser.
+      Net worth, the assets chart and the BTO funding split recalculate as you type.
+      The CPF OA field is what lets BTO draw CPF before cash — until it exists BTO is costed as
+      <b>100% cash</b>, the worst case.
+      ${ACTIVE==="combined"
+        ? `These three are yours to type — a joint account is a real balance, not an arithmetic result.
+           Leave one blank and it falls back to Joseph's plus Melissa's; type one and it stands on its own,
+           and you'll be told if it disagrees with the two sides.`
+        : `These are ${esc(M.scope.person)}'s own figures. The <b>Combined</b> tab has its own three, which
+           fall back to the sum of both sides until you type them.`}
       Goal amounts are edited on the <b>Goals</b> tab.</div>`;
+  paintSync();
 
   $$("[data-bal]",host).forEach(inp=>inp.oninput=e=>{
     const k=e.target.dataset.bal, v=e.target.value;
-    if(v==="") delete S.balances[k]; else S.balances[k]=+v;
+    if(v===""){delete S.balances[k]; queueSave({unset:[k]});}
+    else {S.balances[k]=+v; queueSave({set:{[k]:+v}});}
     e.target.classList.toggle("set",v!=="");
-    saveLocal(); renderIntegrity(); refreshExceptFill();});
+    renderIntegrity(); refreshExceptFill();});
+  $$("[data-usesum]",host).forEach(b=>b.onclick=()=>{
+    const k=b.dataset.usesum, v=sumParts(k);
+    if(v==null) return;
+    S.balances[k]=v; queueSave({set:{[k]:v}});
+    renderFill(); refresh();});
   $("#fill-clear").onclick=()=>{
-    M.balanceFields.forEach(f=>{delete S.balances[f.key];});   // only this person's
-    saveLocal(); refresh(); renderFill();};
+    const keys=M.balanceFields.map(f=>f.key);                  // only this person's
+    keys.forEach(k=>{delete S.balances[k];});
+    queueSave({unset:keys});
+    refresh(); renderFill();};
   $("#fill-export").onclick=()=>{
     const patch={balances:{asOf:new Date().toISOString().slice(0,10),
       fields:M.balanceFields.map(f=>({key:f.key,label:f.label,value:balVal(f.key),owner:f.owner}))}};
@@ -1320,12 +1448,13 @@ function renderGoalEditors(){
 
   $$("[data-amt]").forEach(inp=>inp.oninput=e=>{
     const k=e.target.dataset.amt, v=e.target.value;
-    if(v==="") delete S.goalAmt[k]; else S.goalAmt[k]=Math.max(0,+v);
-    saveLocal(); refreshGoals();});
+    if(v===""){delete S.goalAmt[k]; queueSave({unsetGoalAmt:[k]});}
+    else {S.goalAmt[k]=Math.max(0,+v); queueSave({goalAmt:{[k]:S.goalAmt[k]}});}
+    refreshGoals();});
   $$("[data-step]").forEach(b=>b.onclick=()=>{
     const k=b.dataset.goal, g=M.goals.find(x=>x.key===k);
     const cur=goalAmount(g), next=Math.max(0,cur+ +b.dataset.step);
-    S.goalAmt[k]=next; saveLocal(); refreshGoals();});
+    S.goalAmt[k]=next; queueSave({goalAmt:{[k]:next}}); refreshGoals();});
   renderPlanSummary();
 }
 
@@ -1509,8 +1638,7 @@ function refreshExceptFill(){
 function refresh(){refreshExceptFill(); if($("#p-bars")) renderBars();}
 function refreshGoals(){drawConstellation(); renderGoalEditors(); refreshExceptFill();}
 
-function boot(dJoseph,dMelissa){
-  loadLocal();
+async function boot(dJoseph,dMelissa){
   const combinedRaw=buildCombinedRaw(dJoseph,dMelissa);
   SCOPES.joseph  ={raw:dJoseph,   model:buildModel(dJoseph),   opts:{brief:true}};
   SCOPES.melissa ={raw:dMelissa,  model:buildModel(dMelissa),  opts:{brief:true}};
@@ -1519,8 +1647,11 @@ function boot(dJoseph,dMelissa){
 
   M=SCOPES.joseph.model;
   renderShell();
+  await loadState();               // server is authoritative; falls back to this device
   mountPerson("joseph");
   addEventListener("resize",drawTicks);
+  addEventListener("focus",syncOnFocus);
+  addEventListener("beforeunload",()=>{if(!pendingEmpty(SYNC.pending)) flushSave();});
   whoami();
 }
 async function whoami(){

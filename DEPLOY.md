@@ -144,9 +144,34 @@ git push
 | **Melissa** | `data/finance-melissa.json` | Same layout, awaiting her source sheet. Everything renders as "not known", never as `$0`. |
 | **Combined** | derived in the browser | Joseph + Melissa. **Never stored.** No Finance Brief. |
 
-Balances are per person — **Cash, Investment and CPF OA**, three per tab. The Combined
-trio is read-only: each figure is Joseph's plus Melissa's. If only one side has been
-entered, the total shows that side alone rather than treating the missing half as zero.
+Balances are per person — **Cash, Investment and CPF OA**, three per tab. All nine are
+typeable, including the Combined trio: a joint account is a real balance, not an
+arithmetic result. Leave a Combined field blank and it falls back to Joseph's plus
+Melissa's; type it and it stands on its own, and the dashboard flags it if it disagrees
+with the two sides (with a one-click "use that" to adopt the sum).
+
+### Where typed numbers are stored
+
+Balances and edited goal amounts are saved **server-side in Cloudflare KV**, so they
+survive a refresh and follow you to any device behind the same PIN. `localStorage` is
+only an offline mirror.
+
+| Piece | Where |
+|---|---|
+| `functions/api/state.js` | `GET` / `PATCH` the shared record. Sits behind the PIN gate. |
+| KV namespace `FINANCE_STATE` | Bound in `wrangler.toml`. Namespace id `bb81418e7e044e5eae2d99dd91670cc8`. |
+
+Writes are a **merge patch**, not a whole-document overwrite, so two devices editing
+different fields both survive — a stale tab can't silently revert the other's entry.
+There is no per-user identity: anyone with the PIN reads and writes the same record.
+That is the intent for a household dashboard, and it is why the PIN is the only thing
+protecting it.
+
+**The status chip** in the "Fill in what's missing" header is the live check:
+
+- *Saved · syncs across devices* — the KV binding is working.
+- *This device only — …* — the API is unreachable or the binding is missing. The
+  dashboard keeps working and mirrors to `localStorage`, but nothing leaves the browser.
 
 **Goals** and **FAQ** always run on the combined model, because goals are household-scale
 and are held once, in `finance.json`. They are not duplicated into Melissa's file.
@@ -169,6 +194,7 @@ the "Ledger is Joseph's only" flag clears itself.
 |---|---|
 | `index.html` | Template + renderer (Finance Intern). Contains **no figures**. |
 | `functions/_middleware.js` | Server-side PIN gate. Runs before every request, including `/data/finance.json`. |
+| `functions/api/state.js` | Shared store for typed balances and goal amounts, in KV. Behind the gate. |
 | `.dev.vars` | Local secrets. **Gitignored — never commit.** |
 | `data/finance.json` | **Joseph's dataset**, plus the household facts (goals, liabilities, emergency fund). Sourced from the Drive workbook. The main monthly diff. |
 | `data/finance-melissa.json` | **Melissa's dataset.** Placeholder — her source sheet has not been specified yet, so every ledger figure is `null`. Her salary is carried across from `finance.json`. Set `"placeholder": false` once it is real. |

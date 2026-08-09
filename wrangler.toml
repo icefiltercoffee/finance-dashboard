@@ -2,3 +2,10 @@
 name = "finance-dashboard"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-07-27"
+
+# Balances and goal amounts typed into the dashboard live here, so they survive
+# a refresh and follow you to any device behind the same PIN.
+# functions/api/state.js is the only thing that reads or writes it.
+[[kv_namespaces]]
+binding = "FINANCE_STATE"
+id = "bb81418e7e044e5eae2d99dd91670cc8"
