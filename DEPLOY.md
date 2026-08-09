@@ -136,6 +136,33 @@ git push
 
 ---
 
+## The three person tabs
+
+| Tab | Data | Notes |
+|---|---|---|
+| **Joseph** | `data/finance.json` | Full ledger. Has the Finance Brief. |
+| **Melissa** | `data/finance-melissa.json` | Same layout, awaiting her source sheet. Everything renders as "not known", never as `$0`. |
+| **Combined** | derived in the browser | Joseph + Melissa. **Never stored.** No Finance Brief. |
+
+Balances are per person — **Cash, Investment and CPF OA**, three per tab. The Combined
+trio is read-only: each figure is Joseph's plus Melissa's. If only one side has been
+entered, the total shows that side alone rather than treating the missing half as zero.
+
+**Goals** and **FAQ** always run on the combined model, because goals are household-scale
+and are held once, in `finance.json`. They are not duplicated into Melissa's file.
+
+### Connecting Melissa's sheet later
+
+1. Fill `actuals.months`, `actuals.incomeByCategory` and `actuals.expenseByCategory` in
+   `data/finance-melissa.json`, in exactly the shape `finance.json` uses.
+2. Set `"source"` to the real sheet name and `"placeholder": false`.
+3. Set `employment.startedWork` if her salary should be added to ledger months.
+
+Nothing in `index.html` needs to change — the Combined tab picks it up automatically and
+the "Ledger is Joseph's only" flag clears itself.
+
+---
+
 ## Structure
 
 | File | Role |
@@ -143,7 +170,8 @@ git push
 | `index.html` | Template + renderer (Finance Intern). Contains **no figures**. |
 | `functions/_middleware.js` | Server-side PIN gate. Runs before every request, including `/data/finance.json`. |
 | `.dev.vars` | Local secrets. **Gitignored — never commit.** |
-| `data/finance.json` | Every number, sourced from the Drive workbook. The only monthly diff. |
+| `data/finance.json` | **Joseph's dataset**, plus the household facts (goals, liabilities, emergency fund). Sourced from the Drive workbook. The main monthly diff. |
+| `data/finance-melissa.json` | **Melissa's dataset.** Placeholder — her source sheet has not been specified yet, so every ledger figure is `null`. Her salary is carried across from `finance.json`. Set `"placeholder": false` once it is real. |
 | `wrangler.toml` | Pages project config (`finance-dashboard`, builds from `dist/`). |
 | `package.json` | `dev` / `build` / `deploy` scripts. |
 | `.github/workflows/deploy.yml` | Push to `main` → Pages deploy. |
