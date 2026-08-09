@@ -1004,6 +1004,19 @@ function buildOptions(intent,q){
   const soonest=plan.rows.slice().sort((a,b)=>a.due-b.due)[0];
   const biggest=plan.rows.slice().sort((a,b)=>b.amt-a.amt)[0];
 
+  /* No goals attributed to this person — every branch below reasons about a
+     goal, so answer the question honestly instead of inventing one. */
+  if(!plan.rows.length){
+    mk(`No goals sit on ${esc(M.scope.person)}'s tab`,
+      `Goals are household-scale and are held once, on the shared <b>Goals</b> tab, costed against combined income. Nothing here claims a share of them, so there is no trade-off on this tab to weigh.${
+        M.isPlaceholder?` The ledger is empty too, until the source sheet is named — so there is no spending pattern to reason from yet.`:""}`,
+      [["Cash / mo",pr.net,pr.net<0?"bad":"good"],["Goals",0,"neutral"],
+       ["Liquidity",pr.net,pr.net<0?"bad":"good"],["Timeline",0,"neutral"]],
+      M.isPlaceholder?`Any answer here would be built on an assumed spending pattern rather than a recorded one.`
+                     :`Ask this on the Combined tab, where both incomes are counted against the goals.`,null);
+    return opts;
+  }
+
   if(intent.kind==="feasible"||intent.kind==="deploy"&&!intent.amount){
     mk("The plan needs "+fmt(plan.cashPerMonth)+"/month in cash",
       `${plan.rows.map(r=>esc(r.g.name)+" "+fmt(r.cashPerMonth)).join(", ")}${plan.loanPerMonth?`, plus ${fmt(plan.loanPerMonth)} to your mum`:""}. Against ${fmt(pr.net)} of monthly net that leaves <b>${fmt(surplus,{signed:true})}</b>.`,
