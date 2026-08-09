@@ -210,6 +210,8 @@
   .fill-f .cur{position:absolute; left:12px; font-size:12.5px; color:var(--ink-faint); pointer-events:none;}
   .fill-f input{width:100%; padding-left:34px;}
   .fill-f input.set{border-color:var(--pine); background:var(--pine-soft);}
+  .fill-f .wrapin.readonly input{background:var(--paper-2); color:var(--ink-soft); cursor:default;}
+  .fill-f .wrapin.readonly input.set{border-color:var(--pine); background:var(--pine-soft); color:inherit;}
 
   .bitem{display:grid; grid-template-columns:24px 1fr; gap:13px; padding:14px 0; border-bottom:1px solid var(--line-soft);}
   .bitem:last-child{border-bottom:0;}
@@ -313,10 +315,20 @@ const fmt=(n,o)=>{
                           :Math.round(a).toLocaleString("en-SG"));
 };
 
-/* ================= 1. MODEL ================= */
-const M={};
+/* ================= 1. MODEL =================
+   One model per scope (joseph / melissa / combined). `M` points at whichever
+   tab is mounted; only one person tab is in the DOM at a time, so every render
+   function below keeps reading `M` and its fixed element ids, unchanged. */
+let M={};
+const SCOPES={};                    // id -> {raw, model, opts}
+const ORDER=["joseph","melissa","combined"];
+let ACTIVE="joseph";
+
 function buildModel(d){
+  const M={};
   M.raw=d;
+  M.scope=d.scope||{id:"joseph",person:"Joseph",label:"Joseph"};
+  M.isPlaceholder=!!d.placeholder;
   const A=d.actuals||{};
   M.salaryFrom=parseWhen(d.employment?.startedWork);
   M.salary={
@@ -355,8 +367,38 @@ function buildModel(d){
   return M;
 }
 
+/** Combined is derived in the browser and never stored. Household facts —
+ *  goals, liabilities, the emergency fund — live once, in Joseph's file, and
+ *  are carried through here rather than duplicated into Melissa's. */
+function buildCombinedRaw(dJ,dM){
+  const c=JSON.parse(JSON.stringify(dJ));
+  c.scope={id:"combined",person:"Combined",label:"Combined",
+    note:"Derived in the browser from Joseph's and Melissa's datasets. Nothing on this tab is stored."};
+  c.placeholder=false;
+  c.salary={
+    source:"Joseph "+(dJ.salary?.source||"")+" · Melissa "+(dM.salary?.source||""),
+    rows:[...(dJ.salary?.rows||[]),...(dM.salary?.rows||[])]
+         .filter((r,i,a)=>a.findIndex(x=>x.name===r.name)===i),
+    total:dJ.salary?.total,
+    note:"Combined household income. CPF is not spendable cash."
+  };
+  const jTake=money(dJ.salary?.rows?.find(r=>/joseph/i.test(r.name))?.takeHome)||0;
+  const mTake=money(dM.salary?.rows?.find(r=>/melissa/i.test(r.name))?.takeHome)||0;
+  c.projection=Object.assign({},dJ.projection,{incomeMonthly:jTake+mTake,includeMelissaByDefault:true,melissaMonthly:0});
+  c.balances={currency:"SGD",asOf:null,fields:[
+    {key:"cashCombined", label:"Combined Cash Balance",       value:null, owner:"household", derived:true},
+    {key:"invCombined",  label:"Combined Investment Balance", value:null, owner:"household", derived:true},
+    {key:"cpfOaCombined",label:"Combined CPF OA Balance",     value:null, owner:"household", derived:true}
+  ]};
+  c.ledgerNote=(dM.placeholder||!(dM.actuals?.months||[]).length)
+    ? "Ledger actuals are Joseph's only — Melissa's source sheet is not connected yet, so no household total is claimed."
+    : null;
+  c.footer="Finance Intern — Steven · Combined (derived from both datasets)";
+  return c;
+}
+
 /* ================= 2. STATE ================= */
-const LS="financeIntern.v2";
+const LS="financeIntern.v3";
 const S={tab:"joseph", horizon:24, cursor:0, month:null, balances:{}, goalAmt:{},
          includeMelissa:false, shifts:{}, preview:null, selectedGoal:null};
 function loadLocal(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
@@ -364,17 +406,31 @@ function loadLocal(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(
   {balances:S.balances,goalAmt:S.goalAmt,includeMelissa:S.includeMelissa}));}catch(_){}}
 
-function balVal(k){
+/* Balance keys are unique across scopes, so one flat store serves all tabs.
+   The combined trio is derived, never typed — see DERIVED. */
+const FIELDS={};
+const DERIVED={
+  cashCombined :["cashJoseph","cashMelissa"],
+  invCombined  :["invJoseph","invMelissa"],
+  cpfOaCombined:["cpfOaJoseph","cpfOaMelissa"]
+};
+function registerFields(model){ (model.balanceFields||[]).forEach(f=>{FIELDS[f.key]=f;}); }
+function rawBal(k){
   if(S.balances[k]!=null) return S.balances[k];
-  const f=M.balanceFields.find(x=>x.key===k);
+  const f=FIELDS[k];
   return f&&f.value!=null?f.value:null;
 }
+function balVal(k){
+  const parts=DERIVED[k];
+  if(!parts) return rawBal(k);
+  const vs=parts.map(rawBal);
+  return vs.every(v=>v==null)?null:vs.reduce((a,v)=>a+(v||0),0);   // unknown, never 0
+}
 const anyBalanceSet=()=>M.balanceFields.some(f=>balVal(f.key)!=null);
-const cpfBalance=()=>{
-  const a=balVal("cpfJoseph"), b=balVal("cpfMelissa");
-  return (a==null&&b==null)?null:(a||0)+(b||0);
-};
-const cashBalance=()=>balVal("cash");
+/* Goals are household-scale, so they always resolve against the combined
+   figures regardless of which tab you happen to be on. */
+const cpfBalance=()=>balVal("cpfOaCombined");
+const cashBalance=()=>balVal("cashCombined");
 const goalAmount=g=>S.goalAmt[g.key]!=null?S.goalAmt[g.key]:g.amount;
 
 /* ---- projection inputs ---- */
@@ -382,8 +438,10 @@ function basis(){
   const inc=(M.proj.incomeMonthly??M.joseph.takeHome??0)+(S.includeMelissa?(M.proj.melissaMonthly??M.melissa.takeHome??0):0);
   const done=M.months.filter(m=>!m.partial).slice(-3);
   const exp=done.length?done.reduce((a,m)=>a+m.expense,0)/done.length:0;
-  return {income:inc, expense:exp, net:inc-exp,
-          label:S.includeMelissa?"Joseph + Melissa take-home":"Joseph take-home only"};
+  const label=ACTIVE==="combined" ? "Joseph + Melissa take-home"
+            : ACTIVE==="melissa"  ? "Melissa take-home only"
+            : (S.includeMelissa?"Joseph + Melissa take-home":"Joseph take-home only");
+  return {income:inc, expense:exp, net:inc-exp, label};
 }
 
 /* ---- the funding plan: derived from the timeline, never stored ---- */
@@ -480,8 +538,32 @@ function renderShell(){
     </div>
 
     <div class="view" id="view-faq"></div>
+    <div class="view on" id="view-joseph"></div>
+    <div class="view" id="view-melissa"></div>
+    <div class="view" id="view-combined"></div>
+    <div class="view" id="view-goals"></div>
 
-    <div class="view on" id="view-joseph">
+    <div class="foot" id="foot">${esc(d.footer||"")}</div>`;
+
+  const setTab=v=>{
+    S.tab=v;
+    $$(".tab").forEach(x=>x.setAttribute("aria-selected",String(x.dataset.view===v)));
+    $("#tab-faq").setAttribute("aria-selected",String(v==="faq"));
+    $$(".view").forEach(x=>x.classList.toggle("on",x.id==="view-"+v));
+    if(v==="goals") mountGoals();
+    else if(v==="faq") mountFAQ();
+    else mountPerson(v);
+  };
+  $$(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.view));
+  $("#tab-faq").onclick=()=>setTab("faq");
+  $("#signout").onclick=signOut;
+}
+
+/* ---- one panel layout, mounted for whichever person tab is active ----
+   Only one instance exists in the DOM at a time, so the element ids stay
+   unique and every render function keeps working untouched. */
+function personSkeleton(opts){
+  return `
       <div class="integrity" id="integrity"></div>
       <div class="controlrow">
         <div class="card pad monthpick" id="monthpick"></div>
@@ -499,46 +581,49 @@ function renderShell(){
       <div class="stack">
         <div class="card pad" id="p-ask"></div>
         <div class="card pad" id="p-fill"></div>
-        <div class="card pad" id="p-brief"></div>
-      </div>
-    </div>
-
-    <div class="view" id="view-melissa"></div>
-    <div class="view" id="view-combined"></div>
-    <div class="view" id="view-goals">
-      <div class="stack"><div class="card pad" id="p-const"></div><div id="p-ledger" class="stack"></div></div>
-    </div>
-
-    <div class="foot">${esc(d.footer||"")}</div>`;
-
-  const setTab=v=>{
-    S.tab=v;
-    $$(".tab").forEach(x=>x.setAttribute("aria-selected",String(x.dataset.view===v)));
-    $("#tab-faq").setAttribute("aria-selected",String(v==="faq"));
-    $$(".view").forEach(x=>x.classList.toggle("on",x.id==="view-"+v));
-    if(v==="goals") drawConstellation();
-    if(v==="joseph") refresh();
-  };
-  $$(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.view));
-  $("#tab-faq").onclick=()=>setTab("faq");
-  $("#signout").onclick=signOut;
+        ${opts.brief?`<div class="card pad" id="p-brief"></div>`:""}
+      </div>`;
 }
 
-function renderBlankTab(id,name){
-  $("#"+id).innerHTML=`<div class="card pad"><div class="empty">
-    <div class="big">${esc(name)}</div>
-    <div>This tab is intentionally empty for now.<br>
-    Nothing in <code>finance.json</code> is attributed to ${esc(name)} yet, and nothing has been invented to fill it.</div>
-  </div></div>`;
+function clearViews(keep){
+  ["joseph","melissa","combined","goals"].forEach(v=>{
+    if(v!==keep){const el=$("#view-"+v); if(el) el.innerHTML="";}
+  });
 }
+
+function mountPerson(id){
+  const sc=SCOPES[id]; if(!sc) return;
+  ACTIVE=id; M=sc.model;
+  clearViews(id);
+  S.cursor=0; S.shifts={}; S.preview=null; S.selectedGoal=null;
+  S.month=M.months.length?M.months[M.months.length-1].key:null;
+  $("#view-"+id).innerHTML=personSkeleton({brief:sc.opts.brief});
+  const foot=$("#foot"); if(foot) foot.textContent=M.raw.footer||"";
+  renderIntegrity(); renderMonthPick(); renderMap(); renderBars(); renderAsk(); renderFill();
+  refresh();
+  requestAnimationFrame(drawTicks);
+}
+
+/* Goals and FAQ are household-scale, so they always run on the combined model. */
+function mountGoals(){
+  M=SCOPES.combined.model; clearViews("goals");
+  $("#view-goals").innerHTML=`<div class="stack"><div class="card pad" id="p-const"></div>
+    <div id="p-ledger" class="stack"></div></div>`;
+  renderConstellation(); renderLedger(); drawConstellation();
+}
+function mountFAQ(){ M=SCOPES.combined.model; clearViews(null); renderFAQ(); }
 
 function renderIntegrity(){
+  const host=$("#integrity"); if(!host) return;
   const bits=[];
+  if(M.isPlaceholder) bits.push(`<span class="chip clay">${esc(M.scope.person)}'s source sheet not specified</span>`);
+  if(!M.months.length) bits.push(`<span class="chip clay">No ledger months</span>`);
   if(!anyBalanceSet()) bits.push(`<span class="chip clay">Balances not entered</span>`);
-  if(cpfBalance()==null) bits.push(`<span class="chip clay">CPF balance needed for BTO</span>`);
-  if(!S.includeMelissa) bits.push(`<span class="chip grey">Projection excludes Melissa's income</span>`);
+  if(cpfBalance()==null) bits.push(`<span class="chip clay">CPF OA balance needed for BTO</span>`);
+  if(ACTIVE==="joseph"&&!S.includeMelissa) bits.push(`<span class="chip grey">Projection excludes Melissa's income</span>`);
+  if(ACTIVE==="combined"&&M.raw.ledgerNote) bits.push(`<span class="chip grey">Ledger is Joseph's only</span>`);
   if(!bits.length) bits.push(`<span class="chip pine">All inputs present</span>`);
-  $("#integrity").innerHTML=`<span style="letter-spacing:.09em;text-transform:uppercase;font-size:10px">Data integrity</span>
+  host.innerHTML=`<span style="letter-spacing:.09em;text-transform:uppercase;font-size:10px">Data integrity</span>
     ${bits.join("")}<span style="flex:1"></span>
     <span class="go" id="int-go">Open goals &amp; ledger →</span>`;
   $("#int-go").onclick=()=>$$(".tab").find(t=>t.dataset.view==="goals").click();
@@ -546,8 +631,17 @@ function renderIntegrity(){
 
 /* ================= 4. MONTH PICKER + KPIs ================= */
 function renderMonthPick(){
+  const host=$("#monthpick"); if(!host) return;
+  if(!M.months.length){
+    host.innerHTML=`<div class="lbl">Viewing period</div>
+      <div style="font-size:13px;font-weight:600;margin:4px 0 6px">No ledger yet</div>
+      <div style="font-size:11px;color:var(--ink-faint);line-height:1.5">
+        ${esc(M.scope.person)}'s source sheet has not been specified, so there are no months to pick.
+        Nothing is shown as $0 — it is simply not known.</div>`;
+    return;
+  }
   const years=[...new Set(M.months.map(m=>miY(m.idx)))], cur=monthRec();
-  $("#monthpick").innerHTML=`
+  host.innerHTML=`
     <div class="lbl">Viewing period</div>
     <div class="row">
       <select id="sel-month" aria-label="Month">${M.months.map(m=>
@@ -572,7 +666,8 @@ function renderKPIs(){
     {ic:"◆",col:"var(--pine)",bg:"var(--pine-soft)",label:"Net Worth",
      value:pr.known?fmt(nw):'<span class="unk">Not set</span>',
      note:pr.known?`assets less liabilities${S.cursor?` · projected ${miLong(M.today+S.cursor)}`:""}`
-                  :`Enter your five balances below.<br>Liabilities today: <b>${fmt(liab)}</b>`},
+                  :`${ACTIVE==="combined"?"Enter the balances on the Joseph and Melissa tabs."
+                                         :"Enter your three balances below."}<br>Liabilities today: <b>${fmt(liab)}</b>`},
     {ic:"↑",col:"var(--pine-deep)",bg:"var(--pine-soft)",label:"Income",
      value:rec?fmt(rec.income):"—",
      note:rec?(rec.salaried?`${fmt(rec.salary)} salary + ${fmt(rec.ledgerIncome)} logged`
@@ -595,11 +690,13 @@ function renderKPIs(){
 /* ================= 5. CASH MAP ================= */
 const CH={w:1000,h:300,pad:{l:58,r:22,t:52,b:12}};
 function renderMap(){
-  $("#p-map").innerHTML=`
+  const host=$("#p-map"); if(!host) return;
+  const showToggle=ACTIVE==="joseph";
+  host.innerHTML=`
     <div class="sec-head">
       <span class="hint">Net worth · drag a milestone to test a different date</span><span class="sp"></span>
-      <label style="font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;cursor:pointer">
-        <input type="checkbox" id="inc-mel" ${S.includeMelissa?"checked":""}> add Melissa's income</label>
+      ${showToggle?`<label style="font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="inc-mel" ${S.includeMelissa?"checked":""}> add Melissa's income</label>`:""}
       <div class="horizon" id="horizon">
         <button data-h="12">12m</button><button data-h="24" aria-pressed="true">24m</button><button data-h="36">36m</button>
       </div></div>
@@ -610,7 +707,8 @@ function renderMap(){
       <div class="ticks" id="ticks"></div></div>
     <div class="scenario-bar" id="scenario-bar"></div>`;
   $("#slider").oninput=e=>{S.cursor=+e.target.value; refresh();};
-  $("#inc-mel").onchange=e=>{S.includeMelissa=e.target.checked; saveLocal(); renderIntegrity(); refresh();};
+  const im=$("#inc-mel");
+  if(im) im.onchange=e=>{S.includeMelissa=e.target.checked; saveLocal(); renderIntegrity(); refresh();};
   $$("#horizon button").forEach(b=>b.onclick=()=>{
     S.horizon=+b.dataset.h;
     $$("#horizon button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
@@ -758,7 +856,9 @@ function renderBars(){
   const win=M.months.slice(Math.max(0,end-2),end+1);
   const host=$("#p-bars");
   if(!win.length){host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2></div>
-    <div class="empty"><div>No monthly totals in the source.</div></div>`; return;}
+    <div class="empty"><div class="big">No ledger</div>
+    <div>${M.isPlaceholder?esc(M.scope.person)+"'s source sheet has not been specified yet."
+                          :"No monthly totals in the source."}</div></div>`; return;}
   const W=430,H=250,pl=52,pr=10,pt=18,pb=42;
   const max=Math.max(...win.map(m=>Math.max(m.income,m.expense)))*1.16||1;
   const bw=(W-pl-pr)/win.length, gap=bw*.22, sw=(bw-gap*2)/2, Y=v=>pt+(1-v/max)*(H-pt-pb);
@@ -825,7 +925,9 @@ function renderAssets(){
   $("#p-assets").innerHTML=`<div class="sec-head"><h2>Assets by category</h2></div>
     ${items.length?donut(items,total,fmt(total,{compact:true}),"total assets")
       :`<div class="empty"><div class="big">Nothing entered yet</div>
-         <div>Fill in your five balances below and this draws itself.</div></div>`}`;
+         <div>${ACTIVE==="combined"
+           ?"Enter the balances on the Joseph and Melissa tabs — this is their sum."
+           :"Fill in the three balances below and this draws itself."}</div></div>`}`;
 }
 function renderLiabilities(){
   const at=M.today+S.cursor;
@@ -977,8 +1079,32 @@ function renderAskResults(opts){
 
 /* ================= 9. FILL IN WHAT'S MISSING ================= */
 function renderFill(){
-  $("#p-fill").innerHTML=`<div class="sec-head"><h2>Fill in what's missing</h2>
-      <span class="hint">saved in this browser only · never written to finance.json</span><span class="sp"></span>
+  const host=$("#p-fill"); if(!host) return;
+  const derived=ACTIVE==="combined";
+  const file=ACTIVE==="melissa"?"finance-melissa.json":"finance.json";
+
+  if(derived){
+    // Nothing to type here: each figure is Joseph's plus Melissa's. Showing an
+    // editable box would invite a third, conflicting number.
+    host.innerHTML=`<div class="sec-head"><h2>Fill in what's missing</h2>
+        <span class="hint">derived — enter the parts on the Joseph and Melissa tabs</span></div>
+      <div class="fill-grid">${M.balanceFields.map(f=>{
+        const v=balVal(f.key), parts=DERIVED[f.key]||[];
+        const bits=parts.map(k=>`${esc(FIELDS[k]?.label||k)} ${rawBal(k)==null?"—":fmt(rawBal(k))}`).join("  +  ");
+        return `<div class="fill-f"><label>${esc(f.label)}</label>
+          <div class="wrapin readonly"><span class="cur">$</span>
+          <input type="number" value="${v!=null?v:""}" placeholder="not set" disabled
+                 class="${v!=null?"set":""}"></div>
+          <div style="font-size:10.5px;color:var(--ink-faint);margin-top:5px">${bits}</div></div>`;}).join("")}</div>
+      <div style="font-size:11.5px;color:var(--ink-faint);margin-top:14px;line-height:1.6">
+        These three are <b>sums, not inputs</b> — each is Joseph's figure plus Melissa's, and updates the
+        moment either side is filled in. If only one side is entered, the total shows that side alone rather
+        than treating the missing half as zero. Enter the parts on the <b>Joseph</b> and <b>Melissa</b> tabs.</div>`;
+    return;
+  }
+
+  host.innerHTML=`<div class="sec-head"><h2>Fill in what's missing</h2>
+      <span class="hint">saved in this browser only · never written to <code>${esc(file)}</code></span><span class="sp"></span>
       <button class="btn" id="fill-export">Copy as JSON patch</button>
       <button class="btn" id="fill-clear">Clear</button></div>
     <div class="fill-grid">${M.balanceFields.map(f=>{const v=balVal(f.key);
@@ -988,21 +1114,25 @@ function renderFill(){
                placeholder="not set" value="${v!=null?v:""}"></div></div>`;}).join("")}</div>
     <div style="font-size:11.5px;color:var(--ink-faint);margin-top:14px;line-height:1.6">
       All figures SGD. Net worth, the assets chart and the BTO funding split recalculate as you type.
-      The CPF fields are what let BTO draw CPF before cash — until they exist BTO is costed as
-      <b>100% cash</b>, the worst case. Goal amounts are edited on the <b>Goals</b> tab.</div>`;
-  $$("[data-bal]").forEach(inp=>inp.oninput=e=>{
+      The CPF OA field is what lets BTO draw CPF before cash — until both halves exist BTO is costed as
+      <b>100% cash</b>, the worst case. These feed the <b>Combined</b> tab, which is their sum.
+      Goal amounts are edited on the <b>Goals</b> tab.</div>`;
+
+  $$("[data-bal]",host).forEach(inp=>inp.oninput=e=>{
     const k=e.target.dataset.bal, v=e.target.value;
     if(v==="") delete S.balances[k]; else S.balances[k]=+v;
     e.target.classList.toggle("set",v!=="");
     saveLocal(); renderIntegrity(); refreshExceptFill();});
-  $("#fill-clear").onclick=()=>{S.balances={}; saveLocal(); refresh(); renderFill();};
+  $("#fill-clear").onclick=()=>{
+    M.balanceFields.forEach(f=>{delete S.balances[f.key];});   // only this person's
+    saveLocal(); refresh(); renderFill();};
   $("#fill-export").onclick=()=>{
     const patch={balances:{asOf:new Date().toISOString().slice(0,10),
-      fields:M.balanceFields.map(f=>({key:f.key,label:f.label,value:balVal(f.key),owner:f.owner}))},
-      goals:{rows:M.goals.map(g=>({key:g.key,name:g.name,amount:goalAmount(g),due:g.due}))}};
+      fields:M.balanceFields.map(f=>({key:f.key,label:f.label,value:balVal(f.key),owner:f.owner}))}};
+    if(ACTIVE==="joseph") patch.goals={rows:M.goals.map(g=>({key:g.key,name:g.name,amount:goalAmount(g),due:g.due}))};
     const txt=JSON.stringify(patch,null,2);
     navigator.clipboard?.writeText(txt);
-    alert("Copied a finance.json patch to your clipboard.\n\nNothing has been changed on disk:\n\n"+txt);};
+    alert("Copied a "+file+" patch to your clipboard.\n\nNothing has been changed on disk:\n\n"+txt);};
 }
 
 /* ================= 10. BRIEF ================= */
@@ -1355,23 +1485,28 @@ function renderFAQ(){
 }
 
 /* ================= 13. WIRING ================= */
+/* Only the mounted tab's panels exist, so every step is guarded on its host. */
 function refreshExceptFill(){
-  renderKPIs(); drawChart(); renderScenarioBar();
-  renderAssets(); renderLiabilities(); renderExpenseCats(); renderBrief();
+  if($("#kpis")){
+    renderKPIs(); drawChart(); renderScenarioBar();
+    renderAssets(); renderLiabilities(); renderExpenseCats(); renderBrief();
+  }
   if($("#const")){drawConstellation(); renderPlanSummary();}
 }
-function refresh(){refreshExceptFill(); renderBars();}
+function refresh(){refreshExceptFill(); if($("#p-bars")) renderBars();}
 function refreshGoals(){drawConstellation(); renderGoalEditors(); refreshExceptFill();}
 
-function boot(d){
-  buildModel(d); loadLocal();
-  S.month=M.months.length?M.months[M.months.length-1].key:null;
-  renderShell(); renderIntegrity(); renderMonthPick(); renderMap(); renderBars();
-  renderAsk(); renderFill(); renderFAQ();
-  renderBlankTab("view-melissa","Melissa"); renderBlankTab("view-combined","Combined");
-  renderConstellation(); renderLedger();
-  refresh();
-  requestAnimationFrame(drawTicks);
+function boot(dJoseph,dMelissa){
+  loadLocal();
+  const combinedRaw=buildCombinedRaw(dJoseph,dMelissa);
+  SCOPES.joseph  ={raw:dJoseph,   model:buildModel(dJoseph),   opts:{brief:true}};
+  SCOPES.melissa ={raw:dMelissa,  model:buildModel(dMelissa),  opts:{brief:true}};
+  SCOPES.combined={raw:combinedRaw,model:buildModel(combinedRaw),opts:{brief:false}};
+  ORDER.forEach(id=>registerFields(SCOPES[id].model));
+
+  M=SCOPES.joseph.model;
+  renderShell();
+  mountPerson("joseph");
   addEventListener("resize",drawTicks);
   whoami();
 }
@@ -1392,11 +1527,13 @@ async function signOut(){
   location.replace("/");
 }
 
-fetch("data/finance.json",{cache:"no-store"})
-  .then(r=>{if(!r.ok) throw new Error("HTTP "+r.status); return r.json();})
-  .then(boot)
+const grab=p=>fetch(p,{cache:"no-store"})
+  .then(r=>{if(!r.ok) throw new Error(p+" → HTTP "+r.status); return r.json();});
+
+Promise.all([grab("data/finance.json"),grab("data/finance-melissa.json")])
+  .then(([j,m])=>boot(j,m))
   .catch(e=>{$("#root").innerHTML=
-    `<div class="card pad"><div class="sec-head"><h2 style="color:var(--clay-deep)">⚠ Could not load data/finance.json</h2></div>
+    `<div class="card pad"><div class="sec-head"><h2 style="color:var(--clay-deep)">⚠ Could not load the data files</h2></div>
      <div style="font-size:13px;color:var(--ink-soft)">${esc(e.message)}</div></div>`;});
 </script>
 </body>

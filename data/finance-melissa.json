@@ -1,0 +1,114 @@
+{
+  "_comment": "PLACEHOLDER FILE — Melissa's dataset. Created 9 Aug 2026 so the Melissa tab renders in the same format as Joseph's. The source sheet has NOT been specified yet: Joseph will name it. Until then every ledger figure here is null/empty by design. NOTHING IN THIS FILE IS INVENTED. The only real figures are Melissa's salary, which are carried across verbatim from finance.json where Joseph already confirmed them on 9 Aug 2026. Goals, liabilities, the emergency fund and recurring commitments are household-scale and live in finance.json only — they are not duplicated here.",
+  "source": "NOT YET SPECIFIED — awaiting Joseph. Melissa's income & expenses sheet.",
+  "placeholder": true,
+  "scope": {
+    "id": "melissa",
+    "person": "Melissa",
+    "label": "Melissa",
+    "note": "Mirrors the shape of finance.json. When the real sheet is connected, fill actuals.months, actuals.incomeByCategory and actuals.expenseByCategory the same way Joseph's are filled, and set placeholder to false."
+  },
+  "period": {
+    "label": "August 2026",
+    "note": "no data yet",
+    "generatedAt": "2026-08-09"
+  },
+  "status": {
+    "badge": "Awaiting source",
+    "tone": "grey"
+  },
+  "employment": {
+    "startedWork": null,
+    "note": "Not supplied. Until a start month is given, no salary is added to any ledger month for Melissa."
+  },
+  "salary": {
+    "source": "Confirmed by Joseph, 9 Aug 2026 (carried across from finance.json — not re-derived)",
+    "rows": [
+      {
+        "name": "Melissa",
+        "gross": "$5,100",
+        "cpf": "$1,020",
+        "takeHome": "$4,080"
+      }
+    ],
+    "total": {
+      "name": "Melissa",
+      "gross": "$5,100",
+      "cpf": "$1,020",
+      "takeHome": "$4,080"
+    },
+    "note": "CPF is 20% of gross and is not spendable cash — it accrues to the CPF balance."
+  },
+  "projection": {
+    "_note": "Melissa's own projection runs on her take-home alone. No household toggle here — that is what the Combined tab is for.",
+    "incomeMonthly": 4080.0,
+    "includeMelissaByDefault": false,
+    "melissaMonthly": 0.0,
+    "expenseBasis": "trailing3"
+  },
+  "actuals": {
+    "source": "NOT YET SPECIFIED",
+    "readOn": null,
+    "currency": "SGD",
+    "year": 2026,
+    "note": "Empty until Melissa's sheet is named. The dashboard shows 'awaiting source' rather than zeros — no month is claimed to have $0 of activity.",
+    "months": [],
+    "yearTotals": null,
+    "incomeByCategory": {
+      "months": [],
+      "rows": []
+    },
+    "expenseByCategory": {
+      "_note": "One month at a time, same as Joseph's.",
+      "month": null,
+      "rows": []
+    }
+  },
+  "balances": {
+    "_note": "The three fields Melissa fills in on her tab. null = not yet supplied.",
+    "currency": "SGD",
+    "asOf": null,
+    "fields": [
+      {
+        "key": "cashMelissa",
+        "label": "Melissa Cash Balance",
+        "value": null,
+        "owner": "melissa"
+      },
+      {
+        "key": "invMelissa",
+        "label": "Melissa Investment Balance",
+        "value": null,
+        "owner": "melissa"
+      },
+      {
+        "key": "cpfOaMelissa",
+        "label": "Melissa CPF OA Balance",
+        "value": null,
+        "owner": "melissa"
+      }
+    ]
+  },
+  "liabilities": {
+    "_note": "Melissa's own liabilities. None stated yet. The household mortgage and Joseph's school loan live in finance.json and are not duplicated here.",
+    "currency": "SGD",
+    "rows": []
+  },
+  "goals": {
+    "_note": "Goals are household-scale and are held once, in finance.json. They are shown on the shared Goals tab, not per person.",
+    "currency": "SGD",
+    "rows": []
+  },
+  "emergencyFund": null,
+  "recurring": {
+    "_note": "Melissa's own standing commitments. None stated yet.",
+    "items": []
+  },
+  "decisions": [
+    {
+      "name": "Name Melissa's source sheet",
+      "detail": "Everything on this tab stays empty until the sheet is specified. Once named, it fills the same way Joseph's does."
+    }
+  ],
+  "footer": "Finance Intern — Steven · Melissa · source not yet specified"
+}

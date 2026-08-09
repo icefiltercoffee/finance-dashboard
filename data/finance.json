@@ -247,16 +247,22 @@
       ]
     }
   },
+  "scope": {
+    "id": "joseph",
+    "person": "Joseph",
+    "label": "Joseph",
+    "note": "This file is Joseph's dataset. Melissa's lives in finance-melissa.json. The Combined tab is derived in the browser from the two — it is never stored."
+  },
   "balances": {
-    "_note": "The five fields Joseph fills in on the dashboard. null = not yet supplied; the dashboard shows 'unknown', never 0. Editing on the page is session-only until exported here. All SGD.",
+    "_note": "The three fields Joseph fills in on his tab. null = not yet supplied; the dashboard shows 'unknown', never 0. Editing on the page is session-only until exported here. All SGD. Changed 9 Aug 2026 (Joseph): balances are now per-person — the old household 'cash' field and Melissa's fields moved out of this file. No values were lost; every field was null.",
     "currency": "SGD",
     "asOf": null,
     "fields": [
       {
-        "key": "cash",
-        "label": "Cash Balance",
+        "key": "cashJoseph",
+        "label": "Joseph Cash Balance",
         "value": null,
-        "owner": "household"
+        "owner": "joseph"
       },
       {
         "key": "invJoseph",
@@ -265,22 +271,10 @@
         "owner": "joseph"
       },
       {
-        "key": "invMelissa",
-        "label": "Melissa Investment Balance",
-        "value": null,
-        "owner": "melissa"
-      },
-      {
-        "key": "cpfJoseph",
-        "label": "Joseph CPF Balance",
+        "key": "cpfOaJoseph",
+        "label": "Joseph CPF OA Balance",
         "value": null,
         "owner": "joseph"
-      },
-      {
-        "key": "cpfMelissa",
-        "label": "Melissa CPF Balance",
-        "value": null,
-        "owner": "melissa"
       }
     ]
   },
