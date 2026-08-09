@@ -12,7 +12,7 @@
   /* ==================================================================
      Finance Intern — presentation layer only.
      CONTAINS NO FIGURES. Every number is read from data/finance.json.
-     Palette lifted from Steven (steven_os_home.html) for consistency.
+     Palette from Steven (steven_os_home.html).
      ================================================================== */
   :root{
     color-scheme: light;
@@ -21,12 +21,12 @@
     --clay:#af6a3e; --clay-deep:#8f5330; --caramel:#c48a4c; --clay-soft:#f0e0cd;
     --pine:#5e6b4d; --pine-soft:#e6e6d3; --pine-deep:#46513a;
     --line:#e3d5bd; --line-soft:#ece1cc;
+    --black:#241c12;
     --shadow: 0 1px 2px rgba(60,44,26,.05), 0 10px 26px -14px rgba(60,44,26,.22);
     --shadow-lg: 0 3px 8px rgba(60,44,26,.08), 0 26px 60px -22px rgba(60,44,26,.34);
-    --r:16px; --r-sm:11px; --r-lg:22px;
+    --r:16px; --r-sm:11px;
     --serif:"Fraunces","Iowan Old Style",Georgia,serif;
     --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    /* categorical series — warm, all legible on paper */
     --c1:#af6a3e; --c2:#5e6b4d; --c3:#c48a4c; --c4:#7d8ba1; --c5:#9a6b70; --c6:#8a8f6b;
   }
   *{box-sizing:border-box;}
@@ -34,14 +34,12 @@
   body{font-family:var(--sans); background:var(--canvas); color:var(--ink);
        -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.5;}
   ::selection{background:var(--clay-soft);}
-  a{color:inherit;}
 
-  /* ============ SIGN-IN GATE ============ */
+  /* ============ GATE ============ */
   .gate{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
         background:#241c12; overflow:hidden; transition:opacity .7s ease, visibility .7s;}
   .gate::before{content:""; position:absolute; inset:0;
-    background:
-      radial-gradient(900px 600px at 20% 10%, rgba(175,106,62,.30), transparent 60%),
+    background:radial-gradient(900px 600px at 20% 10%, rgba(175,106,62,.30), transparent 60%),
       radial-gradient(800px 520px at 85% 90%, rgba(94,107,77,.26), transparent 62%),
       linear-gradient(180deg, rgba(38,26,14,.55), rgba(26,18,9,.88));}
   .gate.hide{opacity:0; visibility:hidden;}
@@ -62,7 +60,6 @@
   /* ============ APP ============ */
   .app{display:none;} .app.show{display:block;}
   .wrap{max-width:1400px; margin:0 auto; padding:24px clamp(16px,3vw,38px) 70px;}
-
   .topbar{display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
           padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--line);}
   .brand{display:flex; align-items:center; gap:11px;}
@@ -72,9 +69,15 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.18);}
   .brand-name{font-family:var(--serif); font-weight:500; font-size:21px; line-height:1;}
   .brand-sub{font-size:11px; color:var(--ink-faint); letter-spacing:.05em; margin-top:3px;}
-  .topbar-right{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .topbar-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   .who{font-size:11.5px; color:var(--ink-faint);}
 
+  /* FAQ sits apart, to the left of the tab group, in black */
+  .tab-faq{border:1px solid var(--black); background:var(--black); color:#f6ecda; font:inherit;
+    font-size:13px; font-weight:500; padding:11px 19px; border-radius:100px; cursor:pointer;
+    transition:.18s; box-shadow:var(--shadow); white-space:nowrap;}
+  .tab-faq:hover{background:#3a2e1f; border-color:#3a2e1f;}
+  .tab-faq[aria-selected="true"]{background:#000; border-color:#000; font-weight:600;}
   .tabs{display:flex; gap:4px; background:var(--paper-2); border:1px solid var(--line);
         border-radius:100px; padding:4px;}
   .tab{border:0; background:transparent; color:var(--ink-soft); font:inherit; font-size:13px; font-weight:500;
@@ -82,7 +85,6 @@
   .tab:hover{color:var(--ink);}
   .tab[aria-selected="true"]{background:var(--clay); color:#f8f0e2; font-weight:600; box-shadow:var(--shadow);}
 
-  /* ---------- primitives ---------- */
   .card{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow);}
   .pad{padding:18px 20px;}
   .sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
@@ -103,14 +105,13 @@
   .btn:hover{color:var(--ink); border-color:var(--clay); background:var(--clay-soft);}
   .btn.primary{background:var(--clay); border-color:var(--clay); color:#f8f0e2; font-weight:600;}
   .btn.primary:hover{background:var(--clay-deep); border-color:var(--clay-deep); color:#fff;}
-
+  .btn.sm{padding:4px 10px; font-size:11.5px;}
   select, input[type=number]{font:inherit; color:var(--ink); background:var(--paper);
     border:1px solid var(--line); border-radius:var(--r-sm); padding:9px 12px; font-size:13.5px;}
   select:focus, input[type=number]:focus{outline:none; border-color:var(--clay); box-shadow:0 0 0 3px var(--clay-soft);}
   input[type=number]{font-variant-numeric:tabular-nums;}
 
-  /* ---------- control row: month picker + 4 KPIs ---------- */
-  .controlrow{display:grid; grid-template-columns:minmax(230px,290px) 1fr; gap:16px; margin-bottom:16px; align-items:stretch;}
+  .controlrow{display:grid; grid-template-columns:minmax(230px,290px) 1fr; gap:16px; margin-bottom:16px;}
   .monthpick{display:flex; flex-direction:column; justify-content:center; gap:9px;}
   .monthpick .lbl{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);}
   .monthpick .row{display:flex; gap:8px;}
@@ -119,10 +120,9 @@
   .kpi{display:flex; flex-direction:column; gap:5px; padding:16px 18px;}
   .kpi .ic{width:30px; height:30px; border-radius:9px; display:grid; place-items:center; margin-bottom:3px;}
   .kpi .kl{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint);}
-  .kpi .kv{font-family:var(--serif); font-weight:500; font-size:26px; line-height:1.05; letter-spacing:-.01em;}
+  .kpi .kv{font-family:var(--serif); font-weight:500; font-size:26px; line-height:1.05;}
   .kpi .kn{font-size:11px; color:var(--ink-faint); line-height:1.45;}
 
-  /* ---------- grids ---------- */
   .row-map{display:grid; grid-template-columns:1.62fr 1fr; gap:16px; margin-bottom:16px;}
   .row-three{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;}
   .stack{display:grid; gap:16px;}
@@ -130,15 +130,13 @@
   svg.viz{display:block; width:100%; height:auto; overflow:visible;}
   .ax{font-size:10px; fill:var(--ink-faint);}
   .axt{font-size:10.5px; fill:var(--ink-soft); font-weight:500;}
-  .ev-label{font-size:10px; font-weight:600; fill:var(--clay-deep);}
+  .ev-label{font-size:10px; font-weight:600;}
   .ev-node{cursor:grab;} .ev-node:active{cursor:grabbing;}
   .ev-node circle.hit{fill:transparent;}
 
-  /* slider doubles as the x-axis */
   .axis-slider{position:relative; margin-top:2px;}
   input[type=range]{-webkit-appearance:none; appearance:none; background:transparent; width:100%; height:20px;
     cursor:grab; display:block; margin:0;}
-  input[type=range]:active{cursor:grabbing;}
   input[type=range]::-webkit-slider-runnable-track{height:2px; background:var(--ink-faint); opacity:.55;}
   input[type=range]::-moz-range-track{height:2px; background:var(--ink-faint); opacity:.55;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%;
@@ -153,23 +151,20 @@
   .horizon button{border:0; background:transparent; color:var(--ink-faint); font:inherit; font-size:11.5px;
     font-weight:500; padding:5px 12px; border-radius:100px; cursor:pointer;}
   .horizon button[aria-pressed="true"]{background:var(--paper); color:var(--ink); box-shadow:var(--shadow); font-weight:600;}
-
   .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft);}
   .legend i{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
-
   .scenario-bar{display:none; align-items:center; gap:12px; flex-wrap:wrap; background:var(--clay-soft);
     border:1px solid #e7cdb2; border-radius:var(--r-sm); padding:10px 14px; margin-top:12px;
     font-size:12.5px; color:var(--clay-deep);}
   .scenario-bar.on{display:flex;}
-  .scenario-bar b{font-weight:600;}
 
-  /* ---------- constellation ---------- */
+  /* constellation */
   .const-wrap{display:grid; grid-template-columns:1.5fr 1fr; gap:18px;}
   .goal-node{cursor:pointer;}
   .goal-node .halo{opacity:0; transition:opacity .25s;}
   .goal-node:hover .halo,.goal-node.sel .halo{opacity:.22;}
-  .goal-name{font-size:10.5px; font-weight:600; fill:var(--ink); text-anchor:middle; pointer-events:none;}
-  .goal-sub{font-size:9px; fill:var(--ink-soft); text-anchor:middle; pointer-events:none;}
+  .goal-name{font-size:11px; font-weight:600; fill:var(--ink); text-anchor:middle; pointer-events:none;}
+  .goal-sub{font-size:9.5px; fill:var(--ink-soft); text-anchor:middle; pointer-events:none;}
   .orbit{fill:none; stroke:var(--line); stroke-width:1;}
   .orbit-label{font-size:9px; fill:var(--ink-faint); letter-spacing:.06em; text-transform:uppercase;}
   .drow{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-soft); font-size:13px;}
@@ -178,7 +173,26 @@
   .meter{height:6px; border-radius:3px; background:var(--paper-2); border:1px solid var(--line); overflow:hidden; margin-top:12px;}
   .meter>i{display:block; height:100%; background:linear-gradient(90deg,var(--clay),var(--caramel)); transition:width .5s cubic-bezier(.4,0,.2,1);}
 
-  /* ---------- ask ---------- */
+  /* goal amount editors */
+  .goal-edit{display:grid; grid-template-columns:repeat(auto-fit,minmax(228px,1fr)); gap:13px;
+    margin-top:18px; padding-top:16px; border-top:1px solid var(--line-soft);}
+  .ge{background:var(--paper-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:13px 14px;}
+  .ge .gh{display:flex; align-items:center; gap:8px; margin-bottom:9px;}
+  .ge .gn{font-weight:600; font-size:13.5px; flex:1;}
+  .ge .stepper{display:flex; align-items:center; gap:6px;}
+  .ge .stepper button{border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    width:26px; height:26px; border-radius:50%; cursor:pointer; font:inherit; font-size:14px; line-height:1;
+    display:grid; place-items:center; flex:none;}
+  .ge .stepper button:hover{border-color:var(--clay); color:var(--clay-deep); background:var(--clay-soft);}
+  .ge .stepper input{flex:1; min-width:0; text-align:center; padding:7px 6px; font-weight:600;}
+  .ge .gm{font-size:11.5px; color:var(--ink-faint); margin-top:9px; line-height:1.5;}
+  .ge .gm b{color:var(--clay-deep); font-weight:600;}
+  .src-tag{font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; padding:2px 7px;
+    border-radius:100px; font-weight:600;}
+  .src-cpf{background:var(--pine-soft); color:var(--pine-deep);}
+  .src-cash{background:var(--clay-soft); color:var(--clay-deep);}
+
+  /* ask */
   .ask-box{position:relative;}
   .ask-input{width:100%; background:var(--paper-2); border:1px solid var(--line); border-radius:100px;
     color:var(--ink); font:inherit; font-size:14.5px; padding:15px 108px 15px 22px; transition:.18s;}
@@ -206,7 +220,6 @@
   .tradeoff span:first-child{flex:none; font-weight:600;}
   .o-foot{margin-top:auto; display:flex; gap:8px;}
 
-  /* ---------- fill in what's missing ---------- */
   .fill-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:13px;}
   .fill-f{display:flex; flex-direction:column; gap:6px;}
   .fill-f label{font-size:11.5px; color:var(--ink-soft); font-weight:500;}
@@ -214,10 +227,7 @@
   .fill-f .cur{position:absolute; left:12px; font-size:12.5px; color:var(--ink-faint); pointer-events:none;}
   .fill-f input{width:100%; padding-left:34px;}
   .fill-f input.set{border-color:var(--pine); background:var(--pine-soft);}
-  .subhead{font-family:var(--serif); font-size:15px; font-weight:500; margin:20px 0 11px; padding-top:16px;
-           border-top:1px solid var(--line-soft);}
 
-  /* ---------- brief ---------- */
   .bitem{display:grid; grid-template-columns:24px 1fr; gap:13px; padding:14px 0; border-bottom:1px solid var(--line-soft);}
   .bitem:last-child{border-bottom:0;}
   .bi{width:24px; height:24px; border-radius:8px; display:grid; place-items:center; font-size:12px; font-weight:600;}
@@ -225,7 +235,6 @@
   .bd{font-size:13px; color:var(--ink-soft); line-height:1.6;}
   .bd b{color:var(--ink); font-weight:600;}
 
-  /* ---------- ledger ---------- */
   table{width:100%; border-collapse:collapse; font-size:13px;}
   th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line-soft);}
   th{color:var(--ink-faint); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:.08em;}
@@ -235,20 +244,35 @@
           display:flex; justify-content:space-between; gap:16px;}
   .lst li:last-child{border-bottom:0;}
   .lst li>span:first-child{color:var(--ink); font-weight:500; flex:none;}
-  .lst li>span:last-child{text-align:right;}
 
   .integrity{display:flex; align-items:center; gap:9px; flex-wrap:wrap; font-size:11.5px;
     color:var(--ink-faint); background:var(--paper-2); border:1px solid var(--line);
     border-radius:100px; padding:8px 16px; margin-bottom:16px;}
   .integrity .go{color:var(--clay-deep); cursor:pointer; font-weight:500; border-bottom:1px dashed var(--caramel);}
-
   .empty{display:grid; place-items:center; text-align:center; padding:38px 20px; color:var(--ink-faint);
     font-size:13px; line-height:1.7;}
   .empty .big{font-family:var(--serif); font-size:19px; color:var(--ink-soft); margin-bottom:6px;}
-
   .view{display:none;} .view.on{display:block; animation:fade .3s ease both;}
   @keyframes fade{from{opacity:0}to{opacity:1}}
   .foot{text-align:center; color:var(--ink-faint); font-size:11.5px; margin-top:28px; line-height:1.7;}
+
+  /* FAQ */
+  .faq-hero{background:var(--black); color:#f6ecda; border-radius:var(--r); padding:38px 40px; margin-bottom:16px;}
+  .faq-hero h1{font-family:var(--serif); font-weight:500; font-size:36px; margin:0 0 10px; line-height:1.1;}
+  .faq-hero p{margin:0; font-size:15px; line-height:1.7; opacity:.82; max-width:70ch;}
+  .faq-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px;}
+  .faq-q{font-family:var(--serif); font-weight:500; font-size:19px; margin:0 0 10px;}
+  .faq-a{font-size:13.5px; line-height:1.75; color:var(--ink-soft);}
+  .faq-a b{color:var(--ink); font-weight:600;}
+  .faq-a ul{margin:10px 0 0; padding-left:18px;}
+  .faq-a li{margin-bottom:7px;}
+  .faq-a code{background:var(--paper-2); padding:1px 5px; border-radius:5px; font-size:12px;}
+  .flow{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:14px 0 4px;}
+  .flow .n{background:var(--paper-2); border:1px solid var(--line); border-radius:100px;
+    padding:5px 11px; font-size:11.5px; font-weight:500; white-space:nowrap;}
+  .flow .n.dark{background:var(--black); color:#f6ecda; border-color:var(--black);}
+  .flow .n.clay{background:var(--clay-soft); border-color:#e7cdb2; color:var(--clay-deep);}
+  .flow .ar{color:var(--ink-faint); font-size:14px;}
 
   .tip{position:fixed; pointer-events:none; z-index:90; opacity:0; transition:opacity .13s;
     background:var(--ink); color:#f6ecda; border-radius:9px; padding:9px 12px; font-size:11.5px;
@@ -262,13 +286,12 @@
     .const-wrap{grid-template-columns:1fr;}
     .controlrow{grid-template-columns:1fr;} .kpis{grid-template-columns:repeat(2,1fr);}
   }
-  @media (max-width:620px){ .kpis{grid-template-columns:1fr;} }
+  @media (max-width:620px){ .kpis{grid-template-columns:1fr;} .faq-hero{padding:26px 22px;} .faq-hero h1{font-size:28px;} }
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
 </style>
 </head>
 <body>
 
-<!-- ============ GATE ============ -->
 <div class="gate" id="gate">
   <div class="gate-card">
     <div class="gate-mark">Steven</div>
@@ -280,42 +303,30 @@
   </div>
 </div>
 
-<div class="app" id="app">
-  <div class="wrap" id="root"><div class="card pad">Loading…</div></div>
-</div>
+<div class="app" id="app"><div class="wrap" id="root"><div class="card pad">Loading…</div></div></div>
 <div class="tip" id="tip"></div>
 
 <script>
 "use strict";
-/* ==================================================================
-   0. HELPERS
-   ================================================================== */
-const $  = (s,r)=> (r||document).querySelector(s);
-const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
-const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* ================= 0. HELPERS ================= */
+const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-
 function money(str){
   if(str==null) return null;
   if(typeof str==="number") return isFinite(str)?str:null;
   const m=String(str).replace(/,/g,"").match(/-?\$?\s*(\d+(?:\.\d+)?)/);
-  if(!m) return null; const n=parseFloat(m[1]); return isFinite(n)?n:null;
+  return m&&isFinite(parseFloat(m[1]))?parseFloat(m[1]):null;
 }
-const MONTHS=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONFULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const mi=(y,m)=>y*12+m, miY=i=>Math.floor(i/12), miM=i=>((i%12)+12)%12;
 const miLabel=i=>MON[miM(i)]+" "+String(miY(i)).slice(2);
-const miLong =i=>MON[miM(i)]+" "+miY(i);
-
+const miLong=i=>MON[miM(i)]+" "+miY(i);
 function parseWhen(str){
   if(!str) return null; const s=String(str).trim(); let m;
-  if((m=s.match(/^(\d{4})-(\d{2})/)))            return mi(+m[1],+m[2]-1);
-  if((m=s.match(/\bQ([1-4])\s*(\d{4})\b/i)))     return mi(+m[2],(+m[1]-1)*3);
-  if((m=s.match(/\b([A-Za-z]{3})[a-z]*[-\s](\d{2,4})\b/))){
-    const i=MONTHS.indexOf(m[1].toLowerCase());
-    if(i>=0){let y=+m[2]; if(y<100)y+=2000; return mi(y,i);}
-  }
+  if((m=s.match(/^(\d{4})-(\d{2})/))) return mi(+m[1],+m[2]-1);
+  if((m=s.match(/\bQ([1-4])\s*(\d{4})\b/i))) return mi(+m[2],(+m[1]-1)*3);
   return null;
 }
 const fmt=(n,o)=>{
@@ -323,212 +334,176 @@ const fmt=(n,o)=>{
   if(n==null||!isFinite(n)) return "—";
   const sign=n<0?"−":(o.signed&&n>0?"+":""), a=Math.abs(n);
   if(o.compact&&a>=1000){const k=a/1000; return sign+"$"+(k>=100?Math.round(k):k.toFixed(k>=10?0:1))+"k";}
-  return sign+"$"+(o.cents? a.toLocaleString("en-SG",{minimumFractionDigits:2,maximumFractionDigits:2})
-                          : Math.round(a).toLocaleString("en-SG"));
+  return sign+"$"+(o.cents?a.toLocaleString("en-SG",{minimumFractionDigits:2,maximumFractionDigits:2})
+                          :Math.round(a).toLocaleString("en-SG"));
 };
 
-/* ==================================================================
-   1. MODEL — strictly from data/finance.json
-   ================================================================== */
-const M={raw:null,today:0,goals:[],events:[],recurring:[],income:{},unknowns:[],conflicts:[],
-         months:[],expenseCats:[],incomeCats:null,liabilities:[],balanceFields:[]};
-
+/* ================= 1. MODEL ================= */
+const M={};
 function buildModel(d){
   M.raw=d;
   const A=d.actuals||{};
-  M.months=(A.months||[]).map(r=>({key:r.m, idx:parseWhen(r.m), income:r.income, expense:r.expense,
-                                   cashFlow:r.cashFlow, partial:!!r.partial}));
-  // "today" = latest month present in the actuals, else the report period
-  M.today = M.months.length ? M.months[M.months.length-1].idx
-          : (parseWhen(d.period?.generatedAt) ?? parseWhen(d.period?.label) ?? mi(2026,7));
+  M.salaryFrom=parseWhen(d.employment?.startedWork);
+  M.salary={
+    people:(d.salary?.rows||[]).map(r=>({name:r.name,gross:money(r.gross),cpf:money(r.cpf),takeHome:money(r.takeHome)})),
+    gross:money(d.salary?.total?.gross), cpf:money(d.salary?.total?.cpf), takeHome:money(d.salary?.total?.takeHome),
+    source:d.salary?.source, note:d.salary?.note
+  };
+  M.joseph=M.salary.people.find(p=>/joseph/i.test(p.name))||M.salary.people[0]||{};
+  M.melissa=M.salary.people.find(p=>/melissa/i.test(p.name))||{};
 
-  const t=d.salary?.total||{};
-  M.income={gross:money(t.gross), cpf:money(t.cpf), takeHome:money(t.takeHome),
-            people:(d.salary?.rows||[]).map(r=>({name:r.name,gross:money(r.gross),cpf:money(r.cpf),takeHome:money(r.takeHome)})),
-            source:d.salary?.source, note:d.salary?.note};
+  // ledger months; salary is added from the month employment started
+  M.months=(A.months||[]).map(r=>{
+    const idx=parseWhen(r.m);
+    const salaried=M.salaryFrom!=null&&idx>=M.salaryFrom;
+    const salary=salaried?(M.joseph.takeHome||0):0;
+    return {key:r.m, idx, ledgerIncome:r.income, salary, income:r.income+salary,
+            expense:r.expense, cashFlow:r.income+salary-r.expense, partial:!!r.partial, salaried};
+  });
+  M.today=M.months.length?M.months[M.months.length-1].idx:(parseWhen(d.period?.generatedAt)||mi(2026,7));
 
-  M.expenseCats=(A.expenseByCategory?.rows||[]).filter(r=>r.amount>0)
-                 .sort((a,b)=>b.amount-a.amount);
+  M.expenseCats=(A.expenseByCategory?.rows||[]).filter(r=>r.amount>0).sort((a,b)=>b.amount-a.amount);
   M.expenseCatsMonth=A.expenseByCategory?.month||null;
-  M.incomeCats=A.incomeByCategory||null;
   M.yearTotals=A.yearTotals||null;
 
-  M.recurring=(d.bills?.items||[]).map(b=>{
-    const txt=String(b.detail||"");
-    const perMo=txt.match(/\$\s?([\d,]+(?:\.\d+)?)\s*\/\s*mo/i), perYr=txt.match(/\$\s?([\d,]+(?:\.\d+)?)\s*\/\s*yr/i);
-    const monthly=perMo?money(perMo[0]):null, annual=perYr?money(perYr[0]):null;
-    const starts=parseWhen(txt), notYet=/not yet active|starts/i.test(txt);
-    return {name:b.name, detail:b.detail, monthly, annual, starts,
-            active:!!(monthly||annual)&&!notYet, unmodelled:!monthly&&!annual, conflict:/conflict|⚠/i.test(txt)};
-  });
-
+  M.balanceFields=(d.balances?.fields||[]).map(f=>Object.assign({},f));
   M.liabilities=(d.liabilities?.rows||[]).map(r=>Object.assign({},r,{
     startsIdx:parseWhen(r.startsOn), repayIdx:parseWhen(r.repayStarts)}));
+  M.recurring=(d.recurring?.items||[]);
 
-  M.balanceFields=(d.balances?.fields||[]).map(f=>Object.assign({},f));
+  M.goals=(d.goals?.rows||[]).map(g=>Object.assign({},g,{due_i:parseWhen(g.due)}));
+  M.ef=d.emergencyFund||null;
+  if(M.ef && M.ef.basis==="combinedTakeHome" && M.salary.takeHome!=null)
+    M.ef.amount=M.salary.takeHome*(M.ef.months||2);
 
-  // goals
-  M.goals=(d.savingsGoals?.rows||[]).map((g,i)=>{
-    const total=money(g.totalCost), when=parseWhen(g.target), monthly=money(g.monthly);
-    // the $33k School Fees goal IS the School Loan liability — modelled there, not twice
-    const isLoanMirror=(M.liabilities||[]).some(l=>!l.placeholder&&l.principal===total&&/loan/i.test(l.name)&&/school|education/i.test(g.goal));
-    return {id:"g"+i, name:g.goal, targetLabel:g.target, target:when, total, monthly,
-            status:g.status, tone:g.tone||"grey", ongoing:when==null, mirrorsLiability:isLoanMirror,
-            conflict:/\*/.test(String(g.totalCost||""))};
-  });
-
-  M.events=[];
-  M.goals.forEach(g=>{
-    if(g.target==null||g.total==null) return;
-    M.events.push({id:"e_"+g.id, goalId:g.id, name:g.name, amount:g.total, month:g.target,
-      baseMonth:g.target, kind:"goal", overdue:g.target<M.today, conflict:g.conflict,
-      excluded:g.mirrorsLiability});
-  });
-  M.liabilities.forEach(l=>{ if(l.startsIdx!=null)
-    M.events.push({id:"el_"+l.key, name:l.name, amount:null, month:l.startsIdx, baseMonth:l.startsIdx,
-                   kind:"marker", note:l.note}); });
-  const goalNames=new Set(M.goals.map(g=>g.name.toLowerCase()));
-  M.recurring.forEach((b,i)=>{
-    if(goalNames.has(String(b.name).toLowerCase())){
-      const ev=M.events.find(e=>e.name.toLowerCase()===String(b.name).toLowerCase());
-      if(ev){ev.altDate=b.starts; if(b.conflict) ev.conflict=true;} return;
-    }
-    if(b.unmodelled&&b.starts!=null&&!M.events.some(e=>e.name===b.name))
-      M.events.push({id:"eb"+i,name:b.name,amount:null,month:b.starts,baseMonth:b.starts,kind:"marker",note:b.detail});
-  });
-  M.events.sort((a,b)=>a.month-b.month);
-
-  M.conflicts=[];
-  if(d.conflicts) Object.keys(d.conflicts).forEach(k=>M.conflicts.push(Object.assign({key:k},d.conflicts[k])));
-
-  M.unknowns=[];
-  if(!M.expenseCats.length) M.unknowns.push({k:"cats",label:"Expense categories"});
+  M.proj=d.projection||{};
   return M;
 }
 
-/* ==================================================================
-   2. STATE — session only. Balances persist in this browser only.
-   ================================================================== */
-const LS="financeIntern.v1";
-const S={
-  tab:"joseph", horizon:24, cursor:0, month:null,
-  basis:"actual",
-  balances:{}, funded:{},
-  shifts:{}, overrides:{}, preview:null, selectedGoal:null
-};
-function loadLocal(){
-  try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
-      S.balances=j.balances||{}; S.funded=j.funded||{};}catch(_){}
+/* ================= 2. STATE ================= */
+const LS="financeIntern.v2";
+const S={tab:"joseph", horizon:24, cursor:0, month:null, balances:{}, goalAmt:{},
+         includeMelissa:false, shifts:{}, preview:null, selectedGoal:null};
+function loadLocal(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
+  S.balances=j.balances||{}; S.goalAmt=j.goalAmt||{}; S.includeMelissa=!!j.includeMelissa;}catch(_){}}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(
+  {balances:S.balances,goalAmt:S.goalAmt,includeMelissa:S.includeMelissa}));}catch(_){}}
+
+function balVal(k){
+  if(S.balances[k]!=null) return S.balances[k];
+  const f=M.balanceFields.find(x=>x.key===k);
+  return f&&f.value!=null?f.value:null;
 }
-function saveLocal(){
-  try{localStorage.setItem(LS,JSON.stringify({balances:S.balances,funded:S.funded}));}catch(_){}
+const anyBalanceSet=()=>M.balanceFields.some(f=>balVal(f.key)!=null);
+const cpfBalance=()=>{
+  const a=balVal("cpfJoseph"), b=balVal("cpfMelissa");
+  return (a==null&&b==null)?null:(a||0)+(b||0);
+};
+const cashBalance=()=>balVal("cash");
+const goalAmount=g=>S.goalAmt[g.key]!=null?S.goalAmt[g.key]:g.amount;
+
+/* ---- projection inputs ---- */
+function basis(){
+  const inc=(M.proj.incomeMonthly??M.joseph.takeHome??0)+(S.includeMelissa?(M.proj.melissaMonthly??M.melissa.takeHome??0):0);
+  const done=M.months.filter(m=>!m.partial).slice(-3);
+  const exp=done.length?done.reduce((a,m)=>a+m.expense,0)/done.length:0;
+  return {income:inc, expense:exp, net:inc-exp,
+          label:S.includeMelissa?"Joseph + Melissa take-home":"Joseph take-home only"};
 }
 
-/* ---- derived: balances, liabilities, net worth ---- */
-function balVal(key){
-  if(S.balances[key]!=null) return S.balances[key];
-  const f=M.balanceFields.find(x=>x.key===key);
-  return f && f.value!=null ? f.value : null;
+/* ---- the funding plan: derived from the timeline, never stored ---- */
+function fundingPlan(){
+  const cpfAvail=cpfBalance();
+  const monthlyCPF=M.salary.cpf||0;
+  const rows=M.goals.map(g=>{
+    const amt=goalAmount(g);
+    const months=Math.max(1,(g.due_i??M.today)-M.today);
+    const usesCPF=(g.fundedBy||[]).includes("cpf");
+    let cpfPart=0, cashPart=amt, cpfUnknown=false;
+    if(usesCPF){
+      if(cpfAvail==null){cpfUnknown=true;}                 // never guess a CPF balance
+      else{
+        const cpfAtDue=cpfAvail+monthlyCPF*months;
+        cpfPart=Math.min(amt,cpfAtDue);
+        cashPart=amt-cpfPart;
+      }
+    }
+    return {g, amt, months, due:g.due_i, usesCPF, cpfUnknown, cpfPart, cashPart,
+            perMonth:amt/months, cashPerMonth:cashPart/months};
+  });
+  const cashPerMonth=rows.reduce((a,r)=>a+r.cashPerMonth,0);
+  const loanPerMonth=M.liabilities.filter(l=>l.repayMonthly&&l.repayIdx!=null).reduce((a,l)=>a+l.repayMonthly,0);
+  return {rows, cashPerMonth, loanPerMonth, cpfAvail, monthlyCPF};
 }
-const anyBalanceSet = ()=> M.balanceFields.some(f=>balVal(f.key)!=null);
-function assetsAt(){ // assets don't move with the model — they're a stated balance
-  let sum=0, known=false;
-  M.balanceFields.forEach(f=>{const v=balVal(f.key); if(v!=null){sum+=v; known=true;}});
-  return known?sum:null;
+
+/** Funded-to-date is the plan applied to elapsed time, so the rings fill as you scrub. */
+function fundedAt(r,mIdx){
+  const done=clamp(mIdx-M.today,0,r.months);
+  return Math.min(r.amt, r.perMonth*done);
 }
-/** Outstanding liability at absolute month `mIdx`. */
+
+/* ---- liabilities ---- */
 function liabilityAt(l,mIdx){
   if(l.placeholder) return null;
-  if(l.startsIdx!=null && mIdx<l.startsIdx) return 0;          // not drawn yet
-  let out = l.outstanding!=null?l.outstanding:(l.principal||0);
-  if(l.startsIdx!=null && mIdx>=l.startsIdx) out=l.principal||0;
-  if(l.repayMonthly && l.repayIdx!=null && mIdx>=l.repayIdx)
+  if(l.startsIdx!=null&&mIdx<l.startsIdx) return 0;
+  let out=l.startsIdx!=null?(l.principal||0):(l.outstanding!=null?l.outstanding:(l.principal||0));
+  if(l.repayMonthly&&l.repayIdx!=null&&mIdx>=l.repayIdx)
     out=Math.max(0,out-l.repayMonthly*(mIdx-l.repayIdx+1));
   return out;
 }
-/** Total owed at `mIdx` — every liability, for the liabilities chart. */
-const liabilitiesAt = mIdx => M.liabilities.reduce((a,l)=>a+(liabilityAt(l,mIdx)||0),0);
-/** Only the liabilities that belong in net worth. The mortgage is flagged out in
- *  finance.json: it buys a property whose value isn't recorded, so subtracting the
- *  debt alone would render a collapse that isn't real. */
-const liabilitiesNW = mIdx => M.liabilities.reduce(
-  (a,l)=> a + (l.countsInNetWorth===false ? 0 : (liabilityAt(l,mIdx)||0)), 0);
-function goalFunded(gid){
-  if(S.funded[gid]!=null) return S.funded[gid];
-  return null;                                    // never assume 0 is a recorded fact
-}
+const liabilitiesAt=m=>M.liabilities.reduce((a,l)=>a+(liabilityAt(l,m)||0),0);
+const liabilitiesNW=m=>M.liabilities.reduce((a,l)=>a+(l.countsInNetWorth===false?0:(liabilityAt(l,m)||0)),0);
 
-/* ---- income / expense basis for the projection ---- */
-function basis(){
-  const c=(M.raw.conflicts||{}).incomeBasis;
-  const opt=(c?.options||[]).find(o=>o.key===S.basis);
-  if(S.basis==="actual"){
-    const last3=M.months.filter(m=>!m.partial).slice(-3);
-    const inc=last3.length? last3.reduce((a,m)=>a+m.income,0)/last3.length : (opt?.monthlyIncome??0);
-    const exp=last3.length? last3.reduce((a,m)=>a+m.expense,0)/last3.length : (opt?.monthlyExpense??0);
-    return {income:inc, expense:exp, label:"3-month actual average"};
-  }
-  return {income:opt?.monthlyIncome??0, expense:M.yearTotals?.avgExpense??0, label:"Monthly Budget assumption"};
-}
-
-/** Net-worth projection, month by month. */
+/* ---- net worth projection ---- */
 function project(scn){
-  const s=scn||S, B=basis(), rows=[];
-  const a0=assetsAt();
-  const openAssets=a0==null?0:a0;
-  const net=B.income-B.expense;
-  let assets=openAssets;
+  const s=scn||S, B=basis(), plan=fundingPlan(), rows=[];
+  const known=anyBalanceSet();
+  let assets=0;
+  M.balanceFields.forEach(f=>{const v=balVal(f.key); if(v!=null) assets+=v;});
+  const monthlyCPF=M.salary.cpf||0;
+
   for(let k=0;k<=s.horizon;k++){
     const month=M.today+k;
     if(k>0){
-      assets+=net;
-      // loan repayments leave cash but also cut the liability → net worth neutral
+      assets+=B.net;                       // cash in, cash out
+      assets+=monthlyCPF;                  // CPF accrues as an asset, not spendable
       M.liabilities.forEach(l=>{ if(l.repayMonthly&&l.repayIdx!=null&&month>=l.repayIdx&&liabilityAt(l,month-1)>0)
         assets-=l.repayMonthly; });
     }
     const hits=[];
-    M.events.forEach(e=>{
-      if(e.kind!=="goal"||e.excluded) return;
-      const w=s.shifts[e.id]!=null?s.shifts[e.id]:e.month;
-      const due=Math.max(w,M.today);
-      if(due===month){ const amt=s.overrides[e.id]!=null?s.overrides[e.id]:e.amount;
-        assets-=amt; hits.push({name:e.name,amount:amt,id:e.id}); }
+    plan.rows.forEach(r=>{
+      const w=s.shifts[r.g.key]!=null?s.shifts[r.g.key]:r.due;
+      if(Math.max(w,M.today)===month){ assets-=r.amt; hits.push({name:r.g.name,amount:r.amt}); }
     });
-    if(s.preview&&s.preview.month===month){ assets-=s.preview.amount;
-      hits.push({name:s.preview.label,amount:s.preview.amount,preview:true}); }
+    if(s.preview&&s.preview.month===month){assets-=s.preview.amount; hits.push({name:s.preview.label,amount:s.preview.amount});}
     rows.push({k,month,assets,liab:liabilitiesAt(month),nw:assets-liabilitiesNW(month),hits});
   }
-  return {rows,net,B};
+  return {rows,net:B.net,B,plan,known};
 }
-const cloneScn=o=>Object.assign({},S,{shifts:Object.assign({},S.shifts),overrides:Object.assign({},S.overrides)},o||{});
+const cloneScn=o=>Object.assign({},S,{shifts:Object.assign({},S.shifts)},o||{});
+const monthRec=()=>M.months.find(m=>m.key===S.month)||M.months[M.months.length-1]||null;
 
-/* ---- selected month figures ---- */
-const monthRec = ()=> M.months.find(m=>m.key===S.month) || M.months[M.months.length-1] || null;
-
-/* ==================================================================
-   3. SHELL
-   ================================================================== */
+/* ================= 3. SHELL ================= */
 function renderShell(){
   const d=M.raw;
   $("#root").innerHTML=`
     <div class="topbar">
-      <div class="brand">
-        <div class="brand-badge">F</div>
-        <div>
-          <div class="brand-name">Finance Intern</div>
-          <div class="brand-sub">${esc(d.actuals?.currency||"SGD")} · source ${d.actuals?.source? "My Income &amp; Expenses":"finance.json"}</div>
-        </div>
-      </div>
+      <div class="brand"><div class="brand-badge">F</div>
+        <div><div class="brand-name">Finance Intern</div>
+        <div class="brand-sub">SGD · Monthly Overview + Annual Overview · Jan 2026 onwards</div></div></div>
       <div class="topbar-right">
         <span class="who" id="who"></span>
+        <button class="tab-faq" id="tab-faq" role="tab" aria-selected="false">FAQ</button>
         <div class="tabs" role="tablist">
-          <button class="tab" role="tab" data-view="joseph"   aria-selected="true">Joseph</button>
-          <button class="tab" role="tab" data-view="melissa"  aria-selected="false">Melissa</button>
+          <button class="tab" role="tab" data-view="joseph" aria-selected="true">Joseph</button>
+          <button class="tab" role="tab" data-view="melissa" aria-selected="false">Melissa</button>
           <button class="tab" role="tab" data-view="combined" aria-selected="false">Combined</button>
-          <button class="tab" role="tab" data-view="goals"    aria-selected="false">Goals</button>
+          <button class="tab" role="tab" data-view="goals" aria-selected="false">Goals</button>
         </div>
       </div>
     </div>
+
+    <div class="view" id="view-faq"></div>
 
     <div class="view on" id="view-joseph">
       <div class="integrity" id="integrity"></div>
@@ -554,189 +529,164 @@ function renderShell(){
 
     <div class="view" id="view-melissa"></div>
     <div class="view" id="view-combined"></div>
-
     <div class="view" id="view-goals">
-      <div class="stack">
-        <div class="card pad" id="p-const"></div>
-        <div id="p-ledger" class="stack"></div>
-      </div>
+      <div class="stack"><div class="card pad" id="p-const"></div><div id="p-ledger" class="stack"></div></div>
     </div>
 
-    <div class="foot">${d.footer||""} · figures read from <code>data/finance.json</code> ·
-      <a href="index.legacy.html">original report view</a></div>`;
+    <div class="foot">${esc(d.footer||"")}</div>`;
 
-  $$(".tab").forEach(b=>b.onclick=()=>{
-    S.tab=b.dataset.view;
-    $$(".tab").forEach(x=>x.setAttribute("aria-selected",String(x===b)));
-    $$(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+S.tab));
-    if(S.tab==="goals") drawConstellation();
-    if(S.tab==="joseph") refresh();
-  });
+  const setTab=v=>{
+    S.tab=v;
+    $$(".tab").forEach(x=>x.setAttribute("aria-selected",String(x.dataset.view===v)));
+    $("#tab-faq").setAttribute("aria-selected",String(v==="faq"));
+    $$(".view").forEach(x=>x.classList.toggle("on",x.id==="view-"+v));
+    if(v==="goals") drawConstellation();
+    if(v==="joseph") refresh();
+  };
+  $$(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.view));
+  $("#tab-faq").onclick=()=>setTab("faq");
 }
 
 function renderBlankTab(id,name){
-  $("#"+id).innerHTML=`
-    <div class="card pad">
-      <div class="empty">
-        <div class="big">${esc(name)}</div>
-        <div>This tab is intentionally empty for now.<br>
-        Nothing in <code>finance.json</code> is attributed to ${esc(name)} yet, and I haven't invented anything to fill it.</div>
-      </div>
-    </div>`;
+  $("#"+id).innerHTML=`<div class="card pad"><div class="empty">
+    <div class="big">${esc(name)}</div>
+    <div>This tab is intentionally empty for now.<br>
+    Nothing in <code>finance.json</code> is attributed to ${esc(name)} yet, and nothing has been invented to fill it.</div>
+  </div></div>`;
 }
 
 function renderIntegrity(){
   const bits=[];
-  M.conflicts.forEach(c=>bits.push(`<span class="chip clay">${esc(c.title)}</span>`));
-  if(!anyBalanceSet()) bits.push(`<span class="chip grey">Balances not entered</span>`);
-  if(M.raw.alert?.show) bits.push(`<span class="chip grey">${esc(M.raw.alert.title)}</span>`);
-  $("#integrity").innerHTML=
-    `<span style="letter-spacing:.09em;text-transform:uppercase;font-size:10px">Data integrity</span>
-     ${bits.join("")}<span style="flex:1"></span>
-     <span class="go" id="int-go">Open ledger &amp; warnings →</span>`;
+  if(!anyBalanceSet()) bits.push(`<span class="chip clay">Balances not entered</span>`);
+  if(cpfBalance()==null) bits.push(`<span class="chip clay">CPF balance needed for BTO</span>`);
+  if(!S.includeMelissa) bits.push(`<span class="chip grey">Projection excludes Melissa's income</span>`);
+  if(!bits.length) bits.push(`<span class="chip pine">All inputs present</span>`);
+  $("#integrity").innerHTML=`<span style="letter-spacing:.09em;text-transform:uppercase;font-size:10px">Data integrity</span>
+    ${bits.join("")}<span style="flex:1"></span>
+    <span class="go" id="int-go">Open goals &amp; ledger →</span>`;
   $("#int-go").onclick=()=>$$(".tab").find(t=>t.dataset.view==="goals").click();
 }
 
-/* ==================================================================
-   4. MONTH PICKER + 4 KPI BOXES
-   ================================================================== */
+/* ================= 4. MONTH PICKER + KPIs ================= */
 function renderMonthPick(){
-  const years=[...new Set(M.months.map(m=>miY(m.idx)))];
-  const cur=monthRec();
+  const years=[...new Set(M.months.map(m=>miY(m.idx)))], cur=monthRec();
   $("#monthpick").innerHTML=`
     <div class="lbl">Viewing period</div>
     <div class="row">
-      <select id="sel-month" aria-label="Month">
-        ${M.months.map(m=>`<option value="${m.key}" ${m.key===cur?.key?"selected":""}>${MONFULL[miM(m.idx)]}</option>`).join("")}
-      </select>
-      <select id="sel-year" aria-label="Year">
-        ${years.map(y=>`<option ${miY(cur?.idx||0)===y?"selected":""}>${y}</option>`).join("")}
-      </select>
+      <select id="sel-month" aria-label="Month">${M.months.map(m=>
+        `<option value="${m.key}" ${m.key===cur?.key?"selected":""}>${MONFULL[miM(m.idx)]}</option>`).join("")}</select>
+      <select id="sel-year" aria-label="Year">${years.map(y=>
+        `<option ${miY(cur?.idx||0)===y?"selected":""}>${y}</option>`).join("")}</select>
     </div>
     <div style="font-size:11px;color:var(--ink-faint);line-height:1.5">
-      ${cur?.partial?"Partial month — still in progress.":"Actuals from the Annual Overview tab."}
-    </div>`;
+      ${cur?.partial?"Partial month — still in progress. ":""}${cur?.salaried
+        ? "Includes "+fmt(cur.salary)+" salary plus "+fmt(cur.ledgerIncome)+" logged."
+        : "Pre-employment — ledger income only."}</div>`;
   $("#sel-month").onchange=e=>{S.month=e.target.value; refresh();};
-  $("#sel-year").onchange=()=>refresh();   // only one year present; kept for when more arrive
+  $("#sel-year").onchange=()=>refresh();
 }
 
 function renderKPIs(){
-  const rec=monthRec();
-  const pr=project();
-  const nw=pr.rows[S.cursor]?.nw;
-  const assets=assetsAt(), liab=liabilitiesAt(M.today+S.cursor);
-  const savings = rec? rec.income-rec.expense : null;
-
-  const tiles=[
-    {ic:"◆", col:"var(--pine)", bg:"var(--pine-soft)", label:"Net Worth",
-     value: assets==null? '<span class="unk">Not set</span>' : fmt(nw),
-     note: assets==null
-       ? `Enter your five balances below and this fills in.<br>Liabilities today: <b>${fmt(liab)}</b>`
-       : `assets ${fmt(assets)} − liabilities ${fmt(liab)}${S.cursor?` · projected ${miLong(M.today+S.cursor)}`:""}`},
-    {ic:"↑", col:"var(--pine-deep)", bg:"var(--pine-soft)", label:"Income",
-     value: rec? fmt(rec.income) : "—",
-     note: rec? `${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} actual`:"no month selected"},
-    {ic:"↓", col:"var(--clay-deep)", bg:"var(--clay-soft)", label:"Expenses",
-     value: rec? fmt(rec.expense) : "—",
-     note: rec? `${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} actual`:"no month selected"},
-    {ic:"≡", col: savings!=null&&savings<0?"var(--clay)":"var(--pine)",
-     bg: savings!=null&&savings<0?"var(--clay-soft)":"var(--pine-soft)", label:"Savings",
-     value: savings!=null? fmt(savings,{signed:true}) : "—",
-     note: savings!=null? (savings<0?"you spent more than you earned":"income less expenses"):"—"}
+  const rec=monthRec(), pr=project();
+  const nw=pr.rows[S.cursor]?.nw, assets=pr.known?pr.rows[0].assets:null;
+  const liab=liabilitiesAt(M.today+S.cursor);
+  const savings=rec?rec.income-rec.expense:null;
+  const T=[
+    {ic:"◆",col:"var(--pine)",bg:"var(--pine-soft)",label:"Net Worth",
+     value:pr.known?fmt(nw):'<span class="unk">Not set</span>',
+     note:pr.known?`assets less liabilities${S.cursor?` · projected ${miLong(M.today+S.cursor)}`:""}`
+                  :`Enter your five balances below.<br>Liabilities today: <b>${fmt(liab)}</b>`},
+    {ic:"↑",col:"var(--pine-deep)",bg:"var(--pine-soft)",label:"Income",
+     value:rec?fmt(rec.income):"—",
+     note:rec?(rec.salaried?`${fmt(rec.salary)} salary + ${fmt(rec.ledgerIncome)} logged`
+                          :`${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} · pre-employment`):"—"},
+    {ic:"↓",col:"var(--clay-deep)",bg:"var(--clay-soft)",label:"Expenses",
+     value:rec?fmt(rec.expense):"—",
+     note:rec?`${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} actual`:"—"},
+    {ic:"≡",col:savings!=null&&savings<0?"var(--clay)":"var(--pine)",
+     bg:savings!=null&&savings<0?"var(--clay-soft)":"var(--pine-soft)",label:"Savings",
+     value:savings!=null?fmt(savings,{signed:true}):"—",
+     note:savings!=null?(savings<0?"spent more than earned":"income less expenses"):"—"}
   ];
-  $("#kpis").innerHTML=tiles.map(t=>`
-    <div class="card kpi">
-      <div class="ic" style="background:${t.bg};color:${t.col}">${t.ic}</div>
-      <div class="kl">${t.label}</div>
-      <div class="kv num" style="color:${t.label==="Savings"?t.col:"var(--ink)"}">${t.value}</div>
-      <div class="kn">${t.note}</div>
-    </div>`).join("");
+  $("#kpis").innerHTML=T.map(t=>`<div class="card kpi">
+    <div class="ic" style="background:${t.bg};color:${t.col}">${t.ic}</div>
+    <div class="kl">${t.label}</div>
+    <div class="kv num" style="color:${t.label==="Savings"?t.col:"var(--ink)"}">${t.value}</div>
+    <div class="kn">${t.note}</div></div>`).join("");
 }
 
-/* ==================================================================
-   5. CASH MAP — net worth over time; the slider is the x-axis
-   ================================================================== */
+/* ================= 5. CASH MAP ================= */
 const CH={w:1000,h:300,pad:{l:58,r:22,t:52,b:12}};
-
 function renderMap(){
   $("#p-map").innerHTML=`
     <div class="sec-head">
-      <span class="hint">Net worth · drag a milestone to test a different date</span>
-      <span class="sp"></span>
+      <span class="hint">Net worth · drag a milestone to test a different date</span><span class="sp"></span>
+      <label style="font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="inc-mel" ${S.includeMelissa?"checked":""}> add Melissa's income</label>
       <div class="horizon" id="horizon">
         <button data-h="12">12m</button><button data-h="24" aria-pressed="true">24m</button><button data-h="36">36m</button>
-      </div>
-    </div>
+      </div></div>
     <div id="map-read"></div>
     <svg class="viz" id="chart" viewBox="0 0 ${CH.w} ${CH.h}"></svg>
     <div class="axis-slider" id="axwrap">
       <input type="range" id="slider" min="0" max="24" step="1" value="0" aria-label="Project forward">
-      <div class="ticks" id="ticks"></div>
-    </div>
+      <div class="ticks" id="ticks"></div></div>
     <div class="scenario-bar" id="scenario-bar"></div>`;
-
   $("#slider").oninput=e=>{S.cursor=+e.target.value; refresh();};
+  $("#inc-mel").onchange=e=>{S.includeMelissa=e.target.checked; saveLocal(); renderIntegrity(); refresh();};
   $$("#horizon button").forEach(b=>b.onclick=()=>{
     S.horizon=+b.dataset.h;
     $$("#horizon button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
     S.cursor=clamp(S.cursor,0,S.horizon);
-    const sl=$("#slider"); sl.max=S.horizon; sl.value=S.cursor;
-    refresh();
-  });
+    const sl=$("#slider"); sl.max=S.horizon; sl.value=S.cursor; refresh();});
 }
 
 function drawChart(){
   const svg=$("#chart"); if(!svg) return;
   const pr=project(), rows=pr.rows;
-  const ghost=S.preview? project(cloneScn({preview:null})).rows : null;
-  const known=assetsAt()!=null;
-
+  const ghost=S.preview?project(cloneScn({preview:null})).rows:null;
   const all=rows.map(r=>r.nw).concat(ghost?ghost.map(r=>r.nw):[]);
   let lo=Math.min(0,...all), hi=Math.max(0,...all);
   if(lo===hi){lo-=1000;hi+=1000;}
   const p=(hi-lo)*.18; lo-=p; hi+=p;
-
   const X=k=>CH.pad.l+(k/S.horizon)*(CH.w-CH.pad.l-CH.pad.r);
   const Y=v=>CH.pad.t+(1-(v-lo)/(hi-lo))*(CH.h-CH.pad.t-CH.pad.b);
   const line=rs=>rs.map((r,i)=>(i?"L":"M")+X(r.k).toFixed(1)+" "+Y(r.nw).toFixed(1)).join(" ");
   const area=rs=>line(rs)+` L ${X(S.horizon).toFixed(1)} ${Y(lo).toFixed(1)} L ${X(0).toFixed(1)} ${Y(lo).toFixed(1)} Z`;
 
-  // y gridlines + labels (net worth)
   let grid="";
-  for(let i=0;i<=4;i++){
-    const v=lo+(hi-lo)*(i/4), y=Y(v);
-    grid+=`<line x1="${CH.pad.l}" y1="${y}" x2="${CH.w-CH.pad.r}" y2="${y}" stroke="var(--line)" ${v===0?'stroke-dasharray="none"':'stroke-dasharray="2 5"'}/>
-           <text class="ax" x="${CH.pad.l-8}" y="${y+3.5}" text-anchor="end">${fmt(v,{compact:true})}</text>`;
-  }
+  for(let i=0;i<=4;i++){const v=lo+(hi-lo)*(i/4), y=Y(v);
+    grid+=`<line x1="${CH.pad.l}" y1="${y}" x2="${CH.w-CH.pad.r}" y2="${y}" stroke="var(--line)" stroke-dasharray="2 5"/>
+           <text class="ax" x="${CH.pad.l-8}" y="${y+3.5}" text-anchor="end">${fmt(v,{compact:true})}</text>`;}
   const zeroY=(0>=lo&&0<=hi)?Y(0):null;
 
-  // milestone nodes with staggered labels
-  const placed=M.events.map(e=>({e,k:Math.max(S.shifts[e.id]!=null?S.shifts[e.id]:e.month,M.today)-M.today}))
-    .filter(p=>p.k>=0&&p.k<=S.horizon).sort((a,b)=>a.k-b.k);
+  const evs=pr.plan.rows.map(r=>({key:r.g.key,name:r.g.name,amount:r.amt,
+      due:S.shifts[r.g.key]!=null?S.shifts[r.g.key]:r.due, base:r.due, hard:r.g.hardDeadline}))
+    .concat(M.liabilities.filter(l=>l.startsIdx!=null).map(l=>({key:"L"+l.key,name:l.name,amount:null,
+      due:l.startsIdx,base:l.startsIdx,marker:true,note:l.note})));
+  const placed=evs.map(e=>({e,k:Math.max(e.due,M.today)-M.today}))
+    .filter(o=>o.k>=0&&o.k<=S.horizon).sort((a,b)=>a.k-b.k);
   let lastX=-999,lastRow=1;
-  placed.forEach(p=>{const x=X(p.k); p.row=(x-lastX<95)?(lastRow===0?1:0):0; lastX=x; lastRow=p.row;});
-  const rowOf=new Map(placed.map(p=>[p.e.id,p.row]));
+  placed.forEach(o=>{const x=X(o.k); o.row=(x-lastX<95)?(lastRow===0?1:0):0; lastX=x; lastRow=o.row;});
+  const rowOf=new Map(placed.map(o=>[o.e.key,o.row]));
 
-  const nodes=M.events.map(e=>{
-    const w=Math.max(S.shifts[e.id]!=null?S.shifts[e.id]:e.month,M.today), k=w-M.today;
+  const nodes=evs.map(e=>{
+    const k=Math.max(e.due,M.today)-M.today;
     if(k<0||k>S.horizon) return "";
-    const marker=e.kind==="marker"||e.excluded;
-    const amt=S.overrides[e.id]!=null?S.overrides[e.id]:e.amount;
-    const y=marker?CH.pad.t-2:Y(rows[k].nw);
-    const col=marker?"var(--ink-faint)":(S.shifts[e.id]!=null?"var(--pine)":"var(--clay)");
-    const r=marker?3.5:clamp(4+Math.sqrt((amt||0)/70000)*7,5,12);
-    const ly=CH.pad.t-24-(rowOf.get(e.id)||0)*15;
+    const y=e.marker?CH.pad.t-2:Y(rows[k].nw);
+    const col=e.marker?"var(--ink-faint)":(S.shifts[e.key]!=null?"var(--pine)":"var(--clay)");
+    const r=e.marker?3.5:clamp(4+Math.sqrt((e.amount||0)/70000)*7,5,12);
+    const ly=CH.pad.t-24-(rowOf.get(e.key)||0)*15;
     const anchor=X(k)<CH.pad.l+55?"start":(X(k)>CH.w-CH.pad.r-55?"end":"middle");
-    return `<g class="ev-node" data-ev="${esc(e.id)}" data-marker="${marker}">
+    return `<g class="ev-node" data-ev="${esc(e.key)}" data-marker="${!!e.marker}">
       <line x1="${X(k)}" y1="${ly+4}" x2="${X(k)}" y2="${CH.h-CH.pad.b}" stroke="${col}" stroke-opacity=".45" stroke-dasharray="3 4"/>
       <circle class="hit" cx="${X(k)}" cy="${y}" r="19"/>
       <circle cx="${X(k)}" cy="${y}" r="${r}" fill="var(--paper)" stroke="${col}" stroke-width="2"/>
-      ${marker?"":`<circle cx="${X(k)}" cy="${y}" r="${r*.4}" fill="${col}"/>`}
-      <text class="ev-label" x="${X(k)}" y="${ly}" text-anchor="${anchor}" fill="${col}">${esc(e.name)}${e.conflict?" ⚠":""}</text>
-    </g>`;}).join("");
+      ${e.marker?"":`<circle cx="${X(k)}" cy="${y}" r="${r*.4}" fill="${col}"/>`}
+      <text class="ev-label" x="${X(k)}" y="${ly}" text-anchor="${anchor}" fill="${col}">${esc(e.name)}${e.hard?" ▪":""}</text></g>`;
+  }).join("");
 
-  svg.innerHTML=`
-    <defs><linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
+  svg.innerHTML=`<defs><linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="var(--pine)" stop-opacity=".34"/>
       <stop offset="100%" stop-color="var(--pine)" stop-opacity=".03"/></linearGradient></defs>
     ${grid}
@@ -744,239 +694,194 @@ function drawChart(){
     <text class="axt" x="${CH.pad.l-8}" y="${CH.pad.t-32}" text-anchor="end" style="font-size:9.5px;letter-spacing:.08em">NET WORTH</text>
     ${ghost?`<path d="${line(ghost)}" fill="none" stroke="var(--ink-faint)" stroke-width="1.4" stroke-dasharray="4 4"/>`:""}
     <path d="${area(rows)}" fill="url(#gA)"/>
-    <path d="${line(rows)}" fill="none" stroke="var(--pine)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"
-          ${known?"":'stroke-dasharray="6 4" opacity=".75"'}/>
+    <path d="${line(rows)}" fill="none" stroke="var(--pine)" stroke-width="2.4" stroke-linejoin="round"
+          stroke-linecap="round" ${pr.known?"":'stroke-dasharray="6 4" opacity=".75"'}/>
     <line x1="${X(S.cursor)}" y1="${CH.pad.t-28}" x2="${X(S.cursor)}" y2="${CH.h-CH.pad.b}" stroke="var(--clay-deep)" stroke-opacity=".5"/>
     <circle cx="${X(S.cursor)}" cy="${Y(rows[S.cursor].nw)}" r="5" fill="var(--clay)" stroke="var(--paper)" stroke-width="2.5"/>
     ${nodes}`;
-
-  drawTicks();
-  wireChart(svg,X);
+  drawTicks(); wireChart(svg,X);
 
   const row=rows[S.cursor];
   $("#map-read").innerHTML=`
     <div style="display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:6px">
       <div><div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">${S.cursor?"Projected":"Today"}</div>
-        <div style="font-family:var(--serif);font-size:25px;line-height:1.1">${S.cursor?miLong(row.month):miLong(M.today)}</div></div>
+        <div style="font-family:var(--serif);font-size:25px;line-height:1.1">${miLong(row.month)}</div></div>
       <div><div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Net worth</div>
         <div class="num" style="font-family:var(--serif);font-size:25px;line-height:1.1;color:${row.nw<0?"var(--clay-deep)":"var(--pine-deep)"}">
-          ${known?fmt(row.nw):'<span class="unk" style="font-size:16px">enter balances</span>'}</div></div>
-      <div><div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Net / month</div>
+          ${pr.known?fmt(row.nw):'<span class="unk" style="font-size:16px">enter balances</span>'}</div></div>
+      <div><div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Cash net / month</div>
         <div class="num" style="font-family:var(--serif);font-size:25px;line-height:1.1;color:${pr.net<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(pr.net,{signed:true})}</div></div>
       <div style="flex:1"></div>
-      <div style="font-size:11px;color:var(--ink-faint);max-width:250px;line-height:1.5;text-align:right">
-        basis: ${esc(pr.B.label)}${known?"":" · line is shape-only until balances are entered"}</div>
+      <div style="font-size:11px;color:var(--ink-faint);max-width:240px;line-height:1.5;text-align:right">
+        ${esc(pr.B.label)} ${fmt(pr.B.income)} less ${fmt(pr.B.expense)} trailing spend${pr.known?"":" · shape only until balances are entered"}</div>
     </div>`;
 }
 
-/** Tick labels under the slider, every 6 months — the slider is the x-axis. */
 function drawTicks(){
   const host=$("#ticks"); if(!host) return;
-  const pct=k=>{
-    // range input thumb travel is inset by half a thumb at each end
-    const thumb=16, w=host.clientWidth||1;
-    const frac=k/S.horizon;
-    return ((thumb/2 + frac*(w-thumb))/w)*100;
-  };
+  const w=host.clientWidth||1, thumb=16;
+  const pct=k=>((thumb/2+(k/S.horizon)*(w-thumb))/w)*100;
   let out="";
   for(let k=0;k<=S.horizon;k+=6) out+=`<b style="left:${pct(k).toFixed(2)}%">${miLabel(M.today+k)}</b>`;
-  if(S.horizon%6!==0) out+=`<b style="left:${pct(S.horizon).toFixed(2)}%">${miLabel(M.today+S.horizon)}</b>`;
+  if(S.horizon%6) out+=`<b style="left:${pct(S.horizon).toFixed(2)}%">${miLabel(M.today+S.horizon)}</b>`;
   host.innerHTML=out;
 }
 
 function wireChart(svg,X){
   const tip=$("#tip");
-  const toK=cx=>{const b=svg.getBoundingClientRect();
-    const vx=((cx-b.left)/b.width)*CH.w;
+  const toK=cx=>{const b=svg.getBoundingClientRect(); const vx=((cx-b.left)/b.width)*CH.w;
     return clamp(Math.round(((vx-CH.pad.l)/(CH.w-CH.pad.l-CH.pad.r))*S.horizon),0,S.horizon);};
-
+  const plan=fundingPlan();
   $$(".ev-node",svg).forEach(node=>{
-    const id=node.dataset.ev, e=M.events.find(x=>x.id===id), marker=node.dataset.marker==="true";
+    const key=node.dataset.ev, marker=node.dataset.marker==="true";
+    const r=plan.rows.find(x=>x.g.key===key);
     node.addEventListener("mousemove",ev=>{
-      const w=S.shifts[id]!=null?S.shifts[id]:e.month;
-      const amt=S.overrides[id]!=null?S.overrides[id]:e.amount;
       tip.className="tip on";
-      tip.innerHTML=`<div class="tt">${esc(e.name)}</div><div class="td">
-        ${amt!=null?fmt(amt)+" · ":""}${miLong(Math.max(w,M.today))}
-        ${e.excluded?"<br>counted as the School Loan liability, not a second cash call":""}
-        ${e.overdue&&!e.excluded?"<br>target date already passed":""}
-        ${e.conflict?"<br>figure conflicts between sources":""}
-        ${e.note?"<br>"+esc(e.note):""}
-        ${marker?"":"<br>drag to test a different date"}</div>`;
-      tip.style.left=Math.min(ev.clientX+14,innerWidth-280)+"px";
-      tip.style.top=(ev.clientY-12)+"px";
-    });
+      if(r){
+        const due=S.shifts[key]!=null?S.shifts[key]:r.due;
+        tip.innerHTML=`<div class="tt">${esc(r.g.name)}${r.g.hardDeadline?" · hard deadline":""}</div><div class="td">
+          ${fmt(r.amt)} by ${miLong(due)}<br>${Math.max(1,due-M.today)} months → ${fmt(r.amt/Math.max(1,due-M.today))}/mo<br>
+          ${r.cpfUnknown?"CPF balance needed — showing as cash":(r.usesCPF?`CPF ${fmt(r.cpfPart)} · cash ${fmt(r.cashPart)}`:"cash only")}
+          <br>drag to test a different date</div>`;
+      }else{
+        const l=M.liabilities.find(x=>"L"+x.key===key);
+        tip.innerHTML=`<div class="tt">${esc(l?.name||"")}</div><div class="td">${esc(l?.note||"")}</div>`;
+      }
+      tip.style.left=Math.min(ev.clientX+14,innerWidth-280)+"px"; tip.style.top=(ev.clientY-12)+"px";});
     node.addEventListener("mouseleave",()=>tip.className="tip");
     if(marker) return;
     node.addEventListener("pointerdown",ev=>{
-      ev.preventDefault();
-      try{node.setPointerCapture(ev.pointerId);}catch(_){}
-      const move=m=>{S.shifts[id]=M.today+toK(m.clientX); refresh();};
+      ev.preventDefault(); try{node.setPointerCapture(ev.pointerId);}catch(_){}
+      const move=m=>{S.shifts[key]=M.today+toK(m.clientX); refresh();};
       const up=()=>{node.removeEventListener("pointermove",move); node.removeEventListener("pointerup",up);
-        if(S.shifts[id]===e.baseMonth) delete S.shifts[id]; refresh();};
-      node.addEventListener("pointermove",move); node.addEventListener("pointerup",up);
-    });
+        if(S.shifts[key]===r.due) delete S.shifts[key]; refresh();};
+      node.addEventListener("pointermove",move); node.addEventListener("pointerup",up);});
   });
   svg.addEventListener("click",ev=>{
     if(ev.target.closest(".ev-node")) return;
-    S.cursor=toK(ev.clientX); const sl=$("#slider"); if(sl) sl.value=S.cursor; refresh();
-  });
+    S.cursor=toK(ev.clientX); const sl=$("#slider"); if(sl) sl.value=S.cursor; refresh();});
 }
 
 function renderScenarioBar(){
   const bar=$("#scenario-bar"); if(!bar) return;
-  const moved=Object.keys(S.shifts), over=Object.keys(S.overrides);
-  const on=moved.length||over.length||S.preview;
+  const moved=Object.keys(S.shifts), on=moved.length||S.preview;
   bar.classList.toggle("on",!!on); if(!on) return;
-  const parts=moved.map(id=>{const e=M.events.find(x=>x.id===id);
-      return `<b>${esc(e.name)}</b> ${miLabel(e.baseMonth)} → ${miLabel(S.shifts[id])}`;})
-    .concat(over.map(id=>{const e=M.events.find(x=>x.id===id);
-      return `<b>${esc(e.name)}</b> ${fmt(e.amount)} → ${fmt(S.overrides[id])}`;}))
+  const plan=fundingPlan();
+  const parts=moved.map(k=>{const r=plan.rows.find(x=>x.g.key===k);
+      return `<b>${esc(r?.g.name||k)}</b> ${miLabel(r?.due)} → ${miLabel(S.shifts[k])}`;})
     .concat(S.preview?[`previewing <b>${esc(S.preview.label)}</b>`]:[]);
   bar.innerHTML=`<span>Scenario — not saved</span><span style="flex:1">${parts.join(" &nbsp;·&nbsp; ")}</span>
     <button class="btn" id="scn-reset">Reset</button>`;
-  $("#scn-reset").onclick=()=>{S.shifts={};S.overrides={};S.preview=null; renderAskResults(null); refresh();};
+  $("#scn-reset").onclick=()=>{S.shifts={}; S.preview=null; renderAskResults(null); refresh();};
 }
 
-/* ==================================================================
-   6. STACKED BARS — income vs expenses, selected month and 2 prior
-   ================================================================== */
+/* ================= 6. BARS ================= */
 function renderBars(){
-  const rec=monthRec();
-  const end=M.months.findIndex(m=>m.key===rec?.key);
+  const rec=monthRec(), end=M.months.findIndex(m=>m.key===rec?.key);
   const win=M.months.slice(Math.max(0,end-2),end+1);
   const host=$("#p-bars");
   if(!win.length){host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2></div>
     <div class="empty"><div>No monthly totals in the source.</div></div>`; return;}
-
   const W=430,H=250,pl=52,pr=10,pt=18,pb=42;
   const max=Math.max(...win.map(m=>Math.max(m.income,m.expense)))*1.16||1;
-  const bw=(W-pl-pr)/win.length, gap=bw*.22, sw=(bw-gap*2)/2;
-  const Y=v=>pt+(1-v/max)*(H-pt-pb);
-
+  const bw=(W-pl-pr)/win.length, gap=bw*.22, sw=(bw-gap*2)/2, Y=v=>pt+(1-v/max)*(H-pt-pb);
   let grid="";
   for(let i=0;i<=3;i++){const v=max*(i/3),y=Y(v);
     grid+=`<line x1="${pl}" y1="${y}" x2="${W-pr}" y2="${y}" stroke="var(--line)" stroke-dasharray="2 5"/>
            <text class="ax" x="${pl-7}" y="${y+3.5}" text-anchor="end">${fmt(v,{compact:true})}</text>`;}
-
   const bars=win.map((m,i)=>{
-    const x0=pl+i*bw+gap/2;
-    const hi=Math.max(0,H-pb-Y(m.income)), he=Math.max(0,H-pb-Y(m.expense));
-    return `
-      <g>
-        <rect x="${x0}" y="${Y(m.income)}" width="${sw}" height="${hi}" rx="4" fill="var(--pine)" opacity=".9">
-          <title>${MONFULL[miM(m.idx)]} income ${fmt(m.income,{cents:true})}</title></rect>
-        <rect x="${x0+sw+gap}" y="${Y(m.expense)}" width="${sw}" height="${he}" rx="4" fill="var(--clay)" opacity=".9">
-          <title>${MONFULL[miM(m.idx)]} expenses ${fmt(m.expense,{cents:true})}</title></rect>
-        <text class="axt" x="${x0+sw+gap/2}" y="${H-pb+16}" text-anchor="middle">${MON[miM(m.idx)]} ${String(miY(m.idx)).slice(2)}</text>
-        <text class="ax" x="${x0+sw+gap/2}" y="${H-pb+30}" text-anchor="middle"
-              fill="${m.cashFlow<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(m.cashFlow,{signed:true,compact:true})}</text>
-        ${m.partial?`<text class="ax" x="${x0+sw+gap/2}" y="${pt-4}" text-anchor="middle">partial</text>`:""}
-      </g>`;}).join("");
-
-  host.innerHTML=`
-    <div class="sec-head"><h2>Income vs expenses</h2>
-      <span class="hint">last 3 months</span><span class="sp"></span>
-      <div class="legend"><span><i style="background:var(--pine)"></i>Income</span><span><i style="background:var(--clay)"></i>Expenses</span></div>
-    </div>
+    const x0=pl+i*bw+gap/2, hi=Math.max(0,H-pb-Y(m.income)), he=Math.max(0,H-pb-Y(m.expense));
+    const salH=m.salary?Math.max(0,(m.salary/max)*(H-pt-pb)):0;
+    return `<g>
+      <rect x="${x0}" y="${Y(m.income)}" width="${sw}" height="${hi}" rx="4" fill="var(--pine)" opacity=".9">
+        <title>${MONFULL[miM(m.idx)]} income ${fmt(m.income,{cents:true})}</title></rect>
+      ${salH?`<rect x="${x0}" y="${H-pb-salH}" width="${sw}" height="${salH}" rx="4" fill="var(--pine-deep)" opacity=".85">
+        <title>${MONFULL[miM(m.idx)]} salary ${fmt(m.salary)}</title></rect>`:""}
+      <rect x="${x0+sw+gap}" y="${Y(m.expense)}" width="${sw}" height="${he}" rx="4" fill="var(--clay)" opacity=".9">
+        <title>${MONFULL[miM(m.idx)]} expenses ${fmt(m.expense,{cents:true})}</title></rect>
+      <text class="axt" x="${x0+sw+gap/2}" y="${H-pb+16}" text-anchor="middle">${MON[miM(m.idx)]} ${String(miY(m.idx)).slice(2)}</text>
+      <text class="ax" x="${x0+sw+gap/2}" y="${H-pb+30}" text-anchor="middle"
+            fill="${m.cashFlow<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(m.cashFlow,{signed:true,compact:true})}</text>
+      ${m.partial?`<text class="ax" x="${x0+sw+gap/2}" y="${pt-4}" text-anchor="middle">partial</text>`:""}</g>`;}).join("");
+  const anySal=win.some(m=>m.salary>0);
+  host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2><span class="hint">last 3 months</span>
+      <span class="sp"></span><div class="legend">
+        ${anySal?'<span><i style="background:var(--pine-deep)"></i>Salary</span>':""}
+        <span><i style="background:var(--pine)"></i>Income</span>
+        <span><i style="background:var(--clay)"></i>Expenses</span></div></div>
     <svg class="viz" viewBox="0 0 ${W} ${H}">${grid}${bars}</svg>
     <div style="font-size:11.5px;color:var(--ink-faint);margin-top:6px">
-      Figure under each pair is that month's cash flow.</div>`;
+      Figure under each pair is that month's cash flow.${anySal?" Darker block is salary from Aug 2026.":""}</div>`;
 }
 
-/* ==================================================================
-   7. DONUTS + EXPENSE RANKING
-   ================================================================== */
+/* ================= 7. DONUTS + EXPENSE RANK ================= */
 function donut(items,total,centerLabel,centerSub){
   const W=250,H=190,cx=95,cy=95,R=66,r=42;
   if(!items.length) return null;
   let a0=-Math.PI/2, segs="";
   items.forEach((it,i)=>{
     const frac=total>0?it.value/total:0, a1=a0+frac*Math.PI*2;
-    // a single 100% slice is a full circle: an arc whose start and end points
-    // coincide draws nothing, so render it as a stroked ring instead.
     if(frac>=0.9999){
       segs+=`<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="var(--c${(i%6)+1})"
-              stroke-width="${R-r}" opacity=".92"><title>${esc(it.name)} ${fmt(it.value)} (100%)</title></circle>`;
-      a0=a1; return;
-    }
-    const big=(a1-a0)>Math.PI?1:0;
-    const p=(rad,a)=>[cx+Math.cos(a)*rad,cy+Math.sin(a)*rad];
+        stroke-width="${R-r}" opacity=".92"><title>${esc(it.name)} ${fmt(it.value)} (100%)</title></circle>`;
+      a0=a1; return;}
+    const big=(a1-a0)>Math.PI?1:0, p=(rad,a)=>[cx+Math.cos(a)*rad,cy+Math.sin(a)*rad];
     const [x0,y0]=p(R,a0),[x1,y1]=p(R,a1),[x2,y2]=p(r,a1),[x3,y3]=p(r,a0);
     segs+=`<path d="M${x0} ${y0} A${R} ${R} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r} ${r} 0 ${big} 0 ${x3} ${y3} Z"
-            fill="var(--c${(i%6)+1})" opacity=".92"><title>${esc(it.name)} ${fmt(it.value)} (${(frac*100).toFixed(1)}%)</title></path>`;
-    a0=a1;
-  });
-  const legend=items.map((it,i)=>`
-    <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;padding:2.5px 0">
+      fill="var(--c${(i%6)+1})" opacity=".92"><title>${esc(it.name)} ${fmt(it.value)} (${(frac*100).toFixed(1)}%)</title></path>`;
+    a0=a1;});
+  const legend=items.map((it,i)=>`<div style="display:flex;align-items:center;gap:7px;font-size:11.5px;padding:2.5px 0">
       <i style="width:9px;height:9px;border-radius:3px;background:var(--c${(i%6)+1});flex:none"></i>
       <span style="flex:1;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.name)}</span>
       <b class="num" style="font-weight:600">${fmt(it.value,{compact:true})}</b>
-      <span style="color:var(--ink-faint);width:38px;text-align:right">${total>0?(it.value/total*100).toFixed(0):0}%</span>
-    </div>`).join("");
+      <span style="color:var(--ink-faint);width:38px;text-align:right">${total>0?(it.value/total*100).toFixed(0):0}%</span></div>`).join("");
   return `<div style="display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center">
-      <svg class="viz" style="width:190px" viewBox="0 0 ${W} ${H}">
-        ${segs}
-        <text x="${cx}" y="${cy-2}" text-anchor="middle" style="font-family:var(--serif);font-size:17px;fill:var(--ink)">${centerLabel}</text>
-        <text x="${cx}" y="${cy+14}" text-anchor="middle" class="ax">${esc(centerSub)}</text>
-      </svg>
-      <div>${legend}</div></div>`;
+    <svg class="viz" style="width:190px" viewBox="0 0 ${W} ${H}">${segs}
+      <text x="${cx}" y="${cy-2}" text-anchor="middle" style="font-family:var(--serif);font-size:17px;fill:var(--ink)">${centerLabel}</text>
+      <text x="${cx}" y="${cy+14}" text-anchor="middle" class="ax">${esc(centerSub)}</text></svg>
+    <div>${legend}</div></div>`;
 }
-
 function renderAssets(){
   const items=M.balanceFields.map(f=>({name:f.label.replace(/ Balance$/,""),value:balVal(f.key)}))
-                             .filter(x=>x.value!=null&&x.value>0);
+    .filter(x=>x.value!=null&&x.value>0);
   const total=items.reduce((a,x)=>a+x.value,0);
-  $("#p-assets").innerHTML=`
-    <div class="sec-head"><h2>Assets by category</h2></div>
-    ${items.length? donut(items,total,fmt(total,{compact:true}),"total assets")
-      : `<div class="empty"><div class="big">Nothing entered yet</div>
-          <div>Fill in your five balances below and this chart draws itself.<br>
-          Your data has no asset figures, so there is nothing to show.</div></div>`}`;
+  $("#p-assets").innerHTML=`<div class="sec-head"><h2>Assets by category</h2></div>
+    ${items.length?donut(items,total,fmt(total,{compact:true}),"total assets")
+      :`<div class="empty"><div class="big">Nothing entered yet</div>
+         <div>Fill in your five balances below and this draws itself.</div></div>`}`;
 }
-
 function renderLiabilities(){
   const at=M.today+S.cursor;
-  const items=M.liabilities.filter(l=>!l.placeholder).map(l=>({name:l.name,value:liabilityAt(l,at)||0}))
-                           .filter(x=>x.value>0);
+  const items=M.liabilities.filter(l=>!l.placeholder).map(l=>({name:l.name,value:liabilityAt(l,at)||0})).filter(x=>x.value>0);
   const total=items.reduce((a,x)=>a+x.value,0);
   const ph=M.liabilities.filter(l=>l.placeholder);
-  $("#p-liab").innerHTML=`
-    <div class="sec-head"><h2>Liabilities by category</h2>
+  $("#p-liab").innerHTML=`<div class="sec-head"><h2>Liabilities by category</h2>
       ${S.cursor?`<span class="hint">at ${miLong(at)}</span>`:""}</div>
-    ${items.length? donut(items,total,fmt(total,{compact:true}),"total owed")
-      : `<div class="empty"><div class="big">${fmt(0)}</div><div>Nothing outstanding at ${miLong(at)}.</div></div>`}
+    ${items.length?donut(items,total,fmt(total,{compact:true}),"total owed")
+      :`<div class="empty"><div class="big">${fmt(0)}</div><div>Nothing outstanding at ${miLong(at)}.</div></div>`}
     ${ph.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);
-        font-size:11px;color:var(--ink-faint)">${ph.length} unnamed placeholder${ph.length===1?"":"s"} reserved
-        (${ph.map(l=>esc(l.name)).join(", ")}) — no amounts assumed.</div>`:""}`;
+      font-size:11px;color:var(--ink-faint)">${ph.length} unnamed placeholder${ph.length===1?"":"s"} reserved
+      (${ph.map(l=>esc(l.name)).join(", ")}) — no amounts assumed.</div>`:""}`;
 }
-
 function renderExpenseCats(){
-  const rec=monthRec();
-  const isCatMonth = rec && rec.key===M.expenseCatsMonth;
-  const rows=isCatMonth?M.expenseCats:[];
+  const rec=monthRec(), isCat=rec&&rec.key===M.expenseCatsMonth, rows=isCat?M.expenseCats:[];
   const host=$("#p-expcat");
   if(!rows.length){
+    const cm=M.expenseCatsMonth?parseWhen(M.expenseCatsMonth):null;
     host.innerHTML=`<div class="sec-head"><h2>Expenses by category</h2></div>
       <div class="empty"><div class="big">${rec?MONFULL[miM(rec.idx)]+" "+miY(rec.idx):"—"}</div>
-        <div>The Monthly Overview tab computes one month at a time and was set to
-        <b>${M.expenseCatsMonth?MONFULL[miM(parseWhen(M.expenseCatsMonth))]+" "+miY(parseWhen(M.expenseCatsMonth)):"—"}</b> when read,
-        so only that month has a category split.<br>The monthly total is still ${rec?fmt(rec.expense):"—"}.</div></div>`;
-    return;
-  }
+      <div>The Monthly Overview tab computes one month at a time and was set to
+      <b>${cm!=null?miLong(cm):"—"}</b> when read, so only that month has a category split.<br>
+      The monthly total is still ${rec?fmt(rec.expense):"—"}.</div></div>`; return;}
   const W=430,H=250,pl=104,pr=54,pt=10,pb=28;
-  const max=Math.max(...rows.map(r=>r.amount))*1.02||1;
-  const bh=(H-pt-pb)/rows.length, gap=Math.min(9,bh*.32);
-  const bars=rows.map((r,i)=>{
-    const y=pt+i*bh, w=(r.amount/max)*(W-pl-pr);
-    return `<g>
-      <text class="axt" x="${pl-8}" y="${y+bh/2+3.5}" text-anchor="end">${esc(r.name)}</text>
-      <rect x="${pl}" y="${y+gap/2}" width="${Math.max(w,1.5)}" height="${bh-gap}" rx="4"
-            fill="var(--c${(i%6)+1})" opacity=".92"><title>${esc(r.name)} ${fmt(r.amount,{cents:true})}</title></rect>
+  const max=Math.max(...rows.map(r=>r.amount))*1.02||1, bh=(H-pt-pb)/rows.length, gap=Math.min(9,bh*.32);
+  const bars=rows.map((r,i)=>{const y=pt+i*bh, w=(r.amount/max)*(W-pl-pr);
+    return `<g><text class="axt" x="${pl-8}" y="${y+bh/2+3.5}" text-anchor="end">${esc(r.name)}</text>
+      <rect x="${pl}" y="${y+gap/2}" width="${Math.max(w,1.5)}" height="${bh-gap}" rx="4" fill="var(--c${(i%6)+1})" opacity=".92">
+      <title>${esc(r.name)} ${fmt(r.amount,{cents:true})}</title></rect>
       <text class="ax" x="${pl+w+7}" y="${y+bh/2+3.5}">${fmt(r.amount)}</text></g>`;}).join("");
   const total=rows.reduce((a,r)=>a+r.amount,0);
-  host.innerHTML=`
-    <div class="sec-head"><h2>Expenses by category</h2>
+  host.innerHTML=`<div class="sec-head"><h2>Expenses by category</h2>
       <span class="hint">${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} · ranked</span></div>
     <svg class="viz" viewBox="0 0 ${W} ${H}">${bars}
       <line x1="${pl}" y1="${H-pb+2}" x2="${W-pr}" y2="${H-pb+2}" stroke="var(--line)"/>
@@ -986,25 +891,19 @@ function renderExpenseCats(){
       Top line is ${(rows[0].amount/total*100).toFixed(0)}% of the month's ${fmt(total)}.</div>`;
 }
 
-/* ==================================================================
-   8. WHAT CAN I DO
-   ================================================================== */
+/* ================= 8. ASK ================= */
 function renderAsk(){
-  $("#p-ask").innerHTML=`
-    <div class="sec-head"><h2>What can I do?</h2>
+  $("#p-ask").innerHTML=`<div class="sec-head"><h2>What can I do?</h2>
       <span class="hint">computed from your figures · preview an option on the map before acting</span></div>
-    <div class="ask-box">
-      <input class="ask-input" id="ask" autocomplete="off" placeholder="I have $5,000 available. What should I do with it?">
-      <button class="btn primary ask-go" id="ask-go">Ask</button>
-    </div>
-    <div class="ask-suggest" id="sugg"></div>
-    <div class="options" id="ask-out"></div>`;
+    <div class="ask-box"><input class="ask-input" id="ask" autocomplete="off"
+      placeholder="I have $5,000 available. What should I do with it?">
+      <button class="btn primary ask-go" id="ask-go">Ask</button></div>
+    <div class="ask-suggest" id="sugg"></div><div class="options" id="ask-out"></div>`;
   const sg=["I have $5,000 available. What should I do with it?","Can I afford a $4,000 trip?",
-            "What happens if renovation costs $10k more?","What can I deploy this month?"];
+            "What happens if renovation costs $10k more?","Can I hit all three goals on time?"];
   $("#sugg").innerHTML=sg.map(s=>`<button class="sugg">${esc(s)}</button>`).join("");
   $$("#sugg .sugg").forEach(b=>b.onclick=()=>{$("#ask").value=b.textContent; ask();});
-  $("#ask-go").onclick=ask;
-  $("#ask").onkeydown=e=>{if(e.key==="Enter") ask();};
+  $("#ask-go").onclick=ask; $("#ask").onkeydown=e=>{if(e.key==="Enter") ask();};
 }
 function parseAsk(q){
   const s=q.toLowerCase();
@@ -1012,291 +911,220 @@ function parseAsk(q){
   let amount=m?parseFloat(m[1])*(m[2]?1000:1):null;
   if(amount!=null&&amount<100&&!/\bk\b/.test(s)) amount=null;
   const goal=M.goals.find(g=>s.includes(g.name.toLowerCase()));
-  if(/afford|trip|holiday|buy|spend/.test(s))            return {kind:"afford",amount,goal};
+  if(/afford|trip|holiday|buy|spend/.test(s)) return {kind:"afford",amount,goal};
   if(/costs? more|more expensive|overrun|goes up/.test(s)) return {kind:"overrun",amount,goal};
+  if(/on time|all three|hit all|can i hit/.test(s)) return {kind:"feasible",amount,goal};
   return {kind:"deploy",amount,goal};
 }
-function deployable(){
-  const pr=project(), B=pr.B;
-  let claim=0, overdueNow=0;
-  M.goals.forEach(g=>{
-    if(g.total==null||g.mirrorsLiability) return;
-    const f=goalFunded(g.id)||0, need=Math.max(0,g.total-f);
-    if(g.target!=null&&g.target<=M.today){overdueNow+=need; return;}
-    const left=g.target==null?Math.max(S.horizon,12):Math.max(1,g.target-M.today);
-    claim+=need/left;
-  });
-  return {net:pr.net,claim,overdueNow,free:pr.net-claim,pr,B};
-}
-function ask(){const q=$("#ask").value.trim(); if(!q) return; renderAskResults(buildOptions(parseAsk(q),q));}
+function ask(){const q=$("#ask").value.trim(); if(q) renderAskResults(buildOptions(parseAsk(q),q));}
 
 function buildOptions(intent,q){
-  const D=deployable(), amt=intent.amount, opts=[];
-  const mk=(title,why,impacts,tradeoff,preview)=>opts.push({title,why,impacts,tradeoff,preview});
-  const soonest=M.goals.filter(g=>g.target!=null&&!g.mirrorsLiability).sort((a,b)=>a.target-b.target)[0];
-  const biggest=M.goals.slice().sort((a,b)=>(b.total||0)-(a.total||0))[0];
-  const burn=D.net<0;
+  const pr=project(), plan=pr.plan, opts=[];
+  const surplus=pr.net-plan.cashPerMonth-plan.loanPerMonth;
+  const mk=(t,w,i,tr,p)=>opts.push({title:t,why:w,impacts:i,tradeoff:tr,preview:p});
+  const soonest=plan.rows.slice().sort((a,b)=>a.due-b.due)[0];
+  const biggest=plan.rows.slice().sort((a,b)=>b.amt-a.amt)[0];
 
-  if(intent.kind==="afford"&&amt){
-    const months=D.net>0?amt/D.net:null;
-    mk(burn?"You can't fund this from income":"Spread it over "+Math.ceil(months)+" month"+(Math.ceil(months)===1?"":"s"),
-      burn? `Your last three months average <b>${fmt(D.B.income)}</b> in and <b>${fmt(D.B.expense)}</b> out — you are running <b>${fmt(Math.abs(D.net))}/month negative</b>. ${fmt(amt)} cannot come from surplus because there isn't one; it comes out of savings.`
-          : `${fmt(amt)} is ${(months).toFixed(1)}× your monthly net of ${fmt(D.net)}. Spreading it keeps every goal date intact.`,
-      [["Net worth",-amt,"bad"],["Goals",0,"neutral"],["Liquidity",-amt,"bad"],["Timeline",0,"neutral"]],
-      burn? "Every month at this run-rate already costs you "+fmt(Math.abs(D.net))+" before this trip." : null,
-      {label:q.slice(0,22),amount:amt,month:M.today});
-    mk("Take it now, in one hit",
-      `Net worth drops by ${fmt(amt)} the month you pay and never recovers the gap — it shifts every later point down.`,
-      [["Net worth",-amt,"bad"],["Goals",0,"neutral"],["Liquidity",-amt,"bad"],["Timeline",0,"neutral"]],
-      assetsAt()==null?"You cannot verify this is affordable — no cash balance is entered.":null,
-      {label:q.slice(0,22),amount:amt,month:M.today});
-    if(soonest) mk(`Don't — ${soonest.name} lands first`,
-      `${soonest.name} needs ${fmt(soonest.total)} by ${soonest.targetLabel}, with ${goalFunded(soonest.id)!=null?fmt(goalFunded(soonest.id))+" funded":"nothing recorded as funded"}. That claim outranks a discretionary trip.`,
-      [["Net worth",0,"good"],["Goals",amt,"good"],["Liquidity",0,"good"],["Timeline",0,"neutral"]],
-      "Defers the spend with no date at which it becomes affordable on current run-rate.",null);
+  if(intent.kind==="feasible"||intent.kind==="deploy"&&!intent.amount){
+    mk("The plan needs "+fmt(plan.cashPerMonth)+"/month in cash",
+      `${plan.rows.map(r=>esc(r.g.name)+" "+fmt(r.cashPerMonth)).join(", ")}${plan.loanPerMonth?`, plus ${fmt(plan.loanPerMonth)} to your mum`:""}. Against ${fmt(pr.net)} of monthly net that leaves <b>${fmt(surplus,{signed:true})}</b>.`,
+      [["Cash / mo",surplus,surplus<0?"bad":"good"],["Goals",0,"neutral"],["Liquidity",surplus,surplus<0?"bad":"good"],["Timeline",0,"neutral"]],
+      surplus<0?`The gap is ${fmt(Math.abs(surplus))}/month. Something has to move: a date, an amount, or Melissa's income joining the projection.`:null,null);
+    if(soonest) mk(`${soonest.g.name} is the binding constraint`,
+      `${fmt(soonest.amt)} in ${soonest.months} months is ${fmt(soonest.cashPerMonth)}/month on its own — ${pr.net>0?Math.round(soonest.cashPerMonth/pr.net*100)+"% of your entire net":"more than your entire net"}. It lands before anything else and consumes the runway the others need.`,
+      [["Cash / mo",-soonest.cashPerMonth,"bad"],["Goals",soonest.amt,"good"],["Liquidity",-soonest.cashPerMonth,"warn"],["Timeline",0,"neutral"]],
+      `Pushing it out is the single biggest lever — drag it on the map to see how far.`,null);
+    if(plan.cpfAvail==null) mk("Enter your CPF balance before deciding anything",
+      `BTO is ${fmt(plan.rows.find(r=>r.g.key==="bto")?.amt)} and is meant to draw CPF first. With no CPF balance recorded it is being counted as <b>100% cash</b>, which is the worst case. The real cash requirement is almost certainly lower.`,
+      [["Cash / mo",0,"neutral"],["Goals",0,"neutral"],["Liquidity",0,"good"],["Timeline",0,"neutral"]],
+      `Until then every number on this page overstates the cash you need.`,null);
   }
-  else if(intent.kind==="overrun"){
-    const g=intent.goal||M.goals.find(x=>/renovation/i.test(x.name))||biggest;
-    const bump=amt||10000, e=M.events.find(x=>x.goalId===g?.id);
-    mk("Absorb it",
-      `${g?.name} rises from ${fmt(g?.total)} to ${fmt((g?.total||0)+bump)}. At ${fmt(D.net,{signed:true})}/month you ${D.net>0?"need "+Math.ceil(bump/D.net)+" extra months of saving":"have no surplus to absorb it from — it comes straight off net worth"}.`,
-      [["Net worth",-bump,"bad"],["Goals",-bump,"warn"],["Liquidity",-bump,"warn"],["Timeline",-bump,"warn"]],
-      `Only works if those months exist before ${esc(g?.targetLabel||"the deadline")}.`,
-      e?{label:g.name+" +"+fmt(bump,{compact:true}),amount:bump,month:Math.max(e.month,M.today)}:null);
-    mk("Push the date",
-      `Hold the amount and move ${g?.name} later. Drag its milestone on the map to see how far it has to slide.`,
-      [["Net worth",0,"good"],["Goals",0,"neutral"],["Liquidity",0,"good"],["Timeline",-bump,"bad"]],
-      `${g?.name} then collides with whatever already sits in that window.`,null);
-    mk("Trim another goal",
-      `${biggest?.name} is the largest claim at ${fmt(biggest?.total)}. Cutting it by ${fmt(bump)} covers the overrun with no date changing.`,
-      [["Net worth",0,"neutral"],["Goals",-bump,"warn"],["Liquidity",0,"neutral"],["Timeline",0,"good"]],
-      `Trades a firm commitment for an estimate — ${esc(g?.name||"")} is still "est." in your data.`,null);
+  else if(intent.kind==="afford"&&intent.amount){
+    const amt=intent.amount;
+    mk(surplus>0?`Affordable — it costs ${Math.ceil(amt/surplus)} month${Math.ceil(amt/surplus)===1?"":"s"} of surplus`:"Not affordable without moving a goal",
+      surplus>0?`After every goal contribution you keep ${fmt(surplus)}/month. ${fmt(amt)} is ${(amt/surplus).toFixed(1)}× that.`
+               :`Your goals already need ${fmt(plan.cashPerMonth+plan.loanPerMonth)}/month against ${fmt(pr.net)} of net. There is no surplus for ${fmt(amt)} — it would come straight out of a goal.`,
+      [["Cash now",-amt,"bad"],["Goals",surplus>0?0:-amt,surplus>0?"neutral":"bad"],["Liquidity",-amt,"warn"],["Timeline",0,"neutral"]],
+      cashBalance()==null?"No cash balance entered, so this can't be checked against what you actually hold.":null,
+      {label:q.slice(0,22),amount:amt,month:M.today});
+    if(soonest) mk(`Delay it until after ${soonest.g.name}`,
+      `${soonest.g.name} clears ${miLong(soonest.due)}. After that ${fmt(soonest.cashPerMonth)}/month frees up and ${fmt(amt)} takes ${Math.ceil(amt/Math.max(soonest.cashPerMonth,1))} months to rebuild.`,
+      [["Cash now",0,"good"],["Goals",0,"good"],["Liquidity",0,"good"],["Timeline",-amt,"warn"]],
+      `${Math.max(0,soonest.due-M.today)} months of waiting.`,null);
+    mk("Take it from the emergency fund",
+      `The floor is ${fmt(M.ef?.amount)} — two months of combined take-home. Dropping ${fmt(amt)} leaves ${fmt((M.ef?.amount||0)-amt)}, i.e. ${(((M.ef?.amount||0)-amt)/(M.salary.takeHome||1)).toFixed(1)} months of cover.`,
+      [["Cash now",-amt,"warn"],["Goals",0,"neutral"],["Liquidity",-amt,"bad"],["Timeline",0,"neutral"]],
+      `The emergency fund is the only thing standing between a bad month and a missed goal.`,null);
   }
   else{
-    const a=amt||Math.max(D.free,0);
-    if(burn) mk("Fix the run-rate before deploying anything",
-      `Six of the last seven months are cash-flow negative, ${fmt(M.yearTotals?.cashFlow)} year-to-date. Deploying ${fmt(a)} while ${fmt(Math.abs(D.net))}/month leaks is refilling a bucket with a hole in it.`,
-      [["Net worth",0,"good"],["Goals",0,"neutral"],["Liquidity",a,"good"],["Timeline",0,"neutral"]],
-      `Costs a month of progress on goals that are already behind.`,null);
-    const top=M.expenseCats[0];
-    if(top) mk(`Cut ${top.name} first`,
-      `${top.name} was ${fmt(top.amount)} in ${MONFULL[miM(parseWhen(M.expenseCatsMonth))]} — ${(top.amount/M.expenseCats.reduce((x,r)=>x+r.amount,0)*100).toFixed(0)}% of the month. Halving it alone would swing you ${fmt(top.amount/2,{signed:true})}/month.`,
-      [["Net worth",top.amount/2,"good"],["Goals",top.amount/2,"good"],["Liquidity",top.amount/2,"good"],["Timeline",0,"neutral"]],
-      `One month is not a trend — check whether ${top.name} repeats before cutting structurally.`,null);
-    const ef=M.goals.find(g=>/emergency/i.test(g.name));
-    if(ef) mk(`Top up ${ef.name}`,
-      `${ef.name} targets ${fmt(ef.total)} with ${goalFunded(ef.id)!=null?fmt(goalFunded(ef.id))+" recorded":"nothing recorded"}. Until it exists, a negative run-rate has nothing to land on.`,
-      [["Net worth",0,"neutral"],["Goals",Math.min(a,ef.total||a),"good"],["Liquidity",Math.min(a,ef.total||a),"good"],["Timeline",0,"neutral"]],
-      `Emergency cash earns the least — but it's the only goal with no deadline to trade against.`,
-      {label:ef.name,amount:Math.min(a,ef.total||a),month:M.today});
+    const g=intent.goal?plan.rows.find(r=>r.g.key===intent.goal.key):plan.rows.find(r=>/renovation/i.test(r.g.name))||biggest;
+    const bump=intent.amount||10000;
+    mk("Absorb it",
+      `${g.g.name} rises from ${fmt(g.amt)} to ${fmt(g.amt+bump)} — ${fmt((g.amt+bump)/g.months)}/month instead of ${fmt(g.cashPerMonth)}. That is ${fmt(bump/g.months)}/month more out of a ${fmt(surplus,{signed:true})} surplus.`,
+      [["Cash / mo",-bump/g.months,"bad"],["Goals",-bump,"warn"],["Liquidity",-bump,"warn"],["Timeline",0,"neutral"]],
+      surplus-bump/g.months<0?`This pushes you ${fmt(Math.abs(surplus-bump/g.months))}/month underwater.`:null,
+      {label:g.g.name+" +"+fmt(bump,{compact:true}),amount:bump,month:Math.max(g.due,M.today)});
+    mk("Push the date",
+      `Hold the contribution and move ${g.g.name} later. ${g.g.hardDeadline?"⚠ This one has a hard deadline — it can't move without consequence.":"It has no hard deadline, so this is the cheapest lever you have."}`,
+      [["Cash / mo",0,"good"],["Goals",0,"neutral"],["Liquidity",0,"good"],["Timeline",-bump,g.g.hardDeadline?"bad":"warn"]],
+      g.g.hardDeadline?`${g.g.name} is fixed to ${miLong(g.due)}.`:null,null);
+    mk("Trim the amount instead",
+      `Cut ${g.g.name} by ${fmt(bump)} and the schedule is unchanged. Adjust it directly with the goal controls on the Goals tab.`,
+      [["Cash / mo",0,"good"],["Goals",-bump,"warn"],["Liquidity",0,"neutral"],["Timeline",0,"good"]],
+      `Only you can say whether ${fmt(g.amt-bump)} still buys what you want.`,null);
   }
   return opts.slice(0,3);
 }
-
 function renderAskResults(opts){
   const out=$("#ask-out"); if(!out) return;
   if(!opts){out.innerHTML=""; return;}
   const maxAbs=Math.max(...opts.flatMap(o=>o.impacts.map(i=>Math.abs(i[1]))),1);
   const COL={good:"var(--pine)",warn:"var(--caramel)",bad:"var(--clay)",neutral:"var(--line)"};
-  out.innerHTML=opts.map((o,i)=>`
-    <div class="opt" data-opt="${i}" style="animation-delay:${i*80}ms">
-      <div style="display:flex;gap:9px;align-items:flex-start">
-        <span class="chip clay plain">Option ${i+1}</span></div>
-      <div class="o-title">${o.title}</div>
-      <div class="o-why">${o.why}</div>
-      <div class="impact">${o.impacts.map(([l,v,t])=>`
-        <div class="imp-row"><span class="il">${esc(l)}</span>
-          <span class="imp-bar"><i style="left:50%;width:${Math.abs(v)/maxAbs*48}%;background:${COL[t]};${v<0?"transform:translateX(-100%)":""}"></i></span>
-          <span class="iv" style="color:${COL[t]}">${v===0?"—":fmt(v,{signed:true,compact:true})}</span></div>`).join("")}</div>
-      ${o.tradeoff?`<div class="tradeoff"><span>Trade-off</span><span>${o.tradeoff}</span></div>`:""}
-      <div class="o-foot">${o.preview?`<button class="btn" data-prev="${i}">Preview on map</button>`
-        :`<span style="font-size:11px;color:var(--ink-faint);align-self:center">no cash movement to preview</span>`}</div>
-    </div>`).join("");
+  out.innerHTML=opts.map((o,i)=>`<div class="opt" data-opt="${i}" style="animation-delay:${i*80}ms">
+    <div><span class="chip clay plain">Option ${i+1}</span></div>
+    <div class="o-title">${o.title}</div><div class="o-why">${o.why}</div>
+    <div class="impact">${o.impacts.map(([l,v,t])=>`<div class="imp-row"><span class="il">${esc(l)}</span>
+      <span class="imp-bar"><i style="left:50%;width:${Math.abs(v)/maxAbs*48}%;background:${COL[t]};${v<0?"transform:translateX(-100%)":""}"></i></span>
+      <span class="iv" style="color:${COL[t]}">${v===0?"—":fmt(v,{signed:true,compact:true})}</span></div>`).join("")}</div>
+    ${o.tradeoff?`<div class="tradeoff"><span>Trade-off</span><span>${o.tradeoff}</span></div>`:""}
+    <div class="o-foot">${o.preview?`<button class="btn" data-prev="${i}">Preview on map</button>`
+      :`<span style="font-size:11px;color:var(--ink-faint);align-self:center">no cash movement to preview</span>`}</div></div>`).join("");
   $$("[data-prev]",out).forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.prev,o=opts[i];
-    const already=S.preview&&S.preview.label===o.preview.label;
+    const i=+b.dataset.prev,o=opts[i], already=S.preview&&S.preview.label===o.preview.label;
     S.preview=already?null:o.preview;
     $$(".opt",out).forEach(x=>x.classList.toggle("previewing",!already&&+x.dataset.opt===i));
     $$("[data-prev]",out).forEach(x=>x.textContent="Preview on map");
     if(!already) b.textContent="Clear preview";
-    refresh();
-    $("#p-map").scrollIntoView({behavior:"smooth",block:"center"});
-  });
+    refresh(); $("#p-map").scrollIntoView({behavior:"smooth",block:"center"});});
 }
 
-/* ==================================================================
-   9. FILL IN WHAT'S MISSING
-   ================================================================== */
+/* ================= 9. FILL IN WHAT'S MISSING ================= */
 function renderFill(){
-  const fields=M.balanceFields;
-  const goals=M.goals;
-  $("#p-fill").innerHTML=`
-    <div class="sec-head"><h2>Fill in what's missing</h2>
-      <span class="hint">saved in this browser only · never written to finance.json</span>
-      <span class="sp"></span>
+  $("#p-fill").innerHTML=`<div class="sec-head"><h2>Fill in what's missing</h2>
+      <span class="hint">saved in this browser only · never written to finance.json</span><span class="sp"></span>
       <button class="btn" id="fill-export">Copy as JSON patch</button>
       <button class="btn" id="fill-clear">Clear</button></div>
-    <div class="fill-grid">
-      ${fields.map(f=>{const v=balVal(f.key);
-        return `<div class="fill-f">
-          <label for="b_${f.key}">${esc(f.label)}</label>
-          <div class="wrapin"><span class="cur">$</span>
-            <input type="number" id="b_${f.key}" data-bal="${f.key}" step="100"
-                   class="${v!=null?"set":""}" placeholder="not set" value="${v!=null?v:""}"></div>
-        </div>`;}).join("")}
-    </div>
-    <div class="subhead">Goals funded</div>
-    <div class="fill-grid">
-      ${goals.map(g=>{const v=goalFunded(g.id);
-        return `<div class="fill-f">
-          <label for="f_${g.id}">${esc(g.name)} <span style="color:var(--ink-faint)">of ${fmt(g.total)}</span></label>
-          <div class="wrapin"><span class="cur">$</span>
-            <input type="number" id="f_${g.id}" data-fund="${g.id}" step="500" max="${g.total||""}"
-                   class="${v!=null?"set":""}" placeholder="not set" value="${v!=null?v:""}"></div>
-        </div>`;}).join("")}
-    </div>
+    <div class="fill-grid">${M.balanceFields.map(f=>{const v=balVal(f.key);
+      return `<div class="fill-f"><label for="b_${f.key}">${esc(f.label)}</label>
+        <div class="wrapin"><span class="cur">$</span>
+        <input type="number" id="b_${f.key}" data-bal="${f.key}" step="100" class="${v!=null?"set":""}"
+               placeholder="not set" value="${v!=null?v:""}"></div></div>`;}).join("")}</div>
     <div style="font-size:11.5px;color:var(--ink-faint);margin-top:14px;line-height:1.6">
-      Everything above is in ${esc(M.raw.balances?.currency||"SGD")}. Net worth, the assets chart and every goal
-      recalculate as you type. Nothing here changes <code>finance.json</code> — use <b>Copy as JSON patch</b> when
-      you want these to become the recorded figures.</div>`;
-
+      All figures SGD. Net worth, the assets chart and the BTO funding split recalculate as you type.
+      The CPF fields are what let BTO draw CPF before cash — until they exist BTO is costed as
+      <b>100% cash</b>, the worst case. Goal amounts are edited on the <b>Goals</b> tab.</div>`;
   $$("[data-bal]").forEach(inp=>inp.oninput=e=>{
     const k=e.target.dataset.bal, v=e.target.value;
-    if(v===""){delete S.balances[k];} else S.balances[k]=+v;
+    if(v==="") delete S.balances[k]; else S.balances[k]=+v;
     e.target.classList.toggle("set",v!=="");
-    saveLocal(); refreshExceptFill();
-  });
-  $$("[data-fund]").forEach(inp=>inp.oninput=e=>{
-    const k=e.target.dataset.fund, v=e.target.value;
-    if(v===""){delete S.funded[k];} else S.funded[k]=+v;
-    e.target.classList.toggle("set",v!=="");
-    saveLocal(); refreshExceptFill();
-  });
-  $("#fill-clear").onclick=()=>{S.balances={};S.funded={};saveLocal();refresh();};
+    saveLocal(); renderIntegrity(); refreshExceptFill();});
+  $("#fill-clear").onclick=()=>{S.balances={}; saveLocal(); refresh(); renderFill();};
   $("#fill-export").onclick=()=>{
     const patch={balances:{asOf:new Date().toISOString().slice(0,10),
       fields:M.balanceFields.map(f=>({key:f.key,label:f.label,value:balVal(f.key),owner:f.owner}))},
-      savingsGoalsFunded:M.goals.map(g=>({goal:g.name,funded:goalFunded(g.id)}))};
+      goals:{rows:M.goals.map(g=>({key:g.key,name:g.name,amount:goalAmount(g),due:g.due}))}};
     const txt=JSON.stringify(patch,null,2);
     navigator.clipboard?.writeText(txt);
-    alert("Copied a finance.json patch to your clipboard.\n\nNothing has been changed on disk. Paste it into data/finance.json to make these the recorded figures:\n\n"+txt);
-  };
+    alert("Copied a finance.json patch to your clipboard.\n\nNothing has been changed on disk:\n\n"+txt);};
 }
 
-/* ==================================================================
-   10. FINANCE BRIEF
-   ================================================================== */
-function briefItems(){
-  const D=deployable(), out=[];
-  const push=(tone,icon,title,desc)=>out.push({tone,icon,title,desc});
-  const T={clay:"var(--clay)",pine:"var(--pine)",grey:"var(--ink-faint)"};
-
-  // 1. the deployable / run-rate sentence
-  if(D.net<0){
-    push("clay","!","You are spending more than you earn",
-      `Across the last three actual months you took in <b>${fmt(D.B.income)}</b> and spent <b>${fmt(D.B.expense)}</b> — a run-rate of <b>${fmt(D.net)}/month</b>. Year to date that is <b>${fmt(M.yearTotals?.cashFlow)}</b>. Nothing is deployable this month; the question is which expense line comes down.`);
-  }else{
-    push("pine","$","Deployable this month",
-      `Roughly <b>${fmt(D.free)}</b> is deployable without touching a funded goal — ${fmt(D.net)} net less the ${fmt(D.claim)}/month your dated goals need.`);
-  }
-
-  // 2. biggest expense line
-  const top=M.expenseCats[0];
-  if(top){
-    const tot=M.expenseCats.reduce((a,r)=>a+r.amount,0);
-    push("clay","▲",`${top.name} is the decision`,
-      `<b>${fmt(top.amount)}</b> of ${MONFULL[miM(parseWhen(M.expenseCatsMonth))]}'s ${fmt(tot)} — <b>${(top.amount/tot*100).toFixed(0)}%</b> of everything you spent. Every other category combined is ${fmt(tot-top.amount)}. If one number moves this month, it is this one.`);
-  }
-
-  // 3. trend
-  const nonPartial=M.months.filter(m=>!m.partial);
-  const neg=nonPartial.filter(m=>m.cashFlow<0).length;
-  if(nonPartial.length>=3)
-    push("clay","⌁","The trend, not the month",
-      `${neg} of the last ${nonPartial.length} months are cash-flow negative, and the last three are the worst three: ${nonPartial.slice(-3).map(m=>MON[miM(m.idx)]+" "+fmt(m.cashFlow,{signed:true,compact:true})).join(", ")}. Income fell from ${fmt(nonPartial[0].income)} in ${MON[miM(nonPartial[0].idx)]} to ${fmt(nonPartial[nonPartial.length-1].income)} while expenses rose.`);
-
-  // 4. conflicts — decisions, not warnings
-  M.conflicts.forEach(c=>push("clay","?",`Reconcile: ${c.title.toLowerCase()}`,
-    esc(c.detail)+(c.key==="incomeBasis"?` The map is currently running on <b>${esc(basis().label)}</b>.`:"")));
-
-  // 5. what's blocked
-  if(!anyBalanceSet())
-    push("grey","·","Net worth is unanswerable until you fill in five numbers",
-      `Cash, both investment balances and both CPF balances are all blank. Liabilities are known (<b>${fmt(liabilitiesAt(M.today))}</b> today), so the moment you enter assets the whole page resolves.`);
-
-  // 6. liabilities timing
-  const sl=M.liabilities.find(l=>l.repayIdx!=null);
-  if(sl) push("pine","→",`${sl.name} starts amortising ${miLong(sl.repayIdx)}`,
-    `<b>${fmt(sl.outstanding)}</b> outstanding, falling ${fmt(sl.repayMonthly)}/month from then — clear in <b>${Math.ceil(sl.outstanding/sl.repayMonthly)} months</b>. That repayment is cash out but net-worth neutral, so the line above doesn't dip for it.`);
-  const mg=M.liabilities.find(l=>l.startsIdx!=null);
-  if(mg) push("grey","·",`${mg.name} is excluded from the line`,
-    `${fmt(mg.principal)} from ${miLong(mg.startsIdx)}. It is drawn to buy a property whose value isn't recorded anywhere in your data, so counting the debt without the asset would show a false collapse. It appears as a dotted marker only.`);
-
-  // 7. the source's own decisions, preserved
-  (M.raw.decisions||[]).forEach(x=>push("pine","→",esc(x.name),esc(x.detail)));
-  return out.map(i=>Object.assign(i,{col:T[i.tone]}));
-}
-
+/* ================= 10. BRIEF ================= */
 function renderBrief(){
   const host=$("#p-brief"); if(!host) return;
-  const items=briefItems();
-  host.innerHTML=`
-    <div class="sec-head"><h2>Finance brief</h2>
+  const pr=project(), plan=pr.plan;
+  const surplus=pr.net-plan.cashPerMonth-plan.loanPerMonth;
+  const items=[]; const push=(tone,icon,title,desc)=>items.push({tone,icon,title,desc});
+
+  if(surplus<0) push("clay","!","The plan does not fit the income",
+    `Your three goals need <b>${fmt(plan.cashPerMonth)}/month</b> in cash${plan.loanPerMonth?`, plus <b>${fmt(plan.loanPerMonth)}</b> to your mum`:""}, against <b>${fmt(pr.net)}</b> of monthly net. That is a <b>${fmt(Math.abs(surplus))}/month</b> gap. ${S.includeMelissa?"":`Melissa's ${fmt(M.proj.melissaMonthly)} take-home is not in this projection — adding it closes ${fmt(Math.min(Math.abs(surplus),M.proj.melissaMonthly||0))} of it.`}`);
+  else push("pine","$","The plan fits, with room",
+    `After every goal contribution and the loan repayment you keep <b>${fmt(surplus)}/month</b>.`);
+
+  const soon=plan.rows.slice().sort((a,b)=>a.due-b.due)[0];
+  if(soon) push("clay","▲",`${soon.g.name} is the binding constraint`,
+    `<b>${fmt(soon.amt)}</b> by <b>${miLong(soon.due)}</b> — ${soon.months} months away, so <b>${fmt(soon.cashPerMonth)}/month</b>. It is the earliest and steepest claim; everything else queues behind it.`);
+
+  const bto=plan.rows.find(r=>r.g.key==="bto");
+  if(bto){
+    if(bto.cpfUnknown) push("clay","?","BTO is being costed as all cash",
+      `<b>${fmt(bto.amt)}</b> by ${miLong(bto.due)} is meant to draw CPF first. No CPF balance is recorded, so it is showing as <b>100% cash</b> — the worst case. Enter both CPF balances and this number will fall.`);
+    else push("pine","◆","BTO splits CPF first, then cash",
+      `<b>${fmt(bto.cpfPart)}</b> from CPF and <b>${fmt(bto.cashPart)}</b> from cash, on ${fmt(plan.cpfAvail)} of CPF today plus ${fmt(plan.monthlyCPF)}/month accruing to ${miLong(bto.due)}. Assumes the balance you entered is usable for housing.`);
+  }
+
+  const ef=M.ef;
+  if(ef){
+    const cash=cashBalance();
+    push(cash==null?"grey":(cash>=ef.amount?"pine":"clay"), "◇", "Emergency fund floor",
+      `<b>${fmt(ef.amount)}</b> — ${ef.months} months of combined take-home, held in cash. ${cash==null?"No cash balance entered, so it can't be checked.":cash>=ef.amount?`Your ${fmt(cash)} cash covers it with ${fmt(cash-ef.amount)} to spare.`:`Your ${fmt(cash)} cash is <b>${fmt(ef.amount-cash)} short</b> of it. This is not a goal you can defer — it is the floor.`}`);
+  }
+
+  const sl=M.liabilities.find(l=>l.repayIdx!=null);
+  if(sl) push("pine","→",`${sl.name} amortises from ${miLong(sl.repayIdx)}`,
+    `<b>${fmt(sl.outstanding)}</b> to your mum, falling ${fmt(sl.repayMonthly)}/month — clear in <b>${Math.ceil(sl.outstanding/sl.repayMonthly)} months</b>, ${miLong(sl.repayIdx+Math.ceil(sl.outstanding/sl.repayMonthly)-1)}. Cash out but net-worth neutral, so the line doesn't dip for it.`);
+
+  const done=M.months.filter(m=>!m.partial);
+  if(done.length>=3) push("grey","⌁","What the trailing spend is built on",
+    `Expenses run at <b>${fmt(pr.B.expense)}/month</b> on the last three complete months (${done.slice(-3).map(m=>MON[miM(m.idx)]+" "+fmt(m.expense,{compact:true})).join(", ")}). July carried ${fmt(M.expenseCats[0]?.amount)} of ${esc(M.expenseCats[0]?.name||"")}, so this basis is high — one clean month will move it.`);
+
+  (M.raw.decisions||[]).forEach(x=>push("pine","→",esc(x.name),esc(x.detail)));
+
+  const T={clay:"var(--clay)",pine:"var(--pine)",grey:"var(--ink-faint)"};
+  host.innerHTML=`<div class="sec-head"><h2>Finance brief</h2>
       <span class="hint">decisions ahead of statistics</span></div>
-    ${items.map(it=>`
-      <div class="bitem">
-        <div class="bi" style="background:${it.tone==="clay"?"var(--clay-soft)":it.tone==="pine"?"var(--pine-soft)":"var(--paper-2)"};color:${it.col}">${it.icon}</div>
-        <div><div class="bt" style="color:${it.col}">${it.title}</div><div class="bd">${it.desc}</div></div>
-      </div>`).join("")}`;
+    ${items.map(it=>`<div class="bitem">
+      <div class="bi" style="background:${it.tone==="clay"?"var(--clay-soft)":it.tone==="pine"?"var(--pine-soft)":"var(--paper-2)"};color:${T[it.tone]}">${it.icon}</div>
+      <div><div class="bt" style="color:${T[it.tone]}">${it.title}</div><div class="bd">${it.desc}</div></div></div>`).join("")}`;
 }
 
-/* ==================================================================
-   11. GOALS TAB — constellation + ledger
-   ================================================================== */
+/* ================= 11. GOALS TAB ================= */
 function renderConstellation(){
-  $("#p-const").innerHTML=`
-    <div class="sec-head"><h2>Goal constellation</h2>
-      <span class="hint">source: ${esc(M.raw.savingsGoals?.source||"")} · size = total required · ring = funded · orbit = time remaining</span></div>
-    <div class="const-wrap">
-      <div><svg class="viz" id="const" viewBox="0 0 620 540"></svg></div>
-      <div id="goal-detail"></div>
-    </div>`;
-  drawConstellation();
+  $("#p-const").innerHTML=`<div class="sec-head"><h2>Goal constellation</h2>
+      <span class="hint">size = amount · ring = funded on schedule · orbit = time remaining · centre = emergency fund</span></div>
+    <div class="const-wrap"><div><svg class="viz" id="const" viewBox="0 0 620 500"></svg></div>
+    <div id="goal-detail"></div></div>
+    <div class="goal-edit" id="goal-edit"></div>
+    <div id="plan-summary"></div>`;
+  drawConstellation(); renderGoalEditors();
 }
 
 function drawConstellation(){
   const svg=$("#const"); if(!svg) return;
-  const cx=310,cy=270,R0=92,RSPAN=116;
-  const maxTotal=Math.max(...M.goals.map(g=>g.total||0),1);
-  const nowM=M.today+S.cursor;
-  const rem=g=>g.target==null?30:(g.target-nowM);
-  const maxRem=Math.max(12,...M.goals.map(g=>Math.max(0,rem(g))));
-  const orbitR=g=>{const r=rem(g); return r<=0?R0:R0+(Math.min(r,maxRem)/maxRem)*RSPAN;};
+  const cx=310,cy=250,R0=96,RSPAN=112;
+  const plan=fundingPlan(), nowM=M.today+S.cursor;
+  const maxAmt=Math.max(...plan.rows.map(r=>r.amt),1);
+  const rem=r=>r.due-nowM, maxRem=Math.max(6,...plan.rows.map(r=>Math.max(0,rem(r))));
+  const orbitR=r=>{const x=rem(r); return x<=0?R0:R0+(Math.min(x,maxRem)/maxRem)*RSPAN;};
   const rings=[0,.5,1].map(f=>`<circle class="orbit" cx="${cx}" cy="${cy}" r="${R0+f*RSPAN}"/>`).join("");
 
-  const nodes=M.goals.map((g,i)=>{
-    const a=(-Math.PI/2)+(i/M.goals.length)*Math.PI*2, R=orbitR(g);
+  const nodes=plan.rows.map((r,i)=>{
+    const a=(-Math.PI/2)+(i/plan.rows.length)*Math.PI*2, R=orbitR(r);
     const x=cx+Math.cos(a)*R, y=cy+Math.sin(a)*R;
-    const rad=15+Math.sqrt((g.total||0)/maxTotal)*24;
-    const col=g.tone==="red"?"var(--clay)":g.tone==="amber"?"var(--caramel)":g.tone==="green"?"var(--pine)":"var(--ink-faint)";
-    const f=goalFunded(g.id), known=f!=null;
-    const frac=g.total&&known?clamp(f/g.total,0,1):0;
-    const C=2*Math.PI*(rad+6);
-    return `<g class="goal-node ${S.selectedGoal===g.id?"sel":""}" data-goal="${g.id}" style="animation:rise .5s ${i*60}ms both">
+    const rad=17+Math.sqrt(r.amt/maxAmt)*23;
+    const col=r.g.hardDeadline?"var(--clay)":"var(--caramel)";
+    const funded=fundedAt(r,nowM), frac=clamp(funded/r.amt,0,1), C=2*Math.PI*(rad+6);
+    return `<g class="goal-node ${S.selectedGoal===r.g.key?"sel":""}" data-goal="${r.g.key}" style="animation:rise .5s ${i*70}ms both">
       <circle class="halo" cx="${x}" cy="${y}" r="${rad+18}" fill="${col}"/>
       <line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${col}" stroke-opacity=".18"/>
       <circle cx="${x}" cy="${y}" r="${rad}" fill="${col}" fill-opacity=".13" stroke="${col}" stroke-opacity=".5"/>
-      <circle cx="${x}" cy="${y}" r="${rad+6}" fill="none" stroke="${known?col:"var(--line)"}"
-              stroke-width="3" stroke-dasharray="${(frac*C).toFixed(1)} ${C}" stroke-linecap="round"
-              transform="rotate(-90 ${x} ${y})"/>
-      ${known?"":`<circle cx="${x}" cy="${y}" r="${rad+6}" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 5"/>`}
-      <text class="goal-name" x="${x}" y="${y+1}">${esc(g.name)}</text>
-      <text class="goal-sub" x="${x}" y="${y+13}">${fmt(g.total,{compact:true})}</text></g>`;}).join("");
+      ${frac>0.002?`<circle cx="${x}" cy="${y}" r="${rad+6}" fill="none" stroke="${col}" stroke-width="3"
+              stroke-dasharray="${(frac*C).toFixed(1)} ${C}" stroke-linecap="round" transform="rotate(-90 ${x} ${y})"/>`
+        :`<circle cx="${x}" cy="${y}" r="${rad+6}" fill="none" stroke="var(--line)" stroke-width="1"
+              stroke-dasharray="2 5" opacity=".8"/>`}
+      <text class="goal-name" x="${x}" y="${y+1}">${esc(r.g.name)}</text>
+      <text class="goal-sub" x="${x}" y="${y+14}">${fmt(r.amt,{compact:true})}</text></g>`;}).join("");
 
+  const ef=M.ef, cash=cashBalance();
+  const efOk=cash!=null&&ef&&cash>=ef.amount;
+  const efFrac=(ef&&cash!=null)?clamp(cash/ef.amount,0,1):0, efR=52, efC=2*Math.PI*efR;
   svg.innerHTML=`${rings}
-    <circle cx="${cx}" cy="${cy}" r="46" fill="var(--paper-2)" stroke="var(--line)"/>
-    <text x="${cx}" y="${cy-3}" class="goal-name" style="font-size:11px">${S.cursor?miLabel(nowM):"TODAY"}</text>
-    <text x="${cx}" y="${cy+12}" class="goal-sub">${M.goals.length} goals</text>
+    <circle cx="${cx}" cy="${cy}" r="${efR}" fill="var(--paper-2)" stroke="var(--line)"/>
+    <circle cx="${cx}" cy="${cy}" r="${efR}" fill="none" stroke="${efOk?"var(--pine)":"var(--clay)"}"
+            stroke-width="4" stroke-dasharray="${(efFrac*efC).toFixed(1)} ${efC}" stroke-linecap="round"
+            transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy-10}" class="goal-sub" style="font-size:9px;letter-spacing:.08em">EMERGENCY FUND</text>
+    <text x="${cx}" y="${cy+6}" class="goal-name" style="font-size:15px;font-family:var(--serif);font-weight:500">${fmt(ef?.amount,{compact:true})}</text>
+    <text x="${cx}" y="${cy+20}" class="goal-sub">${cash==null?"cash not set":(efOk?"covered":fmt(ef.amount-cash)+" short")}</text>
     <text class="orbit-label" x="${cx+R0+6}" y="${cy-5}">sooner</text>
     <text class="orbit-label" x="${cx+R0+RSPAN-26}" y="${cy-5}">later</text>
     ${nodes}`;
@@ -1306,80 +1134,134 @@ function drawConstellation(){
 
 function renderGoalDetail(){
   const host=$("#goal-detail"); if(!host) return;
-  const g=M.goals.find(x=>x.id===S.selectedGoal);
-  if(!g){host.innerHTML=`<div style="color:var(--ink-faint);font-size:13px;line-height:1.75;padding:18px 0">
-      Select a goal for funding, deadline, the contribution it needs and its effect on net worth.<br><br>
-      <b style="color:var(--ink-soft)">Reading the map:</b> circle size is the total required, the outer ring is how much is
-      funded, and distance from the centre is time remaining — anything on the inner ring is due now or overdue.
-      A dashed ring means you haven't recorded a funded amount yet.</div>`; return;}
-  const nowM=M.today+S.cursor;
-  const left=g.target==null?null:g.target-nowM;
-  const f=goalFunded(g.id);
-  const remaining=g.total!=null?g.total-(f||0):null;
-  const required=(left!=null&&left>0&&remaining!=null)?remaining/left:null;
-  const D=deployable();
+  const plan=fundingPlan(), r=plan.rows.find(x=>x.g.key===S.selectedGoal);
+  const pr=project();
+  if(!r){
+    const ef=M.ef, cash=cashBalance();
+    host.innerHTML=`<div style="font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:6px">Emergency fund</div>
+      <span class="chip ${cash!=null&&ef&&cash>=ef.amount?"pine":"clay"}">${cash==null?"cash balance not set":(cash>=ef.amount?"covered":"short")}</span>
+      <div style="margin-top:12px">
+        <div class="drow"><span class="l">Required</span><span class="v num">${fmt(ef?.amount)}</span></div>
+        <div class="drow"><span class="l">Basis</span><span class="v">${ef?.months} months of combined take-home</span></div>
+        <div class="drow"><span class="l">Held in</span><span class="v">Cash</span></div>
+        <div class="drow"><span class="l">Cash balance</span><span class="v num">${cash!=null?fmt(cash):'<span class="unk">not set</span>'}</span></div>
+      </div>
+      <div style="font-size:12px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
+        This is not a goal and has no deadline — it is a floor that must always be there. It sits at the centre
+        because everything else orbits it. Select a goal to see its funding schedule.</div>`;
+    return;
+  }
+  const nowM=M.today+S.cursor, funded=fundedAt(r,nowM);
+  const surplus=pr.net-plan.cashPerMonth-plan.loanPerMonth;
   host.innerHTML=`
-    <div style="font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:6px">${esc(g.name)}</div>
-    <span class="chip ${g.tone==="red"?"clay":g.tone==="amber"?"clay":"pine"}">${esc(g.status)}</span>
-    ${g.conflict?`<span class="chip grey">figure disputed</span>`:""}
-    ${g.mirrorsLiability?`<span class="chip grey">tracked as School Loan</span>`:""}
-    <div class="meter"><i style="width:${g.total&&f?clamp(f/g.total*100,0,100):0}%"></i></div>
+    <div style="font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:6px">${esc(r.g.name)}</div>
+    <span class="chip ${r.g.hardDeadline?"clay":"grey"}">${r.g.hardDeadline?"Hard deadline":"Target date"}</span>
+    ${(r.g.fundedBy||[]).map(s=>`<span class="src-tag src-${s}">${s.toUpperCase()}</span>`).join(" ")}
+    <div class="meter"><i style="width:${clamp(funded/r.amt*100,0,100)}%"></i></div>
     <div style="margin-top:12px">
-      <div class="drow"><span class="l">Total required</span><span class="v num">${fmt(g.total)}</span></div>
-      <div class="drow"><span class="l">Funded so far</span><span class="v num">${f!=null?fmt(f):'<span class="unk">not entered</span>'}</span></div>
-      <div class="drow"><span class="l">Remaining</span><span class="v num">${f!=null?fmt(remaining):fmt(g.total)+' <span class="unk" style="font-weight:400">if unfunded</span>'}</span></div>
-      <div class="drow"><span class="l">Deadline</span><span class="v">${esc(g.targetLabel)}${left!=null?` · <span style="font-weight:500;color:${left<=0?"var(--clay-deep)":"var(--ink-faint)"}">${left<=0?Math.abs(left)+" mo overdue":left+" mo left"}</span>`:""}</span></div>
-      <div class="drow"><span class="l">Logged set-aside</span><span class="v num">${fmt(g.monthly)} / mo</span></div>
-      <div class="drow"><span class="l">Required contribution</span><span class="v num" style="color:var(--clay-deep)">
-        ${required!=null?fmt(required)+" / mo":(left!=null&&left<=0?"due now — in full":"—")}</span></div>
-      <div class="drow"><span class="l">Against monthly net</span><span class="v num">${
-        required!=null&&D.net>0?Math.round(required/D.net*100)+"%":'<span class="unk">no surplus to draw on</span>'}</span></div>
+      <div class="drow"><span class="l">Amount</span><span class="v num">${fmt(r.amt)}</span></div>
+      <div class="drow"><span class="l">Due</span><span class="v">${miLong(r.due)} · ${r.months} months</span></div>
+      <div class="drow"><span class="l">Required per month</span><span class="v num" style="color:var(--clay-deep)">${fmt(r.perMonth)}</span></div>
+      ${r.usesCPF?`<div class="drow"><span class="l">From CPF</span><span class="v num">${r.cpfUnknown?'<span class="unk">balance needed</span>':fmt(r.cpfPart)}</span></div>
+      <div class="drow"><span class="l">From cash</span><span class="v num">${fmt(r.cashPart)}</span></div>`
+      :`<div class="drow"><span class="l">Funded by</span><span class="v">Cash only</span></div>`}
+      <div class="drow"><span class="l">Cash per month</span><span class="v num">${fmt(r.cashPerMonth)}</span></div>
+      <div class="drow"><span class="l">On schedule at ${miLabel(nowM)}</span><span class="v num">${fmt(funded)}</span></div>
+      <div class="drow"><span class="l">Share of monthly net</span><span class="v num">${pr.net>0?Math.round(r.cashPerMonth/pr.net*100)+"%":'<span class="unk">no net to draw on</span>'}</span></div>
+      <div class="drow"><span class="l">Paid by</span><span class="v">${(r.g.payers||[]).join(" &amp; ")}</span></div>
     </div>
-    <div style="font-size:12px;color:var(--ink-faint);line-height:1.6;margin-top:13px">
-      ${g.mirrorsLiability
-        ? `This is the ${fmt(g.total)} owed to your mother. It is modelled as the School Loan liability, repaid ${fmt(1000)}/month from Sep 2026 — not as a second cash call, which would double-count it.`
-        : `Funding this in full moves net worth down by ${fmt(remaining)} at ${g.target!=null?miLong(g.target):"no fixed date"}.`}
-    </div>
-    <div style="margin-top:13px"><button class="btn" id="g-map">Show on cash map</button></div>`;
-  $("#g-map").onclick=()=>{
-    const e=M.events.find(x=>x.goalId===g.id);
-    $$(".tab").find(t=>t.dataset.view==="joseph").click();
-    if(e){S.cursor=clamp(Math.max(e.month,M.today)-M.today,0,S.horizon); const sl=$("#slider"); if(sl) sl.value=S.cursor; refresh();}
-  };
+    <div style="font-size:12px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
+      ${esc(r.g.note||"")} ${r.cpfUnknown?"CPF balances are blank, so this is costed as 100% cash — the worst case.":""}
+      ${surplus<0?`Across all goals you are ${fmt(Math.abs(surplus))}/month short.`:""}</div>`;
+}
+
+/** Buttons to change goal amounts. The schedule re-derives from the timeline. */
+function renderGoalEditors(){
+  const host=$("#goal-edit"); if(!host) return;
+  const plan=fundingPlan();
+  host.innerHTML=plan.rows.map(r=>`
+    <div class="ge">
+      <div class="gh"><span class="gn">${esc(r.g.name)}</span>
+        ${(r.g.fundedBy||[]).map(s=>`<span class="src-tag src-${s}">${s.toUpperCase()}</span>`).join(" ")}</div>
+      <div class="stepper">
+        <button data-step="-5000" data-goal="${r.g.key}" aria-label="Decrease ${esc(r.g.name)}">−</button>
+        <input type="number" data-amt="${r.g.key}" step="1000" min="0" value="${r.amt}">
+        <button data-step="5000" data-goal="${r.g.key}" aria-label="Increase ${esc(r.g.name)}">+</button>
+      </div>
+      <div class="gm">Due <b>${miLong(r.due)}</b> · ${r.months} months →
+        <b>${fmt(r.perMonth)}/mo</b>${r.usesCPF&&!r.cpfUnknown?` (cash ${fmt(r.cashPerMonth)}/mo)`:""}
+        ${S.goalAmt[r.g.key]!=null?`<br><span style="color:var(--pine-deep)">edited from ${fmt(r.g.amount)}</span>`:""}</div>
+    </div>`).join("")
+    +`<div class="ge" style="background:var(--paper);border-style:dashed">
+      <div class="gh"><span class="gn">Emergency fund</span><span class="src-tag src-cash">CASH</span></div>
+      <div style="font-family:var(--serif);font-size:22px">${fmt(M.ef?.amount)}</div>
+      <div class="gm">Not a goal and not editable here — it is <b>${M.ef?.months} months of combined take-home</b>
+        (${fmt(M.salary.takeHome)}), so it moves only when salary does.</div></div>`;
+
+  $$("[data-amt]").forEach(inp=>inp.oninput=e=>{
+    const k=e.target.dataset.amt, v=e.target.value;
+    if(v==="") delete S.goalAmt[k]; else S.goalAmt[k]=Math.max(0,+v);
+    saveLocal(); refreshGoals();});
+  $$("[data-step]").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.goal, g=M.goals.find(x=>x.key===k);
+    const cur=goalAmount(g), next=Math.max(0,cur+ +b.dataset.step);
+    S.goalAmt[k]=next; saveLocal(); refreshGoals();});
+  renderPlanSummary();
+}
+
+function renderPlanSummary(){
+  const host=$("#plan-summary"); if(!host) return;
+  const pr=project(), plan=pr.plan;
+  const surplus=pr.net-plan.cashPerMonth-plan.loanPerMonth;
+  host.innerHTML=`<div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
+    <table>
+      <tr><th>Commitment</th><th class="r">Amount</th><th>Due</th><th class="r">Months</th><th class="r">Cash / month</th></tr>
+      ${plan.rows.map(r=>`<tr><td>${esc(r.g.name)}${r.g.hardDeadline?' <span class="chip clay" style="padding:1px 7px;font-size:9.5px">hard</span>':""}</td>
+        <td class="r">${fmt(r.amt)}</td><td>${miLong(r.due)}</td><td class="r">${r.months}</td>
+        <td class="r">${fmt(r.cashPerMonth)}</td></tr>`).join("")}
+      ${M.liabilities.filter(l=>l.repayMonthly&&l.repayIdx!=null).map(l=>`
+        <tr><td>${esc(l.name)}</td><td class="r">${fmt(l.outstanding)}</td><td>from ${miLong(l.repayIdx)}</td>
+        <td class="r">${Math.ceil(l.outstanding/l.repayMonthly)}</td><td class="r">${fmt(l.repayMonthly)}</td></tr>`).join("")}
+      <tr><td><b>Total cash needed</b></td><td class="r"></td><td></td><td class="r"></td>
+        <td class="r"><b>${fmt(plan.cashPerMonth+plan.loanPerMonth)}</b></td></tr>
+      <tr><td><b>Monthly net available</b></td><td class="r"></td><td></td><td class="r"></td>
+        <td class="r"><b>${fmt(pr.net)}</b></td></tr>
+      <tr><td><b>Surplus / shortfall</b></td><td class="r"></td><td></td><td class="r"></td>
+        <td class="r"><b style="color:${surplus<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(surplus,{signed:true})}</b></td></tr>
+    </table>
+    <div style="font-size:11.5px;color:var(--ink-faint);margin-top:11px;line-height:1.6">
+      Every per-month figure is derived from the deadline, not stored — change an amount or drag a milestone on the
+      cash map and this recomputes. ${M.ef?`The ${fmt(M.ef.amount)} emergency fund is excluded: it is a floor to hold, not a monthly contribution.`:""}</div></div>`;
 }
 
 function renderLedger(){
-  const d=M.raw, t=d.salary?.total, cats=d.expenditure?.categories||[];
+  const d=M.raw, t=d.salary?.total;
   $("#p-ledger").innerHTML=`
-    ${d.alert?.show?`
-    <div class="card pad" style="background:var(--clay-soft);border-color:#e7cdb2">
-      <div class="sec-head"><h2 style="color:var(--clay-deep)">⚠ ${esc(d.alert.title)}</h2></div>
-      <div style="font-size:13px;color:var(--clay-deep);line-height:1.7">${d.alert.body}</div></div>`:""}
-
     <div class="card pad">
-      <div class="sec-head"><h2>Salary &amp; CPF</h2><span class="hint">source: ${esc(d.salary?.source)}</span></div>
+      <div class="sec-head"><h2>Salary &amp; CPF</h2><span class="hint">${esc(d.salary?.source)}</span></div>
       <table><tr><th></th><th class="r">Gross</th><th class="r">CPF</th><th class="r">Take-home</th></tr>
-        ${(d.salary?.rows||[]).map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${esc(r.gross)}</td><td class="r">${esc(r.cpf)}</td><td class="r">${esc(r.takeHome)}</td></tr>`).join("")}
-        ${t?`<tr><td><b>${esc(t.name)}</b></td><td class="r"><b>${esc(t.gross)}</b></td><td class="r"><b>${esc(t.cpf)}</b></td><td class="r"><b>${esc(t.takeHome)}</b></td></tr>`:""}
+        ${(d.salary?.rows||[]).map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${esc(r.gross)}</td>
+          <td class="r">${esc(r.cpf)}</td><td class="r">${esc(r.takeHome)}</td></tr>`).join("")}
+        ${t?`<tr><td><b>${esc(t.name)}</b></td><td class="r"><b>${esc(t.gross)}</b></td>
+          <td class="r"><b>${esc(t.cpf)}</b></td><td class="r"><b>${esc(t.takeHome)}</b></td></tr>`:""}
       </table>
       <div style="margin-top:11px;color:var(--ink-faint);font-size:12px;line-height:1.6">${esc(d.salary?.note)}</div>
     </div>
-
     <div class="card pad">
       <div class="sec-head"><h2>Monthly actuals ${esc(String(d.actuals?.year||""))}</h2>
-        <span class="hint">source: Annual Overview tab</span></div>
-      <table><tr><th>Month</th><th class="r">Income</th><th class="r">Expenses</th><th class="r">Cash flow</th></tr>
+        <span class="hint">Annual Overview tab · Jan 2026 onwards</span></div>
+      <table><tr><th>Month</th><th class="r">Salary</th><th class="r">Logged income</th><th class="r">Total income</th>
+        <th class="r">Expenses</th><th class="r">Cash flow</th></tr>
         ${M.months.map(m=>`<tr><td>${MONFULL[miM(m.idx)]}${m.partial?' <span style="color:var(--ink-faint);font-size:11px">partial</span>':""}</td>
-          <td class="r">${fmt(m.income,{cents:true})}</td><td class="r">${fmt(m.expense,{cents:true})}</td>
+          <td class="r">${m.salary?fmt(m.salary):'<span class="unk">—</span>'}</td>
+          <td class="r">${fmt(m.ledgerIncome,{cents:true})}</td><td class="r">${fmt(m.income,{cents:true})}</td>
+          <td class="r">${fmt(m.expense,{cents:true})}</td>
           <td class="r" style="color:${m.cashFlow<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(m.cashFlow,{signed:true,cents:true})}</td></tr>`).join("")}
-        ${M.yearTotals?`<tr><td><b>Total</b></td><td class="r"><b>${fmt(M.yearTotals.income,{cents:true})}</b></td>
-          <td class="r"><b>${fmt(M.yearTotals.expense,{cents:true})}</b></td>
-          <td class="r"><b style="color:var(--clay-deep)">${fmt(M.yearTotals.cashFlow,{signed:true,cents:true})}</b></td></tr>`:""}
       </table>
+      <div style="margin-top:11px;font-size:12px;color:var(--ink-faint);line-height:1.6">${esc(d.employment?.note||"")}</div>
     </div>
-
     <div class="card pad">
-      <div class="sec-head"><h2>Liabilities</h2><span class="hint">as recorded</span></div>
+      <div class="sec-head"><h2>Liabilities</h2></div>
       <table><tr><th>Liability</th><th class="r">Principal</th><th class="r">Outstanding today</th><th>Note</th></tr>
         ${M.liabilities.map(l=>`<tr><td>${esc(l.name)}</td>
           <td class="r">${l.placeholder?'<span class="unk">—</span>':fmt(l.principal)}</td>
@@ -1387,54 +1269,128 @@ function renderLedger(){
           <td style="color:var(--ink-faint);font-size:12px">${esc(l.note||"")}</td></tr>`).join("")}
       </table>
     </div>
-
     <div class="card pad">
-      <div class="sec-head"><h2>Bills &amp; commitments</h2><span class="hint">source: ${esc(d.bills?.source)}</span></div>
-      <ul class="lst">${(d.bills?.items||[]).map(b=>`<li><span>${esc(b.name)}</span><span>${esc(b.detail)}</span></li>`).join("")}</ul>
+      <div class="sec-head"><h2>Standing commitments</h2></div>
+      <ul class="lst">${M.recurring.map(x=>`<li><span>${esc(x.name)}</span><span>${esc(x.detail)}</span></li>`).join("")}</ul>
     </div>
-
     <div class="card pad">
-      <div class="sec-head"><h2>Savings goals</h2><span class="hint">source: ${esc(d.savingsGoals?.source)}</span></div>
-      <table><tr><th>Goal</th><th>Target</th><th class="r">Total cost</th><th class="r">Monthly set-aside</th><th>Status</th></tr>
-        ${(d.savingsGoals?.rows||[]).map(g=>`<tr><td>${esc(g.goal)}</td><td>${esc(g.target)}</td><td class="r">${esc(g.totalCost)}</td>
-          <td class="r">${esc(g.monthly)}</td><td><span class="chip ${g.tone==="green"?"pine":"clay"}">${esc(g.status)}</span></td></tr>`).join("")}
-      </table>
-      <div style="margin-top:11px;font-size:12px;color:var(--ink-faint);line-height:1.6">${esc(d.savingsGoals?.note)}</div>
-    </div>
-
-    <div class="card pad">
-      <div class="sec-head"><h2>Expenditure by category <span style="font-weight:400;font-size:13px;color:var(--ink-faint)">(original July report)</span></h2></div>
-      ${cats.length?`<table><tr><th>Category</th><th class="r">Spend</th><th class="r">Budget</th><th class="r">Variance</th></tr>
-        ${cats.map(c=>`<tr><td>${esc(c.name)}</td><td class="r">${esc(c.spend)}</td><td class="r">${esc(c.budget)}</td><td class="r">${esc(c.variance)}</td></tr>`).join("")}</table>`
-        :`<div style="color:var(--ink-faint);font-size:12.5px;line-height:1.7;padding:10px 0">${esc(d.expenditure?.emptyMessage)}</div>`}
-      <div class="sec-head" style="margin-top:20px"><h2>Overspend verdict</h2></div>
-      <div style="padding:6px 0 12px"><span class="chip grey">${esc(d.overspend?.verdict)}</span></div>
-      <div style="font-size:12.5px;color:var(--ink-faint);line-height:1.65">${esc(d.overspend?.note)}</div>
-      <div class="sec-head" style="margin-top:20px"><h2>Cash runway</h2></div>
-      <div style="font-size:12.5px;color:var(--ink-faint);line-height:1.65">${d.cashRunway?.value??""} ${d.cashRunway?.note||""}</div>
-    </div>
-
-    <div class="card pad">
-      <div class="sec-head"><h2>Decision needed from Joseph</h2></div>
+      <div class="sec-head"><h2>Decisions</h2></div>
       <ul class="lst">${(d.decisions||[]).map(x=>`<li><span>${esc(x.name)}</span><span>${esc(x.detail)}</span></li>`).join("")}</ul>
     </div>`;
 }
 
-/* ==================================================================
-   12. WIRING
-   ================================================================== */
+/* ================= 12. FAQ ================= */
+function renderFAQ(){
+  const d=M.raw;
+  $("#view-faq").innerHTML=`
+    <div class="faq-hero">
+      <h1>What the Finance Intern actually does</h1>
+      <p>It is a reporting and decision layer, not a bank. It reads one spreadsheet, keeps one honest picture of
+      where the money is going, and tells Joseph and Melissa what decision is in front of them this month. It has
+      no access to any account, moves no money, and invents no figures.</p>
+    </div>
+    <div class="faq-grid">
+      <div class="card pad">
+        <h2 class="faq-q">What it exists to do</h2>
+        <div class="faq-a">Three jobs, in order of importance:
+          <ul>
+            <li><b>Show the real position.</b> Net worth, what's owed, what's coming.</li>
+            <li><b>Turn goals into a schedule.</b> BTO, Wedding and Renovation each have an amount and a date;
+                the Intern derives what that costs per month and whether the income covers it.</li>
+            <li><b>Name the decision.</b> Not "you spent $4,543 on travel" but "travel was 91% of the month —
+                this is the number to move."</li>
+          </ul>
+          It is deliberately not a budgeting app. It won't nag about coffee. It answers one question:
+          <b>can we afford what we've committed to, and if not, what moves?</b></div>
+      </div>
+      <div class="card pad">
+        <h2 class="faq-q">Where the data comes from</h2>
+        <div class="faq-a">
+          One source only — the Google Sheet <b>My Income &amp; Expenses</b>, and within it only two tabs:
+          <ul>
+            <li><b>Annual Overview</b> — monthly income, expenses and cash flow.</li>
+            <li><b>Monthly Overview</b> — the category split for whichever month the sheet is set to.</li>
+          </ul>
+          <b>January 2026 onwards.</b> Nothing earlier is carried. The Monthly Budget tab is no longer read
+          and never will be again.
+          <br><br>Everything else — salary, CPF, goal amounts and dates, the school loan — is a figure Joseph
+          confirmed directly, recorded in <code>data/finance.json</code> with the date it was confirmed.
+          If a number isn't in one of those two places, the Intern shows it as unknown rather than guessing.</div>
+      </div>
+      <div class="card pad">
+        <h2 class="faq-q">How it takes orders from Steven</h2>
+        <div class="faq-a">
+          Steven is the executive agent. The Finance Intern is one of its specialists and never talks to Joseph
+          directly — every request and every answer routes through Steven.
+          <div class="flow">
+            <span class="n">Joseph asks</span><span class="ar">→</span>
+            <span class="n dark">Steven</span><span class="ar">→</span>
+            <span class="n clay">Finance Intern</span><span class="ar">→</span>
+            <span class="n dark">Steven</span><span class="ar">→</span>
+            <span class="n">one answer</span>
+          </div>
+          Steven decides which life area a request belongs to and loads only that memory. Finance questions come
+          here; investment questions go elsewhere. When two sources disagree, the Intern flags the conflict to
+          Steven and stops — it does not quietly pick a winner or edit the losing file.</div>
+      </div>
+      <div class="card pad">
+        <h2 class="faq-q">The monthly routine</h2>
+        <div class="faq-a">
+          <ul>
+            <li><b>Joseph logs</b> income and expenses in the sheet as they happen. From Aug 2026 the salary is
+                assumed — only income <i>beyond</i> the ${fmt(M.joseph.takeHome)} take-home needs entering.</li>
+            <li><b>On the 25th</b>, the figures are pulled from the two overview tabs into
+                <code>data/finance.json</code>. That file is the only thing that changes month to month.</li>
+            <li><b>Push, and it's live</b> in about forty seconds.</li>
+            <li><b>The brief regenerates</b> from the new figures — the schedule, the shortfall and the
+                binding constraint all recompute.</li>
+          </ul></div>
+      </div>
+      <div class="card pad">
+        <h2 class="faq-q">How the goal schedule works</h2>
+        <div class="faq-a">
+          Nothing about the funding plan is stored. Each goal has an amount and a date, and the required
+          contribution is <b>amount ÷ months remaining</b>, recalculated every time the page loads.
+          <ul>
+            <li><b>BTO</b> ${fmt(goalAmount(M.goals.find(g=>g.key==="bto")||{}))} by ${miLong(parseWhen("2028-03"))} — hard deadline, CPF first then cash.</li>
+            <li><b>Wedding</b> ${fmt(goalAmount(M.goals.find(g=>g.key==="wedding")||{}))} by ${miLong(parseWhen("2027-06"))} — cash only.</li>
+            <li><b>Renovation</b> ${fmt(goalAmount(M.goals.find(g=>g.key==="renovation")||{}))} by ${miLong(parseWhen("2028-06"))} — cash only.</li>
+            <li><b>School loan</b> ${fmt(M.liabilities.find(l=>l.repayIdx!=null)?.outstanding)} to Joseph's mum,
+                ${fmt(1000)}/month from Sep 2026 — a liability, not a goal.</li>
+            <li><b>Emergency fund</b> ${fmt(M.ef?.amount)} in cash — not a goal, a floor that is always there.</li>
+          </ul>
+          Change an amount on the Goals tab or drag a date on the cash map and the whole schedule re-derives.</div>
+      </div>
+      <div class="card pad">
+        <h2 class="faq-q">What it will never do</h2>
+        <div class="faq-a">
+          <ul>
+            <li><b>Invent a number.</b> If a balance isn't recorded it shows "not set", never zero.</li>
+            <li><b>Move money.</b> It has no account access and cannot transact.</li>
+            <li><b>Give investment advice.</b> That is a different specialist, and neither is a licensed adviser.</li>
+            <li><b>Silently resolve a conflict.</b> Two sources disagreeing is surfaced, not averaged.</li>
+            <li><b>Overwrite what you typed.</b> Balances entered on this page stay in your browser
+                until you deliberately export them.</li>
+          </ul>
+          It also cannot see your bank. Everything it knows, one of you typed into the sheet.</div>
+      </div>
+    </div>`;
+}
+
+/* ================= 13. WIRING ================= */
 function refreshExceptFill(){
   renderKPIs(); drawChart(); renderScenarioBar();
   renderAssets(); renderLiabilities(); renderExpenseCats(); renderBrief();
-  if($("#const")) drawConstellation();
+  if($("#const")){drawConstellation(); renderPlanSummary();}
 }
-function refresh(){ refreshExceptFill(); renderBars(); }
+function refresh(){refreshExceptFill(); renderBars();}
+function refreshGoals(){drawConstellation(); renderGoalEditors(); refreshExceptFill();}
 
 function boot(d){
   buildModel(d); loadLocal();
   S.month=M.months.length?M.months[M.months.length-1].key:null;
-  renderShell(); renderIntegrity(); renderMonthPick();
-  renderMap(); renderBars(); renderAsk(); renderFill();
+  renderShell(); renderIntegrity(); renderMonthPick(); renderMap(); renderBars();
+  renderAsk(); renderFill(); renderFAQ();
   renderBlankTab("view-melissa","Melissa"); renderBlankTab("view-combined","Combined");
   renderConstellation(); renderLedger();
   refresh();
@@ -1442,7 +1398,6 @@ function boot(d){
   addEventListener("resize",drawTicks);
   whoami();
 }
-
 async function whoami(){
   try{
     const r=await fetch("/cdn-cgi/access/get-identity",{credentials:"include"});
@@ -1452,21 +1407,18 @@ async function whoami(){
       const w=$("#who"); if(w) w.textContent="Signed in as "+id.email;
       const g=$("#gateLock"); if(g) g.textContent="🔒 Cloudflare Access";
     }
-  }catch(_){/* not behind Access */}
+  }catch(_){}
 }
-
-/* ---- gate ---- */
 (function(){
   const gate=$("#gate"), pins=$$("#pin i"); let filled=0;
-  function enter(){ gate.classList.add("hide"); $("#app").classList.add("show");
-    setTimeout(()=>{gate.style.display="none";},700); }
+  function enter(){gate.classList.add("hide"); $("#app").classList.add("show");
+    setTimeout(()=>{gate.style.display="none";},700);}
   $("#enterBtn").onclick=enter;
   addEventListener("keydown",e=>{
     if(gate.classList.contains("hide")) return;
     if(e.key==="Enter") enter();
     else if(/^[0-9]$/.test(e.key)&&filled<4){pins[filled].classList.add("on"); filled++; if(filled===4) setTimeout(enter,260);}
-    else if(e.key==="Backspace"&&filled>0){filled--; pins[filled].classList.remove("on");}
-  });
+    else if(e.key==="Backspace"&&filled>0){filled--; pins[filled].classList.remove("on");}});
 })();
 
 fetch("data/finance.json",{cache:"no-store"})

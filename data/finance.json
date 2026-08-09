@@ -1,44 +1,21 @@
 {
-  "_comment": "Regenerated monthly on the 25th from the Google Drive workbook 'My Income & Expenses'. This is the ONLY file that should change month to month. index.html renders entirely from it.",
-  "source": "Google Drive — 'My Income & Expenses' (Transactions + Monthly Budget tabs)",
+  "_comment": "Finance Intern data. SOLE SOURCE: Google Drive 'My Income & Expenses' -> 'Monthly Overview' and 'Annual Overview' tabs, January 2026 onwards. The Monthly Budget tab is NO LONGER a source and must never be read again (Joseph, 9 Aug 2026). Nothing before Jan 2026 is carried. Goals, salary and liabilities are stated facts confirmed by Joseph, not sheet reads.",
+  "source": "Google Drive — 'My Income & Expenses' → Monthly Overview + Annual Overview tabs (Jan 2026 onwards)",
   "period": {
-    "label": "July 2026",
-    "note": "mid-month, as of 27 Jul",
-    "generatedAt": "2026-07-27"
+    "label": "August 2026",
+    "note": "current month, partial",
+    "generatedAt": "2026-08-09"
   },
   "status": {
-    "badge": "Data gap flagged",
-    "tone": "red"
+    "badge": "Live",
+    "tone": "green"
   },
-  "alert": {
-    "show": true,
-    "title": "No transaction data for the reporting month",
-    "body": "The <b>Transactions</b> tab in \"My Income &amp; Expenses\" has no entries after <b>25 Jan 2025</b> — an 18-month gap. The <b>Monthly Budget</b> tab is set to January 2026 but every Budget / Actual / Variance cell is $0.00 (unfilled template). Expenditure, category overspend, and cash runway for July 2026 cannot be computed from this source. This is a data-quality failure, not a read failure — the sheet loaded fully, it's just not been kept up."
+  "employment": {
+    "startedWork": "2026-08",
+    "note": "Joseph started work in August 2026. Jan-Jul 2026 ledger income is pre-employment and accurate as recorded. From Aug 2026 the monthly income is the $4,800 take-home PLUS anything logged in that month's Monthly Overview."
   },
-  "kpis": [
-    {
-      "label": "Take-home pay",
-      "value": "$8,880",
-      "note": "Joseph $4,800 + Melissa $4,080 (combined) — Monthly Budget tab salary assumptions, not July-specific"
-    },
-    {
-      "label": "Total expenditure",
-      "value": "—",
-      "note": "No July transactions logged"
-    },
-    {
-      "label": "Cash runway",
-      "value": "—",
-      "note": "memory/finance.md cash position still blank"
-    },
-    {
-      "label": "Overspend?",
-      "value": "Unknown",
-      "note": "Budget tab actuals all $0.00"
-    }
-  ],
   "salary": {
-    "source": "Monthly Budget tab, Income Assumptions",
+    "source": "Confirmed by Joseph, 9 Aug 2026",
     "rows": [
       {
         "name": "Joseph",
@@ -59,114 +36,21 @@
       "cpf": "$2,220",
       "takeHome": "$8,880"
     },
-    "note": "Joseph's gross matches memory/finance.md ($6,000/mo). Shared pool contribution: Joseph $2,400, Melissa $2,040 → $4,440 total pool."
+    "note": "Confirmed accurate by Joseph. CPF is 20% of gross and is not spendable cash — it accrues to the CPF balance."
   },
-  "bills": {
-    "source": "memory/finance.md — could not verify against July postings",
-    "items": [
-      {
-        "name": "Insurance",
-        "detail": "$82/mo + ~$200/yr — posting not verifiable, no July transactions"
-      },
-      {
-        "name": "Mother's loan repayment",
-        "detail": "$1,000/mo — posting not verifiable"
-      },
-      {
-        "name": "Mortgage",
-        "detail": "Starts Q1 2028, $440,000 remaining, split w/ Melissa — not yet active"
-      },
-      {
-        "name": "Renovation",
-        "detail": "Q2 2028, ~$60,000 est. — Monthly Budget tab: $60k, Aug-28 target (consistent)"
-      },
-      {
-        "name": "Wedding",
-        "detail": "$50,000 total — confirmed by Joseph 8 Aug 2026. This is the settled figure and supersedes the Monthly Budget tab. Update the workbook to match."
-      }
-    ]
+  "projection": {
+    "_note": "Per Joseph, 9 Aug 2026: projections run on the $4,800 take-home plus CPF. Melissa's $4,080 is NOT in the projection by default even though goal amounts are household-scale — the dashboard exposes a toggle and flags the gap rather than silently choosing.",
+    "incomeMonthly": 4800.0,
+    "includeMelissaByDefault": false,
+    "melissaMonthly": 4080.0,
+    "expenseBasis": "trailing3"
   },
-  "expenditure": {
-    "categories": [],
-    "emptyMessage": "No transactions logged for July 2026. Last recorded expense in the sheet: 25-Jan-2025. Cannot rank spending areas this month."
-  },
-  "overspend": {
-    "verdict": "Cannot determine",
-    "tone": "grey",
-    "note": "Every category in the Monthly Budget tab (Joint Expenses, Joseph Personal, Melissa Personal) shows Budget $0.00 / Actual $0.00 / Variance $0.00. There's nothing to compare against."
-  },
-  "cashRunway": {
-    "value": null,
-    "note": "Cannot estimate. <code>memory/finance.md</code> §Cash Position is still blank (\"Will update again — ping me when I bring up cash reserves\"). This was already flagged as stale before this run."
-  },
-  "savingsGoals": {
-    "source": "Monthly Budget tab",
-    "rows": [
-      {
-        "goal": "BTO",
-        "target": "Mar-28",
-        "totalCost": "$70,000",
-        "monthly": "$0",
-        "status": "Behind — review",
-        "tone": "amber"
-      },
-      {
-        "goal": "Renovation",
-        "target": "Aug-28",
-        "totalCost": "$60,000",
-        "monthly": "$0",
-        "status": "Behind — review",
-        "tone": "amber"
-      },
-      {
-        "goal": "Wedding",
-        "target": "Dec-27",
-        "totalCost": "$50,000",
-        "monthly": "$0",
-        "status": "Behind — review",
-        "tone": "amber"
-      },
-      {
-        "goal": "School Fees",
-        "target": "May-26",
-        "totalCost": "$33,000",
-        "monthly": "$0",
-        "status": "Overdue — target date passed",
-        "tone": "red"
-      },
-      {
-        "goal": "Emergency Fund",
-        "target": "Ongoing",
-        "totalCost": "$10,000",
-        "monthly": "$0",
-        "status": "Behind — review",
-        "tone": "amber"
-      }
-    ],
-    "note": "Wedding is set at $50,000 (confirmed by Joseph, 8 Aug 2026). All five goals show $0/month set aside logged; School Fees' May-26 target has already lapsed with no recorded progress."
-  },
-  "decisions": [
-    {
-      "name": "Update the workbook's wedding figure",
-      "detail": "Wedding is settled at $50,000. The Monthly Budget tab still holds the old number — correct it there so the next monthly refresh doesn't reintroduce it."
-    },
-    {
-      "name": "Resume transaction logging",
-      "detail": "18-month gap means Finance can't compute spend, overspend, or runway"
-    },
-    {
-      "name": "Log cash position & CPF balances",
-      "detail": "Both blank in memory/finance.md — blocks runway calc"
-    }
-  ],
-  "footer": "Steven — Finance Agent · Source: Google Drive \"My Income &amp; Expenses\" (read in full — data itself is stale, not the read)",
-  "_comment2": "Blocks below added 2026-08-09 from the SAME workbook, 'Annual Overview' and 'Monthly Overview' tabs only (per Joseph's instruction). Actuals — not the Monthly Budget tab's assumptions. The pre-existing blocks above are untouched and remain the record of the July report.",
   "actuals": {
-    "source": "Google Drive — 'My Income & Expenses' → Annual Overview tab (monthly totals) + Monthly Overview tab (category split for the selected month)",
+    "source": "Annual Overview tab (monthly totals) + Monthly Overview tab (category split for the selected month)",
     "readOn": "2026-08-09",
     "currency": "SGD",
     "year": 2026,
-    "note": "Annual Overview is Joseph's personal ledger. It does NOT reconcile with the Monthly Budget tab's combined take-home assumption of $8,880/mo — see conflicts.incomeBasis.",
+    "note": "Jan-Jul 2026 predates employment, so those income figures are complete as recorded. Aug 2026 onward, add the $4,800 take-home to whatever the sheet logs.",
     "months": [
       {
         "m": "2026-01",
@@ -401,7 +285,7 @@
     ]
   },
   "liabilities": {
-    "_note": "Per Joseph, 2026-08-09. School Loan is the $33,000 owed to his mother (the same figure the 'School Fees' savings goal carries). It starts amortising at $1,000/mo from Sep 2026, not before. Mortgage is not drawn until Q1 2028 and is $0 today. Slots 3-5 are placeholders Joseph has not yet named.",
+    "_note": "Confirmed by Joseph. School Loan amortises $1,000/mo to his mother from Sep 2026. Mortgage is not drawn until Q1 2028.",
     "currency": "SGD",
     "rows": [
       {
@@ -466,25 +350,85 @@
       }
     ]
   },
-  "conflicts": {
-    "incomeBasis": {
-      "title": "Two different incomes in one workbook",
-      "detail": "The Monthly Budget tab assumes $8,880/mo combined take-home (Joseph $4,800 + Melissa $4,080). The Annual Overview tab's actuals average $1,314/mo income for Jan-Aug 2026, peaking at $3,020. These are not the same thing and cannot both drive a projection. Nothing has been reconciled — the dashboard lets you pick which basis the cash map runs on.",
-      "options": [
-        {
-          "key": "actual",
-          "label": "Actuals (Annual Overview)",
-          "monthlyIncome": 1314.08,
-          "monthlyExpense": 1887.28
-        },
-        {
-          "key": "budget",
-          "label": "Budget assumption (Monthly Budget tab)",
-          "monthlyIncome": 8880.0,
-          "monthlyExpense": null
-        }
-      ],
-      "default": "actual"
+  "goals": {
+    "_note": "Amounts, deadlines and funding sources stated by Joseph, 9 Aug 2026. Household scale. Required monthly contribution is derived from the deadline, never stored.",
+    "currency": "SGD",
+    "rows": [
+      {
+        "key": "bto",
+        "name": "BTO",
+        "amount": 70000.0,
+        "due": "2028-03",
+        "hardDeadline": true,
+        "fundedBy": [
+          "cpf",
+          "cash"
+        ],
+        "payers": [
+          "Joseph",
+          "Melissa"
+        ],
+        "note": "Hard deadline March 2028. Prioritise CPF, then cash."
+      },
+      {
+        "key": "wedding",
+        "name": "Wedding",
+        "amount": 50000.0,
+        "due": "2027-06",
+        "hardDeadline": false,
+        "fundedBy": [
+          "cash"
+        ],
+        "payers": [
+          "Joseph",
+          "Melissa"
+        ],
+        "note": "Cash only, due by June 2027."
+      },
+      {
+        "key": "renovation",
+        "name": "Renovation",
+        "amount": 60000.0,
+        "due": "2028-06",
+        "hardDeadline": false,
+        "fundedBy": [
+          "cash"
+        ],
+        "payers": [
+          "Joseph",
+          "Melissa"
+        ],
+        "note": "Cash only, due by June 2028."
+      }
+    ]
+  },
+  "emergencyFund": {
+    "_note": "Not a goal. A standing cash floor that must always be held, sized at 2 months of combined take-home.",
+    "months": 2,
+    "basis": "combinedTakeHome",
+    "fundedBy": "cash",
+    "amount": 17760.0
+  },
+  "recurring": {
+    "_note": "Standing commitments that are neither a goal nor a liability.",
+    "items": [
+      {
+        "name": "Insurance",
+        "monthly": 82.0,
+        "annual": 200.0,
+        "detail": "$82/mo plus an annual premium of about $200"
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "name": "Enter the five balances",
+      "detail": "Cash, both investment balances and both CPF balances. BTO's CPF-first split cannot be computed until the CPF figures exist."
+    },
+    {
+      "name": "Keep logging in Monthly Overview",
+      "detail": "From Aug 2026 the sheet only needs to capture income beyond the $4,800 salary, plus all expenses."
     }
-  }
+  ],
+  "footer": "Finance Intern — Steven · Source: My Income & Expenses (Monthly Overview + Annual Overview, Jan 2026 onwards)"
 }

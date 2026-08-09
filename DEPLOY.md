@@ -122,7 +122,10 @@ Watch the **Actions** tab. Green = every future push to `main` ships automatical
 
 Only `data/finance.json` changes. The workbook stays the source of truth:
 
-**Google Drive → "My Income & Expenses"** → Transactions tab + Monthly Budget tab
+**Google Drive → "My Income & Expenses"** → **Monthly Overview** tab + **Annual Overview** tab,
+**January 2026 onwards only**. The Monthly Budget tab is not a source and must not be read
+(Joseph, 9 Aug 2026). Salary, CPF, goal amounts and liabilities are confirmed figures held in
+`finance.json`, not sheet reads.
 → figures land in `data/finance.json` → push → live in ~40 seconds.
 
 ```bash
@@ -137,8 +140,7 @@ git push
 
 | File | Role |
 |---|---|
-| `index.html` | Template + renderer (Command Centre). Contains **no figures**. |
-| `index.legacy.html` | The original monthly-report renderer, kept verbatim. Linked from the footer. |
+| `index.html` | Template + renderer (Finance Intern). Contains **no figures**. |
 | `data/finance.json` | Every number, sourced from the Drive workbook. The only monthly diff. |
 | `wrangler.toml` | Pages project config (`finance-dashboard`, builds from `dist/`). |
 | `package.json` | `dev` / `build` / `deploy` scripts. |
