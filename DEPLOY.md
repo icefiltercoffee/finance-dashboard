@@ -147,25 +147,57 @@ git push
 
 ---
 
-## Appendix — adding a login gate later (optional)
+## The login gate — READ THIS BEFORE YOU TRUST IT
 
-Your other three dashboards are open on `pages.dev` and that's fine — card data, wedding
-logistics and tickers aren't sensitive. This one shows your and Melissa's actual salaries,
-CPF and bills, and a `pages.dev` URL is reachable by anyone who has the link. Worth knowing;
-your call whether it matters.
+There are two separate things here, and only one of them is security.
 
-If you ever want to gate it, **Cloudflare Access** is the tool, and it needs a custom domain
-on a Cloudflare zone — Access can't attach to a bare `pages.dev` hostname. That's the only
-reason a domain enters the picture; it has nothing to do with publishing.
+| | What it is | Does it protect anything? |
+|---|---|---|
+| **PIN screen** in `index.html` | The Steven-style passcode screen you see on load | **No.** It accepts any 4 digits and checks nothing. Anyone can press Enter, view source, or fetch `/data/finance.json` directly. It is a visual lock, matching Steven. |
+| **Cloudflare Access** | Edge auth in front of the whole site | **Yes.** Nothing is served — not the HTML, not the JSON — until Cloudflare has verified your email. |
 
-1. **Workers & Pages → finance-dashboard → Custom domains** → add e.g. `finance.yourdomain.com`.
-2. **Zero Trust → Access → Applications** → *Add an application* → **Self-hosted**, hostname
-   `finance.yourdomain.com`.
-3. Policy: **Allow**, Include → **Emails** → `josephneoh25@gmail.com` + Melissa's.
-4. **Zero Trust → Settings → Authentication** → enable **One-time PIN** (emails a 6-digit
-   code; no OAuth app needed).
-5. **Settings → Deployment protection** → enable Access on production so the raw
-   `finance-dashboard.pages.dev` URL is covered too.
+Right now `finance-dashboard-153.pages.dev` is **public**, and it shows your and Melissa's
+salaries, CPF, balances and liabilities. Until step 5 below is done, treat the URL as fully
+public — anyone with the link has everything.
 
-Free tier covers 50 users. `index.html` already reads `/cdn-cgi/access/get-identity` and will
-show "Signed in as …" in the header once Access is live — until then it silently no-ops.
+### Turning on Cloudflare Access
+
+Access can't attach to a bare `pages.dev` hostname, so it needs a custom domain on a
+Cloudflare zone. That's the only reason a domain enters the picture.
+
+1. **Get a domain onto Cloudflare** (skip if you already have one). Cloudflare dashboard →
+   *Add a site* → follow the nameserver change at your registrar. Free plan is fine.
+2. **Workers & Pages → finance-dashboard → Custom domains** → *Set up a custom domain* →
+   e.g. `finance.yourdomain.com`. Wait for it to go green.
+3. **Zero Trust → Settings → Authentication → Login methods** → *Add new* → **One-time PIN**.
+   This emails a 6-digit code; no Google/GitHub OAuth app to register.
+4. **Zero Trust → Access → Applications** → *Add an application* → **Self-hosted**:
+   - Application name: `Finance Intern`
+   - Session duration: 24 hours (or 1 week if the re-auth annoys you)
+   - Public hostname: `finance.yourdomain.com`
+   - Policy → name `Household`, action **Allow**, Include → **Emails** →
+     `josephneoh25@gmail.com` **and Melissa's email**
+   - Leave everything else default → *Save*.
+5. **Cover the raw pages.dev URL too.** Workers & Pages → finance-dashboard → *Settings* →
+   **Deployment protection** (called *Access policy* in some accounts) → enable Access on
+   **Production** *and* **Preview**. Without this step the original
+   `finance-dashboard-153.pages.dev` stays wide open and steps 1–4 achieve nothing.
+6. **Verify it.** Open the site in a private window. You should get a Cloudflare
+   email-code screen *before* the PIN screen. Then confirm the JSON is gated too:
+
+```bash
+curl -sI https://finance-dashboard-153.pages.dev/data/finance.json | head -1
+```
+
+A `302` to `cloudflareaccess.com` means it's protected. A `200` means it is still public —
+step 5 didn't take.
+
+Free tier covers 50 users. Once Access is live, `index.html` reads
+`/cdn-cgi/access/get-identity` and shows "Signed in as …" in the header, and the gate's
+footer switches from "Private" to "Cloudflare Access". Until then it silently no-ops.
+
+### If you want the PIN to actually check a code
+
+Say the word and I'll wire it to a real comparison. Be clear-eyed about what that buys:
+it stops someone casually clicking through, but the passcode would sit in the page source
+and `data/finance.json` would still be fetchable. It is not a substitute for step 5.
