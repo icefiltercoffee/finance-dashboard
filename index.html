@@ -88,6 +88,10 @@
   .btn:hover{color:var(--ink); border-color:var(--clay); background:var(--clay-soft);}
   .btn.primary{background:var(--clay); border-color:var(--clay); color:#f8f0e2; font-weight:600;}
   .btn.primary:hover{background:var(--clay-deep); border-color:var(--clay-deep); color:#fff;}
+  /* Destructive, so it reads as an outline rather than competing with the primary action. */
+  .btn.danger{color:var(--clay-deep); border-color:var(--clay);}
+  .btn.danger:hover{background:var(--clay-deep); border-color:var(--clay-deep); color:#fff;}
+  .btn[hidden]{display:none;}
   .btn.sm{padding:4px 10px; font-size:11.5px;}
   select, input[type=number]{font:inherit; color:var(--ink); background:var(--paper);
     border:1px solid var(--line); border-radius:var(--r-sm); padding:9px 12px; font-size:13.5px;}
@@ -1248,7 +1252,8 @@ function renderAsk(){
   $("#p-ask").innerHTML=`<div class="sec-head"><h2>What can I do?</h2>
       <span class="hint">computed from your figures · preview an option on the map before acting</span>
       <span class="sp"></span>
-      <button class="btn" id="stmt-open">Attach Statement</button></div>
+      <button class="btn" id="stmt-open">Attach Statement</button>
+      <button class="btn danger" id="stmt-clear" hidden>Delete all statements</button></div>
     <div class="ask-box"><input class="ask-input" id="ask" autocomplete="off"
       placeholder="I have $5,000 available. What should I do with it?">
       <button class="btn primary ask-go" id="ask-go">Ask</button></div>
@@ -1625,9 +1630,41 @@ function setStmtStatus(text,tone){
   el.innerHTML=text;
 }
 
+/* ---- clear every import for the person whose tab this is ---- */
+function paintStmtClear(){
+  const b=$("#stmt-clear"); if(!b) return;
+  const mine=(ACTIVE!=="combined"&&S.imports&&S.imports[ACTIVE])||{};
+  const n=Object.keys(mine).length;
+  b.hidden=n===0;                       // no dead control when there is nothing to delete
+  b.textContent=`Delete all statements (${n})`;
+  b.title=`Remove all ${n} imported statement month${n===1?"":"s"} for ${M.scope?.person||""}`;
+  b.onclick=clearAllImports;
+}
+
+function clearAllImports(){
+  const mine=(S.imports&&S.imports[ACTIVE])||{};
+  const months=Object.keys(mine).sort();
+  if(!months.length) return;
+  const list=months.map(k=>`  · ${miLong(parseWhen(k))} — ${fmt(mine[k].total)}, ${mine[k].count} transaction${mine[k].count===1?"":"s"}`).join("\n");
+  const ok=confirm(
+    `Remove all ${months.length} imported statement month${months.length===1?"":"s"} for ${M.scope.person}?\n\n`+list+
+    `\n\nThis clears them for everyone who uses this dashboard, not only this browser, and it cannot be undone.\n\n`+
+    `Nothing else is touched — balances, goal amounts and the sheet's own figures stay exactly as they are, `+
+    `and you can re-import from the original statements at any time.`);
+  if(!ok) return;
+  delete S.imports[ACTIVE];
+  queueSave({unsetImports:[{scope:ACTIVE,month:"*"}]});
+  STMT.parsed=null;
+  applyImports(); renderMonthPick();
+  setStmtStatus(`Removed ${months.length} imported month${months.length===1?"":"s"}. Balances and goals were not touched.`,"grey");
+  renderStmtPanel($("#stmt-panel")?.dataset.open==="1");
+  refresh();
+}
+
 /* ---- panel ---- */
 function renderStmtPanel(open){
   const host=$("#stmt-panel"); if(!host) return;
+  paintStmtClear();
   host.dataset.open=open?"1":"0";
   const btn=$("#stmt-open"); if(btn) btn.textContent=open?"Close statement":"Attach Statement";
   if(!open){host.innerHTML=""; return;}
@@ -2160,6 +2197,7 @@ function renderFAQ(){
 /* ================= 13. WIRING ================= */
 /* Only the mounted tab's panels exist, so every step is guarded on its host. */
 function refreshExceptFill(){
+  if($("#stmt-clear")) paintStmtClear();     // count follows another device's changes too
   if($("#kpis")){
     renderKPIs(); drawChart(); renderScenarioBar();
     renderAssets(); renderLiabilities(); renderExpenseCats(); renderBrief();
