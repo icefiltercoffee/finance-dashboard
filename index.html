@@ -220,6 +220,21 @@
            color:var(--pine-deep); text-decoration:underline; cursor:pointer;}
   .linkbtn:hover{color:var(--ink);}
 
+  /* ---- execute ---- */
+  .execbox{border:1px solid var(--clay); background:var(--clay-soft); border-radius:12px;
+           padding:15px 17px; margin-top:14px;}
+  .execbox.done{border-color:var(--pine); background:var(--pine-soft);}
+  .execbox.bad{border-color:var(--line); background:var(--paper-2);}
+  .exec-h{display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13.5px; margin-bottom:11px;}
+  .exec-list{display:flex; flex-direction:column; gap:1px;}
+  .exec-row{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding:7px 0;
+            border-bottom:1px solid rgba(0,0,0,.06); font-size:12.5px;}
+  .exec-row:last-child{border-bottom:0;}
+  .exec-l{font-weight:600; flex:1;}
+  .exec-d{color:var(--ink-soft);}
+  .exec-note{font-size:11.5px; color:var(--ink-faint); line-height:1.6; margin-top:11px;}
+  .exec-actions{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:13px;}
+
   /* ---- statement import ---- */
   .stmt-box{border:1px solid var(--line); border-radius:12px; padding:16px 17px; margin:14px 0 4px;
             background:var(--paper-2);}
@@ -1250,13 +1265,13 @@ function renderExpenseCats(){
 /* ================= 8. ASK ================= */
 function renderAsk(){
   $("#p-ask").innerHTML=`<div class="sec-head"><h2>What can I do?</h2>
-      <span class="hint">computed from your figures · preview an option on the map before acting</span>
+      <span class="hint">give an instruction to change the dashboard, or ask a question about it</span>
       <span class="sp"></span>
       <button class="btn" id="stmt-open">Attach Statement</button>
       <button class="btn danger" id="stmt-clear" hidden>Delete all statements</button></div>
     <div class="ask-box"><input class="ask-input" id="ask" autocomplete="off"
-      placeholder="I have $5,000 available. What should I do with it?">
-      <button class="btn primary ask-go" id="ask-go">Ask</button></div>
+      placeholder="Set my cash balance to 12,000 — or ask: can I afford a $4,000 trip?">
+      <button class="btn primary ask-go" id="ask-go">Execute</button></div>
     <div class="ask-suggest" id="sugg"></div>
     <div id="stmt-panel"></div>
     <div class="options" id="ask-out"></div>`;
@@ -1265,12 +1280,309 @@ function renderAsk(){
     renderStmtPanel(!open);
   };
   renderStmtPanel($("#stmt-panel")?.dataset.open==="1");
-  const sg=["I have $5,000 available. What should I do with it?","Can I afford a $4,000 trip?",
-            "What happens if renovation costs $10k more?","Can I hit all three goals on time?"];
+  const who=ACTIVE==="melissa"?"Melissa's":"my";
+  const sg=[`Set ${who} cash balance to 12,000`,
+            "Increase the wedding goal by 5k",
+            "Show June 2026",
+            "Can I afford a $4,000 trip?"];
   $("#sugg").innerHTML=sg.map(s=>`<button class="sugg">${esc(s)}</button>`).join("");
-  $$("#sugg .sugg").forEach(b=>b.onclick=()=>{$("#ask").value=b.textContent; ask();});
-  $("#ask-go").onclick=ask; $("#ask").onkeydown=e=>{if(e.key==="Enter") ask();};
+  $$("#sugg .sugg").forEach(b=>b.onclick=()=>{$("#ask").value=b.textContent; execute();});
+  $("#ask-go").onclick=execute; $("#ask").onkeydown=e=>{if(e.key==="Enter") execute();};
 }
+
+/* ================= 8c. EXECUTE ======================================
+   This dashboard is a static page with no model behind it, so "Execute"
+   is a real command parser, not a language model pretending to be one.
+   It recognises a defined set of instruction shapes, does exactly what
+   they say, and says plainly when it does not understand — which is
+   worth more than a confident guess at what a sentence about money meant.
+
+   Anything that writes shared state is previewed before it is applied,
+   and can be undone straight afterwards. View changes apply at once. */
+
+const EXEC={pending:null, undo:null};
+
+/** The amount in an instruction. Prefers the number after "to", "by", "=" or
+ *  "$", because that is where the figure actually goes — a plain
+ *  last-number-wins rule reads "by 2000" and "to 2026" as years, or picks up a
+ *  stray digit from elsewhere in the sentence. */
+function amountFrom(s){
+  let m=String(s).match(/(?:\bto\b|\bby\b|\bwith\b|=|\$)\s*\$?\s*(\d[\d,]*(?:\.\d+)?)\s*([km])?\b/i);
+  if(!m) m=String(s).match(/(\d[\d,]*(?:\.\d+)?)\s*([km])?\b/i);
+  if(!m) return null;
+  let n=parseFloat(m[1].replace(/,/g,""));
+  if(!isFinite(n)) return null;
+  const suf=(m[2]||"").toLowerCase();
+  if(suf==="k") n*=1e3; else if(suf==="m") n*=1e6;
+  return n;
+}
+const BAL_KEY={
+  joseph :{cash:"cashJoseph", inv:"invJoseph", cpfOa:"cpfOaJoseph"},
+  melissa:{cash:"cashMelissa",inv:"invMelissa",cpfOa:"cpfOaMelissa"},
+  combined:{cash:"cashCombined",inv:"invCombined",cpfOa:"cpfOaCombined"}
+};
+const PERSON_LABEL={joseph:"Joseph",melissa:"Melissa",combined:"Combined"};
+
+function personFrom(s,fallback){
+  if(/\b(combined|joint|household|both of us)\b/.test(s)) return "combined";
+  if(/\b(melissa|mel|her|hers)\b/.test(s)) return "melissa";
+  if(/\bjoseph\b|\bjoe\b/.test(s)) return "joseph";
+  return fallback;                       // "my"/"our" means the tab you are on
+}
+function balKindFrom(s){
+  if(/\bcpf\b|\boa\b/.test(s)) return "cpfOa";
+  if(/invest|stock|portfolio|shares?\b|equit/.test(s)) return "inv";
+  if(/\bcash\b|\bsavings?\b|\bbank\b/.test(s)) return "cash";
+  return null;
+}
+function goalFrom(s){
+  const goals=SCOPES.combined?.model.goals||M.goals||[];    // goals are household
+  return goals.find(g=>{
+    const n=(g.name||"").toLowerCase();
+    if(n&&s.includes(n)) return true;
+    if(g.key==="bto"&&/\bbto\b|\bflat\b|\bhdb\b/.test(s)) return true;
+    if(g.key==="renovation"&&/\breno\b/.test(s)) return true;
+    return false;
+  })||null;
+}
+function verbFrom(s){
+  if(/\b(clear|reset|unset|blank|wipe)\b/.test(s)) return "clear";
+  if(/\b(add|increase|raise|bump|top ?up|plus|grow)\b/.test(s)) return "add";
+  if(/\b(reduce|decrease|lower|cut|subtract|minus|drop|shrink)\b/.test(s)) return "sub";
+  if(/\b(set|update|change|make|put|record|log|enter|correct)\b/.test(s)) return "set";
+  return null;
+}
+const MONTH_WORD=/\b(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(t|tember)?|oct(ober)?|nov(ember)?|dec(ember)?)\b/;
+
+/** One clause -> one action, or null if it isn't an instruction. */
+function parseClause(raw){
+  const s=raw.toLowerCase().replace(/\s+/g," ").trim();
+  if(!s) return null;
+  const verb=verbFrom(s);
+
+  /* ---- view: cheap and reversible, so it just happens ---- */
+  let m;
+  if((m=s.match(/\b(joseph|melissa|combined|goals?|faq)\b\s*(tab|view)\b/))
+     ||(m=s.match(/^(?:go to|open|switch to|show me|show)\s+(?:the\s+)?(joseph|melissa|combined|goals?|faq)$/))){
+    const v=m[1].replace(/^goals?$/,"goals");
+    return {type:"view",what:"tab",value:v,label:`Open the ${PERSON_LABEL[v]||v[0].toUpperCase()+v.slice(1)} tab`};
+  }
+  if((m=s.match(/\b(12|24|36)\s*(?:m|mo|month|months)\b/))&&/horizon|project|forecast|map|show|set/.test(s))
+    return {type:"view",what:"horizon",value:+m[1],label:`Set the cash map horizon to ${m[1]} months`};
+  if(/\b(include|add|with)\b.*\bmelissa'?s?\b.*\bincome\b/.test(s)||/^include melissa$/.test(s))
+    return {type:"view",what:"includeMelissa",value:true,label:"Include Melissa's income in the projection"};
+  if(/\b(exclude|remove|without|drop)\b.*\bmelissa'?s?\b.*\bincome\b/.test(s)||/^exclude melissa$/.test(s))
+    return {type:"view",what:"includeMelissa",value:false,label:"Exclude Melissa's income from the projection"};
+  if((m=s.match(MONTH_WORD))&&/\b(show|view|go to|open|switch)\b/.test(s)&&!/statement/.test(s)){
+    const mo=MONTH_ABBR[m[1].slice(0,3)];
+    const yr=(s.match(/\b(20\d{2})\b/)||[])[1];
+    const key=(yr?+yr:miY(M.today))+"-"+String(mo+1).padStart(2,"0");
+    return {type:"view",what:"month",value:key,label:`Show ${MONFULL[mo]} ${yr||miY(M.today)}`};
+  }
+
+  /* ---- statements ---- */
+  if(/statement/.test(s)&&/\b(delete|remove|clear|wipe|drop)\b/.test(s)){
+    const who=personFrom(s,ACTIVE==="combined"?null:ACTIVE);
+    if(!who||who==="combined")
+      return {type:"error",label:"Statements belong to one person — say whose, e.g. \"delete Joseph's statements\"."};
+    const mm=s.match(MONTH_WORD);
+    if(mm&&!/\ball\b/.test(s)){
+      const mo=MONTH_ABBR[mm[1].slice(0,3)];
+      const yr=(s.match(/\b(20\d{2})\b/)||[])[1];
+      const key=(yr?+yr:miY(M.today))+"-"+String(mo+1).padStart(2,"0");
+      const rec=(S.imports[who]||{})[key];
+      if(!rec) return {type:"error",label:`There is no imported statement for ${MONFULL[mo]} ${yr||miY(M.today)} under ${PERSON_LABEL[who]}.`};
+      return {type:"stmt",scope:who,month:key,
+              label:`Delete ${PERSON_LABEL[who]}'s ${MONFULL[mo]} ${yr||miY(M.today)} statement`,
+              detail:`${fmt(rec.total)} · ${rec.count} transaction${rec.count===1?"":"s"}`};
+    }
+    const n=Object.keys(S.imports[who]||{}).length;
+    if(!n) return {type:"error",label:`${PERSON_LABEL[who]} has no imported statements to delete.`};
+    return {type:"stmt",scope:who,month:"*",
+            label:`Delete all of ${PERSON_LABEL[who]}'s imported statements`,
+            detail:`${n} month${n===1?"":"s"}`};
+  }
+
+  /* ---- goal amounts ---- */
+  const goal=goalFrom(s);
+  if(goal&&verb){
+    const from=goalAmount(goal);
+    if(verb==="clear")
+      return {type:"goal",key:goal.key,name:goal.name,from,to:null,
+              label:`Reset ${goal.name} to its stated amount`,
+              detail:`${fmt(from)} → ${fmt(goal.amount)} (from the source file)`};
+    const amt=amountFrom(s);
+    if(amt==null) return {type:"error",label:`How much should ${goal.name} change by? e.g. "set ${goal.name.toLowerCase()} to 60k".`};
+    const to=verb==="set"?amt:(verb==="add"?from+amt:from-amt);
+    if(to<0) return {type:"error",label:`That would put ${goal.name} below zero.`};
+    return {type:"goal",key:goal.key,name:goal.name,from,to,
+            label:`${verb==="set"?"Set":verb==="add"?"Increase":"Reduce"} ${goal.name}`,
+            detail:`${fmt(from)} → ${fmt(to)}`};
+  }
+
+  /* ---- balances ---- */
+  const kind=balKindFrom(s);
+  if(kind&&verb){
+    const who=personFrom(s,ACTIVE);
+    const key=BAL_KEY[who][kind];
+    const label=FIELDS[key]?.label||key;
+    const typed=rawBal(key), shown=balVal(key);
+    if(verb==="clear")
+      return {type:"balance",key,from:typed,to:null,label:`Clear ${label}`,
+              detail:typed==null?"it is already not set":`${fmt(typed)} → not set`};
+    const amt=amountFrom(s);
+    if(amt==null) return {type:"error",label:`What amount? e.g. "set ${label.toLowerCase()} to 12,000".`};
+    const base=shown==null?0:shown;
+    const to=verb==="set"?amt:(verb==="add"?base+amt:base-amt);
+    if(to<0) return {type:"error",label:`That would make ${label} negative.`};
+    const note=verb!=="set"&&shown==null?" · was not set, treated as $0"
+             :(verb!=="set"&&typed==null&&PARTS[key]?" · based on the sum of both sides":"");
+    return {type:"balance",key,from:typed,to,
+            label:`${verb==="set"?"Set":verb==="add"?"Increase":"Reduce"} ${label}`,
+            detail:`${typed==null?(shown==null?"not set":fmt(shown)+" (sum)"):fmt(typed)} → ${fmt(to)}${note}`};
+  }
+  return null;
+}
+
+function parseCommand(text){
+  const parts=text.split(/\s+and\s+|;/i).map(p=>p.trim()).filter(Boolean);
+  const actions=parts.map(parseClause);
+  if(actions.some(a=>a==null)) return null;              // not an instruction at all
+  const err=actions.find(a=>a.type==="error");
+  if(err) return {error:err.label};
+  return {actions};
+}
+
+function execute(){
+  const q=$("#ask").value.trim(); if(!q) return;
+  const cmd=parseCommand(q);
+  if(cmd&&cmd.error){renderExecMessage(cmd.error,true); return;}
+  if(cmd&&cmd.actions.length){
+    const views=cmd.actions.filter(a=>a.type==="view");
+    const writes=cmd.actions.filter(a=>a.type!=="view");
+    if(views.length){applyViews(views);}
+    if(!writes.length){
+      renderExecMessage(views.map(v=>v.label).join(" · ")+" — done.",false);
+      return;
+    }
+    EXEC.pending={actions:writes,query:q,viewsDone:views};
+    renderExecPlan();
+    return;
+  }
+  // not an instruction — answer it as a question, exactly as before
+  renderAskResults(buildOptions(parseAsk(q),q));
+}
+
+function applyViews(views){
+  views.forEach(v=>{
+    if(v.what==="tab"){const t=$$(".tab").find(x=>x.dataset.view===v.value); if(t) t.click();}
+    if(v.what==="horizon"){
+      S.horizon=v.value; S.cursor=clamp(S.cursor,0,S.horizon);
+      const b=$(`#horizon button[data-h="${v.value}"]`); if(b) b.click(); else refresh();
+    }
+    if(v.what==="includeMelissa"){
+      S.includeMelissa=v.value; cacheLocal();
+      const c=$("#inc-mel"); if(c) c.checked=v.value;
+      renderIntegrity(); refresh();
+    }
+    if(v.what==="month"){
+      if(M.months.some(x=>x.key===v.value)){S.month=v.value; renderMonthPick(); refresh();}
+    }
+  });
+}
+
+function renderExecPlan(){
+  const out=$("#ask-out"); if(!out||!EXEC.pending) return;
+  const {actions}=EXEC.pending;
+  out.innerHTML=`<div class="execbox">
+    <div class="exec-h"><span class="chip clay">Not applied yet</span>
+      <b>${actions.length} change${actions.length===1?"":"s"} ready</b></div>
+    <div class="exec-list">${actions.map(a=>`<div class="exec-row">
+      <span class="exec-l">${esc(a.label)}</span>
+      <span class="exec-d num">${esc(a.detail||"")}</span></div>`).join("")}</div>
+    <div class="exec-note">This writes to the shared dashboard — everyone with the passcode sees it,
+      on every device. Nothing has changed yet.</div>
+    <div class="exec-actions">
+      <button class="btn primary" id="exec-go">Apply</button>
+      <button class="btn" id="exec-cancel">Cancel</button></div></div>`;
+  $("#exec-cancel").onclick=()=>{EXEC.pending=null; out.innerHTML="";};
+  $("#exec-go").onclick=()=>{
+    EXEC.undo=applyActions(actions);
+    EXEC.pending=null;
+    renderMonthPick(); renderFill(); renderStmtPanel($("#stmt-panel")?.dataset.open==="1"); refresh();
+    renderExecDone(actions);
+  };
+}
+
+function applyActions(actions){
+  const undo={balances:{},goals:{},imports:null};
+  const patch=emptyPatch();
+  actions.forEach(a=>{
+    if(a.type==="balance"){
+      undo.balances[a.key]=S.balances[a.key]!=null?S.balances[a.key]:null;
+      if(a.to==null){delete S.balances[a.key]; patch.unset.push(a.key);}
+      else {S.balances[a.key]=a.to; patch.set[a.key]=a.to;}
+    }else if(a.type==="goal"){
+      undo.goals[a.key]=S.goalAmt[a.key]!=null?S.goalAmt[a.key]:null;
+      if(a.to==null){delete S.goalAmt[a.key]; patch.unsetGoalAmt.push(a.key);}
+      else {S.goalAmt[a.key]=a.to; patch.goalAmt[a.key]=a.to;}
+    }else if(a.type==="stmt"){
+      undo.imports=undo.imports||JSON.parse(JSON.stringify(S.imports||{}));
+      if(a.month==="*"){delete S.imports[a.scope]; patch.unsetImports.push({scope:a.scope,month:"*"});}
+      else{if(S.imports[a.scope]) delete S.imports[a.scope][a.month];
+           patch.unsetImports.push({scope:a.scope,month:a.month});}
+    }
+  });
+  queueSave(patch);
+  applyImports();
+  return undo;
+}
+
+function revertActions(undo){
+  const patch=emptyPatch();
+  Object.entries(undo.balances).forEach(([k,v])=>{
+    if(v==null){delete S.balances[k]; patch.unset.push(k);} else {S.balances[k]=v; patch.set[k]=v;}});
+  Object.entries(undo.goals).forEach(([k,v])=>{
+    if(v==null){delete S.goalAmt[k]; patch.unsetGoalAmt.push(k);} else {S.goalAmt[k]=v; patch.goalAmt[k]=v;}});
+  if(undo.imports){
+    S.imports=JSON.parse(JSON.stringify(undo.imports));
+    ["joseph","melissa"].forEach(sc=>Object.entries(S.imports[sc]||{})
+      .forEach(([m,rec])=>patch.setImports.push({scope:sc,month:m,rec})));
+  }
+  queueSave(patch); applyImports();
+}
+
+function renderExecDone(actions){
+  const out=$("#ask-out"); if(!out) return;
+  out.innerHTML=`<div class="execbox done">
+    <div class="exec-h"><span class="chip pine">Applied</span>
+      <b>${actions.length} change${actions.length===1?"":"s"} saved</b></div>
+    <div class="exec-list">${actions.map(a=>`<div class="exec-row">
+      <span class="exec-l">${esc(a.label)}</span>
+      <span class="exec-d num">${esc(a.detail||"")}</span></div>`).join("")}</div>
+    <div class="exec-actions"><button class="btn" id="exec-undo">Undo</button>
+      <span class="exec-note" style="margin:0">Saved for everyone with the passcode.</span></div></div>`;
+  $("#exec-undo").onclick=()=>{
+    if(!EXEC.undo) return;
+    revertActions(EXEC.undo); EXEC.undo=null;
+    renderMonthPick(); renderFill(); renderStmtPanel($("#stmt-panel")?.dataset.open==="1"); refresh();
+    renderExecMessage("Reverted. Everything is back as it was.",false);
+  };
+}
+
+function renderExecMessage(text,isError){
+  const out=$("#ask-out"); if(!out) return;
+  out.innerHTML=`<div class="execbox${isError?" bad":""}">
+    <div class="exec-h"><span class="chip ${isError?"clay":"pine"}">${isError?"Not understood":"Done"}</span>
+      <b>${esc(text)}</b></div>
+    ${isError?`<div class="exec-note">Instructions it understands:
+      <br>· <i>set my cash balance to 12,000</i> — also investment, CPF OA, and Melissa's or the combined figures
+      <br>· <i>increase the wedding goal by 5k</i> — set, increase, reduce or reset any goal
+      <br>· <i>delete Joseph's July statement</i> — or all of them
+      <br>· <i>show June 2026</i> · <i>open the Goals tab</i> · <i>36 month horizon</i> · <i>include Melissa's income</i>
+      <br>Anything it doesn't recognise as an instruction is answered as a question instead.</div>`:""}</div>`;
+}
+
 function parseAsk(q){
   const s=q.toLowerCase();
   const m=s.replace(/,/g,"").match(/\$?\s*(\d+(?:\.\d+)?)\s*(k\b)?/);
@@ -1282,7 +1594,7 @@ function parseAsk(q){
   if(/on time|all three|hit all|can i hit/.test(s)) return {kind:"feasible",amount,goal};
   return {kind:"deploy",amount,goal};
 }
-function ask(){const q=$("#ask").value.trim(); if(q) renderAskResults(buildOptions(parseAsk(q),q));}
+function ask(){execute();}
 
 function buildOptions(intent,q){
   const pr=project(), plan=pr.plan, opts=[];
