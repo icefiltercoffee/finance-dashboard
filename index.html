@@ -250,6 +250,10 @@
   .stmt-row input[type=password]{width:190px; font-size:12px; padding:7px 10px;
     border:1px solid var(--line); border-radius:8px; background:var(--paper);}
   .stmt-row input[type=password].needed{border-color:var(--clay); background:var(--clay-soft);}
+  .stmt-period{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--ink-faint);}
+  .stmt-period select{font:inherit; font-size:12px; padding:7px 9px; border:1px solid var(--line);
+    border-radius:8px; background:var(--paper); color:var(--ink); cursor:pointer;}
+  .stmt-period select:focus{outline:none; border-color:var(--clay);}
   .stmt-status{font-size:11.5px; line-height:1.55; margin-top:11px;}
   .stmt-status.grey{color:var(--ink-faint);} .stmt-status.pine{color:var(--pine-deep);}
   .stmt-status.clay{color:var(--clay-deep);}
@@ -1701,7 +1705,50 @@ function renderAskResults(opts){
 const PDFJS_URL="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 const PDFJS_WORKER="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
-const STMT={parsed:null, busy:false, needsPassword:false, note:""};
+const STMT={parsed:null, busy:false, needsPassword:false, note:"", range:null};
+
+/* ---- statement period ----------------------------------------------------
+   Card statements straddle two calendar months and often print day+month with
+   no year, so guessing the year from stray 4-digit numbers in the document
+   gets it wrong. The period is chosen explicitly instead.
+
+   The list runs from May 2026 to whatever the current month actually is, read
+   from the clock rather than the data file, so it extends itself as months
+   pass with no edit here. */
+const STMT_FIRST=mi(2026,4);                        // May 2026
+function stmtCurrentMonth(){const d=new Date(); return mi(d.getFullYear(),d.getMonth());}
+function stmtRanges(){
+  const end=Math.max(stmtCurrentMonth(),STMT_FIRST);
+  const out=[];
+  for(let b=STMT_FIRST+1;b<=end;b++) out.push({a:b-1,b});
+  if(!out.length) out.push({a:STMT_FIRST,b:STMT_FIRST});   // only reachable in May 2026 itself
+  return out.reverse();                                    // newest first — the usual upload
+}
+function rangeLabel(r){
+  if(r.a===r.b) return miLong(r.a);
+  return miY(r.a)===miY(r.b)
+    ? `${MON[miM(r.a)]}–${MON[miM(r.b)]} ${miY(r.b)}`
+    : `${MON[miM(r.a)]} ${miY(r.a)}–${MON[miM(r.b)]} ${miY(r.b)}`;
+}
+const rangeKey=r=>r.a+":"+r.b;
+function currentRange(){
+  const all=stmtRanges();
+  return all.find(r=>rangeKey(r)===STMT.range)||all[0];
+}
+
+/** Pins each row into the chosen two-month window by its own month-of-year,
+ *  which settles the year at the same time. Anything outside the window is
+ *  dropped and counted rather than quietly folded into the wrong month. */
+function applyRange(rows,range){
+  const aM=miM(range.a), aY=miY(range.a), bM=miM(range.b), bY=miY(range.b);
+  const kept=[]; let dropped=0;
+  rows.forEach(r=>{
+    if(r.when.m===aM){r.when.y=aY; kept.push(r);}
+    else if(r.when.m===bM){r.when.y=bY; kept.push(r);}
+    else dropped++;
+  });
+  return {kept,dropped};
+}
 
 /* Categories: the sheet's own taxonomy, so imports and the ledger speak the
    same language. Groceries and Shopping are added because card statements are
@@ -1908,11 +1955,23 @@ async function runStatement(){
     let how=rows?"CSV columns":"line matching";
     if(!rows){rows=parseLines(text); how="line matching";}
     if(!rows.length) throw new Error("no-rows");
-    inferYears(rows,text);
+    const sel=$("#stmt-range")&&$("#stmt-range").value;
+    let dropped=0, period=null;
+    if(sel&&sel!=="auto"){
+      const range=stmtRanges().find(r=>rangeKey(r)===sel)||currentRange();
+      STMT.range=rangeKey(range);
+      const res=applyRange(rows,range);
+      rows=res.kept; dropped=res.dropped; period=rangeLabel(range);
+      if(!rows.length) throw new Error("none-in-period");
+    }else{
+      inferYears(rows,text);
+    }
     const months=groupByMonth(rows);
-    STMT.parsed={months,how,count:rows.length};
+    STMT.parsed={months,how,count:rows.length,period,dropped};
     STMT.needsPassword=false;
-    setStmtStatus(`Read ${rows.length} purchase${rows.length===1?"":"s"} via ${how}. The file has been closed.`,"pine");
+    setStmtStatus(`Read ${rows.length} purchase${rows.length===1?"":"s"} via ${how}`
+      +(period?` and dated into ${esc(period)}`:"")+`. The file has been closed.`
+      +(dropped?` <b>${dropped}</b> row${dropped===1?" was":"s were"} outside that period and left out.`:""),"pine");
     renderStmtReview();
   }catch(e){
     const msg=String(e&&e.message||e);
@@ -1922,6 +1981,8 @@ async function runStatement(){
       renderStmtPanel(true);
     } else if(msg==="no-rows"){
       setStmtStatus("No purchase rows could be read. Export a CSV from your bank, or use a PDF with selectable text (a scan or photo won't work).","clay");
+    } else if(msg==="none-in-period"){
+      setStmtStatus("Rows were read, but none of them fall in the period you picked. Choose the period this statement actually covers.","clay");
     } else {
       setStmtStatus("Could not read that file: "+esc(msg),"clay");
     }
@@ -1992,6 +2053,7 @@ function renderStmtPanel(open){
 
   const mine=(S.imports&&S.imports[ACTIVE])||{};
   const months=Object.keys(mine).sort();
+  const cur=currentRange();
   host.innerHTML=`<div class="stmt-box">
     <div class="stmt-head"><b>Attach a statement — ${esc(M.scope.person)}</b>
       <span class="chip pine">Read in this browser only</span></div>
@@ -2002,6 +2064,9 @@ function renderStmtPanel(open){
       save leave this page: a month, a transaction count and the category totals. Merchant names stay
       on this screen and are never saved.
       <br>CSV, TXT, or a PDF with selectable text. A scanned or photographed statement cannot be read.
+      <br><b>Set the period to the two months the statement covers.</b> Statements print dates without a
+      year, so this is what fixes each purchase to the right month — each row lands in whichever of the
+      two months its own date names.
     </div>
     <div class="stmt-row">
       <label class="filebtn" for="stmt-file">Choose file</label>
@@ -2009,6 +2074,13 @@ function renderStmtPanel(open){
       <span class="stmt-name" id="stmt-name">No file chosen</span>
       <input type="password" id="stmt-pw" placeholder="PDF password (if any)" autocomplete="off"
              class="${STMT.needsPassword?"needed":""}">
+      <label class="stmt-period">
+        <span>Period</span>
+        <select id="stmt-range">
+          ${stmtRanges().map(r=>`<option value="${rangeKey(r)}" ${rangeKey(r)===rangeKey(cur)?"selected":""}>${esc(rangeLabel(r))}</option>`).join("")}
+          <option value="auto" ${STMT.range==="auto"?"selected":""}>Detect from the file</option>
+        </select>
+      </label>
       <button class="btn primary" id="stmt-run">Read statement</button>
     </div>
     <div class="stmt-status ${STMT.note?.tone||"grey"}" id="stmt-status">${STMT.note?.text||"Nothing read yet."}</div>
@@ -2028,6 +2100,7 @@ function renderStmtPanel(open){
     const f=e.target.files&&e.target.files[0];
     $("#stmt-name").textContent=f?f.name:"No file chosen";
   };
+  $("#stmt-range").onchange=e=>{STMT.range=e.target.value;};   // survives the panel re-rendering
   $("#stmt-run").onclick=runStatement;
   $$("[data-delimp]",host).forEach(b=>b.onclick=()=>{
     const k=b.dataset.delimp;
@@ -2047,7 +2120,11 @@ function renderStmtReview(){
   const existing=(S.imports&&S.imports[ACTIVE])||{};
 
   host.innerHTML=`<div class="stmt-review">
-    <div class="stmt-review-h">Read from the file — nothing is saved until you say so</div>
+    <div class="stmt-review-h">Read from the file${p.period?" · dated into "+esc(p.period):""}
+      — nothing is saved until you say so</div>
+    ${p.dropped?`<div style="font-size:11.5px;color:var(--clay-deep);margin-bottom:9px;line-height:1.5">
+      ${p.dropped} row${p.dropped===1?"":"s"} fell outside ${esc(p.period)} and ${p.dropped===1?"was":"were"} left out.
+      If that looks wrong, pick a different period and read the file again.</div>`:""}
     ${keys.map(k=>{const g=p.months[k], cats=Object.entries(g.cats).sort((a,b)=>b[1]-a[1]);
       const idx=parseWhen(k), replacing=existing[k]!=null;
       return `<div class="stmt-month">
