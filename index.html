@@ -216,6 +216,51 @@
            color:var(--pine-deep); text-decoration:underline; cursor:pointer;}
   .linkbtn:hover{color:var(--ink);}
 
+  /* ---- statement import ---- */
+  .stmt-box{border:1px solid var(--line); border-radius:12px; padding:16px 17px; margin:14px 0 4px;
+            background:var(--paper-2);}
+  .stmt-head{display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:13.5px;}
+  .stmt-note{font-size:11.5px; color:var(--ink-faint); line-height:1.65; margin-bottom:13px;}
+  .stmt-row{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+  .stmt-row input[type=file]{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;}
+  .filebtn{display:inline-block; border:1px solid var(--line); background:var(--paper);
+           font-size:11.5px; font-weight:600; padding:7px 13px; border-radius:8px; cursor:pointer;}
+  .filebtn:hover{border-color:var(--pine);}
+  .stmt-name{font-size:11.5px; color:var(--ink-faint); max-width:230px; overflow:hidden;
+             text-overflow:ellipsis; white-space:nowrap;}
+  .stmt-row input[type=password]{width:190px; font-size:12px; padding:7px 10px;
+    border:1px solid var(--line); border-radius:8px; background:var(--paper);}
+  .stmt-row input[type=password].needed{border-color:var(--clay); background:var(--clay-soft);}
+  .stmt-status{font-size:11.5px; line-height:1.55; margin-top:11px;}
+  .stmt-status.grey{color:var(--ink-faint);} .stmt-status.pine{color:var(--pine-deep);}
+  .stmt-status.clay{color:var(--clay-deep);}
+  .stmt-review{margin-top:14px; border-top:1px solid var(--line); padding-top:13px;}
+  .stmt-review-h,.stmt-saved-h{font-size:10px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-faint); margin-bottom:9px;}
+  .stmt-month{border:1px solid var(--line); border-radius:10px; padding:12px 13px; margin-bottom:10px;
+              background:var(--paper);}
+  .stmt-month-h{display:flex; align-items:center; gap:11px; flex-wrap:wrap; font-size:13px;}
+  .stmt-month-h label{display:flex; align-items:center; gap:7px; cursor:pointer;}
+  .stmt-dim{color:var(--ink-faint); font-size:11px;}
+  .stmt-cats{display:flex; flex-wrap:wrap; gap:6px; margin-top:9px;}
+  .stmt-cat{font-size:11px; border:1px solid var(--line); border-radius:999px; padding:3px 9px;
+            background:var(--paper-2);}
+  .stmt-cat b{font-weight:600;}
+  .stmt-lines{margin-top:9px;}
+  .stmt-lines summary{font-size:11px; color:var(--ink-faint); cursor:pointer;}
+  .stmt-lines-in{margin-top:8px; max-height:230px; overflow:auto; border:1px solid var(--line);
+                 border-radius:8px;}
+  .stmt-lines-in>div{display:grid; grid-template-columns:1fr auto auto; gap:11px; padding:6px 10px;
+    font-size:11.5px; border-bottom:1px solid var(--line-soft);}
+  .stmt-lines-in>div:last-child{border-bottom:0;}
+  .stmt-lines-in>div>span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .stmt-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px;}
+  .stmt-saved{margin-top:14px; border-top:1px solid var(--line); padding-top:13px;}
+  .stmt-saved-row{display:flex; align-items:center; gap:11px; flex-wrap:wrap; font-size:12px;
+    padding:7px 0; border-bottom:1px solid var(--line-soft);}
+  .stmt-saved-row:last-child{border-bottom:0;}
+  .stmt-saved-cats{color:var(--ink-faint); font-size:11px; flex:1;}
+
   .bitem{display:grid; grid-template-columns:24px 1fr; gap:13px; padding:14px 0; border-bottom:1px solid var(--line-soft);}
   .bitem:last-child{border-bottom:0;}
   .bi{width:24px; height:24px; border-radius:8px; display:grid; place-items:center; font-size:12px; font-weight:600;}
@@ -350,10 +395,16 @@ function buildModel(d){
     return {key:r.m, idx, ledgerIncome:r.income, salary, income:r.income+salary,
             expense:r.expense, cashFlow:r.income+salary-r.expense, partial:!!r.partial, salaried};
   });
-  M.today=M.months.length?M.months[M.months.length-1].idx:(parseWhen(d.period?.generatedAt)||mi(2026,7));
+  M.baseMonths=M.months;                       // the sheet alone, before any import
+  M.todayFallback=parseWhen(d.period?.generatedAt)||mi(2026,7);
+  M.today=M.months.length?M.months[M.months.length-1].idx:M.todayFallback;
 
   M.expenseCats=(A.expenseByCategory?.rows||[]).filter(r=>r.amount>0).sort((a,b)=>b.amount-a.amount);
   M.expenseCatsMonth=A.expenseByCategory?.month||null;
+  M.catsByMonth={};
+  if(M.expenseCatsMonth&&M.expenseCats.length)
+    M.catsByMonth[M.expenseCatsMonth]={rows:M.expenseCats,source:"sheet"};
+  M.imports={};
   M.yearTotals=A.yearTotals||null;
 
   M.balanceFields=(d.balances?.fields||[]).map(f=>Object.assign({},f));
@@ -400,25 +451,89 @@ function buildCombinedRaw(dJ,dM){
   return c;
 }
 
+/** Folds saved statement figures into each scope's model.
+ *
+ *  A card statement is a SUBSET of spending — it misses cash, GIRO and any
+ *  other card — so it never overwrites a month the sheet already reports.
+ *  Where the sheet is silent the import fills the gap and is labelled as card
+ *  spend; where both exist, both are shown and a divergence is flagged. */
+function applyImports(){
+  ORDER.forEach(id=>{
+    const sc=SCOPES[id]; if(!sc) return;
+    const m=sc.model;
+    const imps=id==="combined"?combinedImports():((S.imports&&S.imports[id])||{});
+    m.imports=imps;
+
+    const byKey={};
+    (m.baseMonths||[]).forEach(r=>{byKey[r.key]=Object.assign({},r);});
+    Object.entries(imps).forEach(([k,rec])=>{
+      const idx=parseWhen(k); if(idx==null) return;
+      if(byKey[k]){
+        byKey[k].cardSpend=rec.total;                       // sheet figure stands
+        byKey[k].importCount=rec.count;
+        byKey[k].hasImport=true;
+      }else{
+        const salaried=m.salaryFrom!=null&&idx>=m.salaryFrom;
+        const salary=salaried?(m.joseph?.takeHome||0):0;
+        byKey[k]={key:k, idx, ledgerIncome:0, salary, income:salary,
+                  expense:rec.total, cashFlow:salary-rec.total, partial:false, salaried,
+                  hasImport:true, importOnly:true, cardSpend:rec.total, importCount:rec.count};
+      }
+    });
+    m.months=Object.values(byKey).sort((a,b)=>a.idx-b.idx);
+    m.today=m.months.length?m.months[m.months.length-1].idx:m.todayFallback;
+
+    m.catsByMonth={};
+    if(m.expenseCatsMonth&&m.expenseCats.length)
+      m.catsByMonth[m.expenseCatsMonth]={rows:m.expenseCats,source:"sheet"};
+    Object.entries(imps).forEach(([k,rec])=>{
+      const rows=Object.entries(rec.cats||{}).map(([name,amount])=>({name,amount}))
+        .filter(r=>r.amount>0).sort((a,b)=>b.amount-a.amount);
+      if(!rows.length) return;
+      if(m.catsByMonth[k]) m.catsByMonth[k].alt={rows,source:"statement"};
+      else m.catsByMonth[k]={rows,source:"statement"};
+    });
+  });
+  if(S.month&&!M.months.some(x=>x.key===S.month))
+    S.month=M.months.length?M.months[M.months.length-1].key:null;
+}
+
+/** Combined adds the two people's statement months together. */
+function combinedImports(){
+  const out={};
+  ["joseph","melissa"].forEach(sc=>{
+    Object.entries((S.imports&&S.imports[sc])||{}).forEach(([k,rec])=>{
+      const g=out[k]||(out[k]={total:0,count:0,cats:{},at:rec.at});
+      g.total=Math.round((g.total+rec.total)*100)/100;
+      g.count+=rec.count||0;
+      Object.entries(rec.cats||{}).forEach(([c,v])=>{
+        g.cats[c]=Math.round(((g.cats[c]||0)+v)*100)/100;});
+    });
+  });
+  return out;
+}
+
 /* ================= 2. STATE ================= */
 const LS="financeIntern.v3";
-const S={tab:"joseph", horizon:24, cursor:0, month:null, balances:{}, goalAmt:{},
+const S={tab:"joseph", horizon:24, cursor:0, month:null, balances:{}, goalAmt:{}, imports:{}, catSource:"sheet",
          includeMelissa:false, shifts:{}, preview:null, selectedGoal:null};
 /* ---- persistence ----------------------------------------------------------
    Typed numbers live server-side in KV (functions/api/state.js) so they survive
    a refresh and follow you to any device behind the same PIN. localStorage is
    kept only as an offline mirror — if the server is unreachable the dashboard
    keeps working and says which mode it is in, rather than quietly losing input. */
-const SYNC={mode:"loading", at:null, err:null, inflight:false, timer:null,
-            pending:{set:{},unset:[],goalAmt:{},unsetGoalAmt:[]}};
-const emptyPatch=()=>({set:{},unset:[],goalAmt:{},unsetGoalAmt:[]});
+const SYNC={mode:"loading", at:null, err:null, inflight:false, timer:null, pending:null};
+const emptyPatch=()=>({set:{},unset:[],goalAmt:{},unsetGoalAmt:[],setImports:[],unsetImports:[]});
 const pendingEmpty=p=>!Object.keys(p.set).length&&!p.unset.length
-                    &&!Object.keys(p.goalAmt).length&&!p.unsetGoalAmt.length;
+                    &&!Object.keys(p.goalAmt).length&&!p.unsetGoalAmt.length
+                    &&!p.setImports.length&&!p.unsetImports.length;
+SYNC.pending=emptyPatch();
 
 function cacheLocal(){try{localStorage.setItem(LS,JSON.stringify(
-  {balances:S.balances,goalAmt:S.goalAmt,includeMelissa:S.includeMelissa}));}catch(_){}}
+  {balances:S.balances,goalAmt:S.goalAmt,imports:S.imports,includeMelissa:S.includeMelissa}));}catch(_){}}
 function loadCache(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");
-  S.balances=j.balances||{}; S.goalAmt=j.goalAmt||{}; S.includeMelissa=!!j.includeMelissa;}catch(_){}}
+  S.balances=j.balances||{}; S.goalAmt=j.goalAmt||{}; S.imports=j.imports||{};
+  S.includeMelissa=!!j.includeMelissa;}catch(_){}}
 
 function setSync(mode,err){SYNC.mode=mode; if(err!==undefined) SYNC.err=err; paintSync();}
 function syncText(){
@@ -450,19 +565,25 @@ async function pullServer(){
 async function loadState(){
   loadCache();
   const localVals=Object.assign({},S.balances), localGoals=Object.assign({},S.goalAmt);
+  const localImps=JSON.parse(JSON.stringify(S.imports||{}));
   try{
     const j=await pullServer();
-    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{};
+    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{}; S.imports=j.imports||{};
     SYNC.at=j.updatedAt; setSync("server",null);
-    const serverEmpty=!Object.keys(S.balances).length&&!Object.keys(S.goalAmt).length;
-    const haveLocal=Object.keys(localVals).length||Object.keys(localGoals).length;
+    const serverEmpty=!Object.keys(S.balances).length&&!Object.keys(S.goalAmt).length
+                     &&!Object.keys(S.imports).length;
+    const haveLocal=Object.keys(localVals).length||Object.keys(localGoals).length
+                  ||Object.keys(localImps).length;
     if(serverEmpty&&haveLocal){
-      S.balances=localVals; S.goalAmt=localGoals;
-      queueSave({set:localVals,goalAmt:localGoals});
+      S.balances=localVals; S.goalAmt=localGoals; S.imports=localImps;
+      const sets=[];
+      Object.entries(localImps).forEach(([sc,ms])=>Object.entries(ms||{})
+        .forEach(([m,rec])=>sets.push({scope:sc,month:m,rec})));
+      queueSave({set:localVals,goalAmt:localGoals,setImports:sets});
       await flushSave();
     }
   }catch(e){
-    S.balances=localVals; S.goalAmt=localGoals;      // keep working offline
+    S.balances=localVals; S.goalAmt=localGoals; S.imports=localImps;   // keep working offline
     setSync("local",e.message);
   }
   cacheLocal();
@@ -474,6 +595,12 @@ function queueSave(patch){
   Object.assign(p.goalAmt,patch.goalAmt||{});
   (patch.unset||[]).forEach(k=>{delete p.set[k]; if(!p.unset.includes(k)) p.unset.push(k);});
   (patch.unsetGoalAmt||[]).forEach(k=>{delete p.goalAmt[k]; if(!p.unsetGoalAmt.includes(k)) p.unsetGoalAmt.push(k);});
+  (patch.setImports||[]).forEach(it=>{
+    p.unsetImports=p.unsetImports.filter(u=>!(u.scope===it.scope&&u.month===it.month));
+    p.setImports=p.setImports.filter(s=>!(s.scope===it.scope&&s.month===it.month)).concat([it]);});
+  (patch.unsetImports||[]).forEach(it=>{
+    p.setImports=p.setImports.filter(s=>!(s.scope===it.scope&&s.month===it.month));
+    if(!p.unsetImports.some(u=>u.scope===it.scope&&u.month===it.month)) p.unsetImports.push(it);});
   cacheLocal();
   setSync("saving");
   clearTimeout(SYNC.timer);
@@ -496,9 +623,9 @@ async function flushSave(){
     }
     const j=await r.json();
     // Adopt the merged record so a field the other device changed shows up here.
-    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{};
+    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{}; S.imports=j.imports||{};
     SYNC.at=j.updatedAt; setSync("server",null);
-    cacheLocal();
+    cacheLocal(); applyImports();
     refreshExceptFill();          // never re-renders #p-fill, so typing isn't interrupted
   }catch(e){
     setSync("local",e.message);   // the local mirror already holds it
@@ -511,8 +638,8 @@ async function syncOnFocus(){
   try{
     const j=await pullServer();
     if(j.updatedAt===SYNC.at) return;
-    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{};
-    SYNC.at=j.updatedAt; setSync("server",null); cacheLocal();
+    S.balances=j.values||{}; S.goalAmt=j.goalAmt||{}; S.imports=j.imports||{};
+    SYNC.at=j.updatedAt; setSync("server",null); cacheLocal(); applyImports();
     if(!/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||"")){
       renderFill(); refresh();
     }
@@ -770,9 +897,14 @@ function renderMonthPick(){
         `<option ${miY(cur?.idx||0)===y?"selected":""}>${y}</option>`).join("")}</select>
     </div>
     <div style="font-size:11px;color:var(--ink-faint);line-height:1.5">
-      ${cur?.partial?"Partial month — still in progress. ":""}${cur?.salaried
-        ? "Includes "+fmt(cur.salary)+" salary plus "+fmt(cur.ledgerIncome)+" logged."
-        : "Pre-employment — ledger income only."}</div>`;
+      ${cur?.partial?"Partial month — still in progress. ":""}${cur?.importOnly
+        ? "From an attached statement — card spend only, so cash and GIRO are not in it."
+        : (cur?.salaried
+            ? "Includes "+fmt(cur.salary)+" salary plus "+fmt(cur.ledgerIncome)+" logged."
+            : "Pre-employment — ledger income only.")}
+      ${cur?.hasImport&&!cur?.importOnly
+        ? "<br>A statement for this month totals "+fmt(cur.cardSpend)+" of card spend."
+        : ""}</div>`;
   $("#sel-month").onchange=e=>{S.month=e.target.value; refresh();};
   $("#sel-year").onchange=()=>refresh();
 }
@@ -1064,15 +1196,22 @@ function renderLiabilities(){
       (${ph.map(l=>esc(l.name)).join(", ")}) — no amounts assumed.</div>`:""}`;
 }
 function renderExpenseCats(){
-  const rec=monthRec(), isCat=rec&&rec.key===M.expenseCatsMonth, rows=isCat?M.expenseCats:[];
+  const rec=monthRec();
+  let entry=rec?(M.catsByMonth||{})[rec.key]:null;
+  // Where the sheet and a statement both cover a month, the sheet leads (it is
+  // total spending, the statement is one card) but both stay reachable.
+  const alt=entry&&entry.alt;
+  if(entry&&alt&&S.catSource==="statement") entry=alt;
+  const rows=entry?entry.rows:[];
   const host=$("#p-expcat");
   if(!rows.length){
     const cm=M.expenseCatsMonth?parseWhen(M.expenseCatsMonth):null;
     host.innerHTML=`<div class="sec-head"><h2>Expenses by category</h2></div>
       <div class="empty"><div class="big">${rec?MONFULL[miM(rec.idx)]+" "+miY(rec.idx):"—"}</div>
-      <div>The Monthly Overview tab computes one month at a time and was set to
-      <b>${cm!=null?miLong(cm):"—"}</b> when read, so only that month has a category split.<br>
-      The monthly total is still ${rec?fmt(rec.expense):"—"}.</div></div>`; return;}
+      <div>${cm!=null?`The Monthly Overview tab computes one month at a time and was set to
+        <b>${miLong(cm)}</b> when read, so only that month has a category split.<br>`:""}
+      ${rec?`The monthly total is still ${fmt(rec.expense)}. `:""}
+      Attach a statement for this month under <b>What can I do?</b> and the split is built from it.</div></div>`; return;}
   const W=430,H=250,pl=104,pr=54,pt=10,pb=28;
   const max=Math.max(...rows.map(r=>r.amount))*1.02||1, bh=(H-pt-pb)/rows.length, gap=Math.min(9,bh*.32);
   const bars=rows.map((r,i)=>{const y=pt+i*bh, w=(r.amount/max)*(W-pl-pr);
@@ -1081,24 +1220,46 @@ function renderExpenseCats(){
       <title>${esc(r.name)} ${fmt(r.amount,{cents:true})}</title></rect>
       <text class="ax" x="${pl+w+7}" y="${y+bh/2+3.5}">${fmt(r.amount)}</text></g>`;}).join("");
   const total=rows.reduce((a,r)=>a+r.amount,0);
+  const catTotal=rows.reduce((a,r)=>a+r.amount,0);
+  const fromStmt=entry.source==="statement";
   host.innerHTML=`<div class="sec-head"><h2>Expenses by category</h2>
-      <span class="hint">${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} · ranked</span></div>
+      <span class="hint">${MONFULL[miM(rec.idx)]} ${miY(rec.idx)} · ranked</span>
+      ${fromStmt?`<span class="chip pine">from statement</span>`:""}
+      ${alt?`<span class="sp"></span><div class="horizon" id="catsrc">
+        <button data-src="sheet" aria-pressed="${S.catSource!=="statement"}">Sheet</button>
+        <button data-src="statement" aria-pressed="${S.catSource==="statement"}">Statement</button></div>`:""}</div>
+    ${fromStmt&&rec.expense&&Math.round(catTotal)<Math.round(rec.expense)?`
+      <div style="font-size:11px;color:var(--clay-deep);line-height:1.5;margin-bottom:8px">
+        Card spend only — ${fmt(catTotal)} of the month's ${fmt(rec.expense)} total.
+        Cash, GIRO and any other card are not in this split.</div>`:""}
     <svg class="viz" viewBox="0 0 ${W} ${H}">${bars}
       <line x1="${pl}" y1="${H-pb+2}" x2="${W-pr}" y2="${H-pb+2}" stroke="var(--line)"/>
       <text class="ax" x="${pl}" y="${H-pb+16}">$0</text>
       <text class="ax" x="${W-pr}" y="${H-pb+16}" text-anchor="end">${fmt(max,{compact:true})}</text></svg>
     <div style="font-size:11.5px;color:var(--ink-faint);margin-top:4px">
-      Top line is ${(rows[0].amount/total*100).toFixed(0)}% of the month's ${fmt(total)}.</div>`;
+      Top line is ${(rows[0].amount/total*100).toFixed(0)}% of the ${fmt(total)} shown${
+        fromStmt?" on this statement":""}.</div>`;
+  $$("#catsrc button").forEach(b=>b.onclick=()=>{
+    S.catSource=b.dataset.src; renderExpenseCats();});
 }
 
 /* ================= 8. ASK ================= */
 function renderAsk(){
   $("#p-ask").innerHTML=`<div class="sec-head"><h2>What can I do?</h2>
-      <span class="hint">computed from your figures · preview an option on the map before acting</span></div>
+      <span class="hint">computed from your figures · preview an option on the map before acting</span>
+      <span class="sp"></span>
+      <button class="btn" id="stmt-open">Attach Statement</button></div>
     <div class="ask-box"><input class="ask-input" id="ask" autocomplete="off"
       placeholder="I have $5,000 available. What should I do with it?">
       <button class="btn primary ask-go" id="ask-go">Ask</button></div>
-    <div class="ask-suggest" id="sugg"></div><div class="options" id="ask-out"></div>`;
+    <div class="ask-suggest" id="sugg"></div>
+    <div id="stmt-panel"></div>
+    <div class="options" id="ask-out"></div>`;
+  $("#stmt-open").onclick=()=>{
+    const open=$("#stmt-panel").dataset.open==="1";
+    renderStmtPanel(!open);
+  };
+  renderStmtPanel($("#stmt-panel")?.dataset.open==="1");
   const sg=["I have $5,000 available. What should I do with it?","Can I afford a $4,000 trip?",
             "What happens if renovation costs $10k more?","Can I hit all three goals on time?"];
   $("#sugg").innerHTML=sg.map(s=>`<button class="sugg">${esc(s)}</button>`).join("");
@@ -1209,6 +1370,376 @@ function renderAskResults(opts){
     $$("[data-prev]",out).forEach(x=>x.textContent="Preview on map");
     if(!already) b.textContent="Clear preview";
     refresh(); $("#p-map").scrollIntoView({behavior:"smooth",block:"center"});});
+}
+
+/* ================= 8b. STATEMENT IMPORT =============================
+   The file is read in this browser and nothing else. It is not uploaded, not
+   posted anywhere, and the handle is dropped the moment parsing finishes.
+   What can be saved is the derived total: a month, a transaction count and
+   per-category sums. Merchant names and the raw text are shown for checking
+   and then discarded with the page — they are never part of a save.
+
+   pdf.js is fetched from a CDN on first use. That request carries no statement
+   data; it is a library download, and only happens if you open a PDF.        */
+const PDFJS_URL="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+const PDFJS_WORKER="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+const STMT={parsed:null, busy:false, needsPassword:false, note:""};
+
+/* Categories: the sheet's own taxonomy, so imports and the ledger speak the
+   same language. Groceries and Shopping are added because card statements are
+   full of both and folding them into Miscellaneous throws away the answer. */
+const CAT_RULES=[
+  ["Food & Drinks",  /(mcdonald|kfc|burger|pizza|subway|starbucks|coffee|cafe|café|restaurant|eatery|kopitiam|food ?court|foodpanda|deliveroo|grabfood|bakery|sushi|ramen|bubble ?tea|liho|koi|gong ?cha|swensen|crystal ?jade|din ?tai ?fung|jollibee|old ?chang ?kee|ya ?kun|breadtalk|tim ?ho ?wan|haidilao|dim ?sum|bar\b|pub\b|brewery|tea\b)/i],
+  ["Groceries",      /(ntuc|fairprice|cold ?storage|giant\b|sheng ?siong|redmart|prime ?super|donki|don ?don|mustafa|hao ?mart|u ?stars|marketplace)/i],
+  ["Transport",      /(grab(?!food)|gojek|comfort ?del|cdg ?taxi|taxi|transitlink|simplygo|ez-?link|bus\/mrt|smrt|sbs ?transit|shell|esso|caltex|\bspc\b|sinopec|parking|carpark|car ?park|season ?park|\bura\b|\blta\b|erp)/i],
+  ["Travel",         /(airline|singapore ?air|\bsia\b|scoot|jetstar|airasia|emirates|qatar|cathay|agoda|booking\.com|expedia|hotel|resort|airbnb|klook|trip\.com|traveloka|changi|duty ?free|\bavis\b|hertz)/i],
+  ["Insurance",      /(insurance|prudential|\baia\b|great ?eastern|ntuc ?income|\baxa\b|manulife|aviva|singlife|\bfwd\b|tokio ?marine)/i],
+  ["Handphone Bills",/(singtel|starhub|\bm1\b|circles\.?life|simba|\btpg\b|giga\b|myrepublic)/i],
+  ["Gym Membership", /(gym|fitness|anytime ?fit|virgin ?active|\bf45\b|pure ?fitness|activesg|climb|yoga|pilates)/i],
+  ["Firstfruits",    /(church|tithe|offering|firstfruit|\bcru\b)/i],
+  ["Shopping",       /(shopee|lazada|amazon|taobao|uniqlo|zara|h ?& ?m|cotton ?on|decathlon|ikea|courts|harvey ?norman|challenger|apple\.com|apple ?store|love ?bonito|sephora|watsons|guardian|\bmuji\b|daiso|popular|best ?denki)/i]
+];
+const CAT_DEFAULT="Miscellaneous";
+function categorise(merchant){
+  for(const [name,re] of CAT_RULES) if(re.test(merchant)) return name;
+  return CAT_DEFAULT;
+}
+
+/* Rows that are not spending: payments to the card, refunds, and the summary
+   block. Getting this wrong inflates or deflates the month, so it is explicit. */
+const NOT_SPEND=/(payment[ -]*(thank|received|ref)|thank ?you|previous ?balance|statement ?balance|closing ?balance|opening ?balance|total ?amount ?due|minimum ?payment|sub-?total|grand ?total|credit ?limit|available ?credit|balance ?b\/?f|autopay|giro ?deduction|refund|reversal|rebate|cashback|\bcr\b$)/i;
+
+const MONTH_ABBR={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+
+function stmtAmount(text){
+  if(!text) return null;
+  const neg=/^\(|\)$/.test(text.trim());
+  const n=parseFloat(String(text).replace(/[^0-9.]/g,""));
+  if(!isFinite(n)) return null;
+  return neg?-n:n;
+}
+
+/** Rebuilds visual lines from pdf.js text items: cluster by y, order by x.
+ *  Without this a statement arrives as a bag of fragments in no useful order. */
+function pdfPageLines(items){
+  const rows=[];
+  for(const it of items){
+    if(!it.str||!it.str.trim()) continue;
+    const x=(it.transform&&Number(it.transform[4]))||0;
+    const y=(it.transform&&Number(it.transform[5]))||0;
+    let row=rows.find(r=>Math.abs(r.y-y)<2.5);
+    if(!row){row={y,parts:[]}; rows.push(row);}
+    row.parts.push({x,text:it.str});
+  }
+  return rows.sort((a,b)=>b.y-a.y)
+    .map(r=>r.parts.sort((a,b)=>a.x-b.x).map(p=>p.text).join(" ").replace(/\s+/g," ").trim())
+    .filter(Boolean);
+}
+
+async function stmtText(file,password){
+  if(/\.pdf$/i.test(file.name)){
+    const pdfjs=await import(PDFJS_URL);
+    pdfjs.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+    const doc=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),
+                                       password:password||undefined}).promise;
+    const pages=[];
+    for(let p=1;p<=doc.numPages;p++){
+      const page=await doc.getPage(p);
+      pages.push(pdfPageLines((await page.getTextContent()).items).join("\n"));
+    }
+    try{doc.destroy();}catch(_){}
+    return pages.join("\n");
+  }
+  return file.text();
+}
+
+/* ---- structured CSV first; banks that export it give clean columns ---- */
+function splitCSVLine(line,delim){
+  const out=[]; let cur="", q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(q){ if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===delim){out.push(cur);cur="";}
+    else cur+=c;
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return null;
+  const delim=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?";":",";
+  const head=splitCSVLine(lines[0],delim).map(h=>h.toLowerCase());
+  const col=(...names)=>head.findIndex(h=>names.some(n=>h.includes(n)));
+  const di=col("date"), mi_=col("description","merchant","details","particulars","narrative","reference"),
+        ai=col("amount","debit","withdrawal","sgd"), ci=col("credit","deposit");
+  if(di<0||ai<0) return null;
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const c=splitCSVLine(lines[i],delim);
+    if(c.length<=Math.max(di,ai)) continue;
+    if(ci>=0&&c[ci]&&stmtAmount(c[ci])) continue;             // a credit, not spend
+    const amount=stmtAmount(c[ai]);
+    const merchant=(mi_>=0?c[mi_]:"").replace(/\s{2,}/g," ").trim();
+    const when=parseStmtDate(c[di]);
+    if(amount==null||amount<=0||!when||!merchant) continue;
+    if(NOT_SPEND.test(merchant)) continue;
+    rows.push({merchant,amount,when});
+  }
+  return rows.length?rows:null;
+}
+
+/** Handles "12 Jul 2026", "12/07/2026", "2026-07-12", "12 JUL". Year may be
+ *  absent on Singapore card statements, so it is returned as null and inferred
+ *  later from the document rather than guessed per row. */
+function parseStmtDate(s){
+  if(!s) return null;
+  const t=String(s).trim();
+  let m;
+  if((m=t.match(/^(\d{4})-(\d{2})-(\d{2})/))) return {y:+m[1],m:+m[2]-1,d:+m[3]};
+  if((m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/))){
+    let y=+m[3]; if(y<100) y+=2000;
+    return {y,m:+m[2]-1,d:+m[1]};                              // DD/MM/YYYY (SG)
+  }
+  if((m=t.match(/^(\d{1,2})\s*[-\s]\s*([A-Za-z]{3})[a-z]*\s*(\d{2,4})?/))){
+    const mo=MONTH_ABBR[m[2].toLowerCase()];
+    if(mo==null) return null;
+    let y=m[3]?+m[3]:null; if(y!=null&&y<100) y+=2000;
+    return {y,m:mo,d:+m[1]};
+  }
+  if((m=t.match(/^([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s*(\d{2,4})?/))){
+    const mo=MONTH_ABBR[m[1].toLowerCase()];
+    if(mo==null) return null;
+    let y=m[3]?+m[3]:null; if(y!=null&&y<100) y+=2000;
+    return {y,m:mo,d:+m[2]};
+  }
+  return null;
+}
+
+const DATE_LEAD=/^((\d{4}-\d{2}-\d{2})|(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})|(\d{1,2}\s*[-\s]\s*[A-Za-z]{3}[a-z]*(\s+\d{2,4})?)|([A-Za-z]{3}[a-z]*\s+\d{1,2},?(\s+\d{2,4})?))/;
+
+function parseLines(text){
+  const rows=[];
+  for(const raw of text.split(/\n/)){
+    const line=raw.replace(/\s+/g," ").trim();
+    if(!line||line.length<8) continue;
+    const dm=line.match(DATE_LEAD);
+    if(!dm) continue;
+    const when=parseStmtDate(dm[0]);
+    if(!when) continue;
+    const amounts=line.match(/\(?-?(?:S\$|SGD)?\s*\d[\d,]*\.\d{2}\)?(?:\s*CR)?/gi)||[];
+    if(!amounts.length) continue;
+    const amountText=amounts[amounts.length-1];
+    if(/CR\s*$/i.test(amountText)) continue;                   // credit, not spend
+    const amount=stmtAmount(amountText);
+    let merchant=line.replace(dm[0],"");
+    amounts.forEach(a=>{merchant=merchant.replace(a,"");});
+    merchant=merchant.replace(/\b(S\$|SGD)\b/g,"").replace(/\s{2,}/g," ").trim();
+    if(!merchant||amount==null||amount<=0) continue;
+    if(NOT_SPEND.test(merchant)||NOT_SPEND.test(line)) continue;
+    rows.push({merchant,amount,when});
+  }
+  return rows;
+}
+
+/** Fills in missing years. Statements print "12 JUL" and put the year only in
+ *  the header, so the document's own year is used, and a month later than the
+ *  statement year-end rolls back rather than landing in the future. */
+function inferYears(rows,text){
+  const years=(text.match(/\b(20\d{2})\b/g)||[]).map(Number)
+    .filter(y=>y>=2000&&y<=miY(M.today)+1);
+  const docYear=years.length?Math.max(...years):miY(M.today);
+  rows.forEach(r=>{
+    if(r.when.y!=null) return;
+    let y=docYear;
+    if(mi(y,r.when.m)>M.today+1) y-=1;                          // don't land in the future
+    r.when.y=y;
+  });
+  return rows;
+}
+
+function groupByMonth(rows){
+  const out={};
+  rows.forEach(r=>{
+    const key=r.when.y+"-"+String(r.when.m+1).padStart(2,"0");
+    const g=out[key]||(out[key]={total:0,count:0,cats:{},lines:[]});
+    const cat=categorise(r.merchant);
+    g.total+=r.amount; g.count+=1;
+    g.cats[cat]=(g.cats[cat]||0)+r.amount;
+    g.lines.push({merchant:r.merchant,amount:r.amount,cat,day:r.when.d});
+  });
+  Object.values(out).forEach(g=>{
+    g.total=Math.round(g.total*100)/100;
+    Object.keys(g.cats).forEach(k=>{g.cats[k]=Math.round(g.cats[k]*100)/100;});
+    g.lines.sort((a,b)=>b.amount-a.amount);
+  });
+  return out;
+}
+
+async function runStatement(){
+  const input=$("#stmt-file"), status=$("#stmt-status");
+  const file=input&&input.files&&input.files[0];
+  if(!file){setStmtStatus("Choose a CSV, TXT or text-based PDF statement first.","clay"); return;}
+  if(STMT.busy) return;
+  STMT.busy=true; setStmtStatus("Reading in this browser…","grey");
+  const pw=($("#stmt-pw")&&$("#stmt-pw").value)||"";
+  try{
+    const text=await stmtText(file,pw);
+    let rows=/\.csv$/i.test(file.name)?parseCSV(text):null;
+    let how=rows?"CSV columns":"line matching";
+    if(!rows){rows=parseLines(text); how="line matching";}
+    if(!rows.length) throw new Error("no-rows");
+    inferYears(rows,text);
+    const months=groupByMonth(rows);
+    STMT.parsed={months,how,count:rows.length};
+    STMT.needsPassword=false;
+    setStmtStatus(`Read ${rows.length} purchase${rows.length===1?"":"s"} via ${how}. The file has been closed.`,"pine");
+    renderStmtReview();
+  }catch(e){
+    const msg=String(e&&e.message||e);
+    if(/password/i.test(msg)){
+      STMT.needsPassword=true;
+      setStmtStatus("This PDF needs its statement password. Enter it above — it is used in this browser only and is never stored or sent.","clay");
+      renderStmtPanel(true);
+    } else if(msg==="no-rows"){
+      setStmtStatus("No purchase rows could be read. Export a CSV from your bank, or use a PDF with selectable text (a scan or photo won't work).","clay");
+    } else {
+      setStmtStatus("Could not read that file: "+esc(msg),"clay");
+    }
+    STMT.parsed=null;
+    renderStmtReview();
+  } finally {
+    STMT.busy=false;
+    if(input) input.value="";            // drop the handle; the copy is gone
+    const pwEl=$("#stmt-pw"); if(pwEl) pwEl.value="";
+    const nm=$("#stmt-name"); if(nm) nm.textContent="No file chosen";
+  }
+}
+
+function setStmtStatus(text,tone){
+  STMT.note={text,tone};
+  const el=$("#stmt-status"); if(!el) return;
+  el.className="stmt-status "+(tone||"grey");
+  el.innerHTML=text;
+}
+
+/* ---- panel ---- */
+function renderStmtPanel(open){
+  const host=$("#stmt-panel"); if(!host) return;
+  host.dataset.open=open?"1":"0";
+  const btn=$("#stmt-open"); if(btn) btn.textContent=open?"Close statement":"Attach Statement";
+  if(!open){host.innerHTML=""; return;}
+
+  if(ACTIVE==="combined"){
+    host.innerHTML=`<div class="stmt-box"><div class="stmt-head">
+        <b>Attach a statement</b>
+        <span class="chip grey">Not on this tab</span></div>
+      <div class="stmt-note">A statement belongs to one person's cards, so it is imported on the
+      <b>Joseph</b> or <b>Melissa</b> tab. This tab adds both sides together once they are in.</div></div>`;
+    return;
+  }
+
+  const mine=(S.imports&&S.imports[ACTIVE])||{};
+  const months=Object.keys(mine).sort();
+  host.innerHTML=`<div class="stmt-box">
+    <div class="stmt-head"><b>Attach a statement — ${esc(M.scope.person)}</b>
+      <span class="chip pine">Read in this browser only</span></div>
+    <div class="stmt-note">
+      Pick a credit-card statement and the page reads it here, sorts the purchases into categories and
+      totals them by month. <b>The file is never uploaded, stored or sent anywhere</b> — it is read in
+      this tab and the copy is dropped as soon as it has been parsed. Only the figures you choose to
+      save leave this page: a month, a transaction count and the category totals. Merchant names stay
+      on this screen and are never saved.
+      <br>CSV, TXT, or a PDF with selectable text. A scanned or photographed statement cannot be read.
+    </div>
+    <div class="stmt-row">
+      <label class="filebtn" for="stmt-file">Choose file</label>
+      <input type="file" id="stmt-file" accept="application/pdf,.pdf,text/csv,.csv,text/plain,.txt">
+      <span class="stmt-name" id="stmt-name">No file chosen</span>
+      <input type="password" id="stmt-pw" placeholder="PDF password (if any)" autocomplete="off"
+             class="${STMT.needsPassword?"needed":""}">
+      <button class="btn primary" id="stmt-run">Read statement</button>
+    </div>
+    <div class="stmt-status ${STMT.note?.tone||"grey"}" id="stmt-status">${STMT.note?.text||"Nothing read yet."}</div>
+    <div id="stmt-review"></div>
+    ${months.length?`<div class="stmt-saved">
+      <div class="stmt-saved-h">Saved from statements · ${esc(M.scope.person)}</div>
+      ${months.map(k=>{const r=mine[k];
+        return `<div class="stmt-saved-row">
+          <span><b>${miLong(parseWhen(k))}</b> · ${fmt(r.total)} · ${r.count} transaction${r.count===1?"":"s"}</span>
+          <span class="stmt-saved-cats">${Object.entries(r.cats||{}).sort((a,b)=>b[1]-a[1])
+            .slice(0,3).map(([c,v])=>esc(c)+" "+fmt(v,{compact:true})).join(" · ")}</span>
+          <button class="linkbtn" data-delimp="${esc(k)}">remove</button></div>`;}).join("")}
+    </div>`:""}
+  </div>`;
+
+  $("#stmt-file").onchange=e=>{
+    const f=e.target.files&&e.target.files[0];
+    $("#stmt-name").textContent=f?f.name:"No file chosen";
+  };
+  $("#stmt-run").onclick=runStatement;
+  $$("[data-delimp]",host).forEach(b=>b.onclick=()=>{
+    const k=b.dataset.delimp;
+    if(S.imports[ACTIVE]) delete S.imports[ACTIVE][k];
+    queueSave({unsetImports:[{scope:ACTIVE,month:k}]});
+    applyImports(); renderMonthPick(); renderStmtPanel(true); refresh();
+  });
+  renderStmtReview();
+}
+
+function renderStmtReview(){
+  const host=$("#stmt-review"); if(!host) return;
+  const p=STMT.parsed;
+  if(!p){host.innerHTML=""; return;}
+  const keys=Object.keys(p.months).sort();
+  if(!keys.length){host.innerHTML=""; return;}
+  const existing=(S.imports&&S.imports[ACTIVE])||{};
+
+  host.innerHTML=`<div class="stmt-review">
+    <div class="stmt-review-h">Read from the file — nothing is saved until you say so</div>
+    ${keys.map(k=>{const g=p.months[k], cats=Object.entries(g.cats).sort((a,b)=>b[1]-a[1]);
+      const idx=parseWhen(k), replacing=existing[k]!=null;
+      return `<div class="stmt-month">
+        <div class="stmt-month-h">
+          <label><input type="checkbox" class="stmt-pick" data-m="${esc(k)}" checked>
+            <b>${miLong(idx)}</b></label>
+          <span class="num">${fmt(g.total)}</span>
+          <span class="stmt-dim">${g.count} transaction${g.count===1?"":"s"}</span>
+          ${replacing?`<span class="chip clay">replaces a saved month</span>`:""}
+        </div>
+        <div class="stmt-cats">${cats.map(([c,v])=>`<span class="stmt-cat"><b>${esc(c)}</b> ${fmt(v)}</span>`).join("")}</div>
+        <details class="stmt-lines"><summary>${g.lines.length} line${g.lines.length===1?"":"s"} — check the categories</summary>
+          <div class="stmt-lines-in">${g.lines.slice(0,80).map(l=>
+            `<div><span>${esc(l.merchant)}</span><span class="stmt-dim">${esc(l.cat)}</span><span class="num">${fmt(l.amount,{cents:true})}</span></div>`).join("")}
+            ${g.lines.length>80?`<div class="stmt-dim">…and ${g.lines.length-80} more</div>`:""}</div>
+          <div class="stmt-dim" style="margin-top:8px">These lines stay on this screen. They are not part of a save
+          and disappear when you close or reload the page.</div>
+        </details>
+      </div>`;}).join("")}
+    <div class="stmt-actions">
+      <button class="btn primary" id="stmt-save">Save the ticked months</button>
+      <button class="btn" id="stmt-discard">Discard</button>
+      <span class="stmt-dim">Saves the month, the count and the category totals — nothing else.</span>
+    </div>
+  </div>`;
+
+  $("#stmt-discard").onclick=()=>{STMT.parsed=null; setStmtStatus("Discarded. Nothing was saved.","grey"); renderStmtReview();};
+  $("#stmt-save").onclick=()=>{
+    const picked=$$(".stmt-pick",host).filter(c=>c.checked).map(c=>c.dataset.m);
+    if(!picked.length){setStmtStatus("Tick at least one month to save.","clay"); return;}
+    const sets=picked.map(k=>{const g=p.months[k];
+      S.imports[ACTIVE]=S.imports[ACTIVE]||{};
+      const rec={total:g.total,count:g.count,cats:g.cats,at:new Date().toISOString()};
+      S.imports[ACTIVE][k]=rec;                       // note: g.lines is NOT included
+      return {scope:ACTIVE,month:k,rec};});
+    queueSave({setImports:sets});
+    STMT.parsed=null;
+    applyImports();
+    setStmtStatus(`Saved ${picked.length} month${picked.length===1?"":"s"}. The statement itself was never stored.`,"pine");
+    renderMonthPick(); renderStmtPanel(true); refresh();
+  };
 }
 
 /* ================= 9. FILL IN WHAT'S MISSING ================= */
@@ -1648,6 +2179,7 @@ async function boot(dJoseph,dMelissa){
   M=SCOPES.joseph.model;
   renderShell();
   await loadState();               // server is authoritative; falls back to this device
+  applyImports();
   mountPerson("joseph");
   addEventListener("resize",drawTicks);
   addEventListener("focus",syncOnFocus);

@@ -167,6 +167,30 @@ There is no per-user identity: anyone with the PIN reads and writes the same rec
 That is the intent for a household dashboard, and it is why the PIN is the only thing
 protecting it.
 
+### Attach Statement
+
+Under **What can I do?** on the Joseph and Melissa tabs. Reads a credit-card
+statement (CSV, TXT, or a PDF with selectable text — a scan will not work) entirely
+in the browser, sorts the purchases into the sheet's own categories and totals them
+by month.
+
+**The file never leaves the page.** It is read in the tab, and the handle plus the
+password field are cleared the moment parsing finishes. Merchant lines are shown for
+checking and are never saved. Only what you tick and save leaves the browser, and only
+as: month, transaction count, and per-category totals. `functions/api/state.js` rejects
+anything else in an import record, as a second line of defence behind the client.
+
+pdf.js is fetched from cdnjs on first PDF use. That is a library download — no statement
+data is in the request, and it does not happen for CSV or TXT.
+
+Payments to the card, refunds, credits and the summary block are excluded from totals.
+A statement is a **subset** of spending — no cash, no GIRO, no other card — so an import
+never overwrites a month the sheet already reports. Where both exist the sheet leads and a
+Sheet/Statement toggle appears; where a statement is the only source the panel says
+"Card spend only — $X of the month's $Y total".
+
+Combined adds both people's imports together. Importing happens on a person's own tab.
+
 **The status chip** in the "Fill in what's missing" header is the live check:
 
 - *Saved · syncs across devices* — the KV binding is working.

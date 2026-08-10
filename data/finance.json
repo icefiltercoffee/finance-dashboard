@@ -416,8 +416,8 @@
   },
   "decisions": [
     {
-      "name": "Enter the five balances",
-      "detail": "Cash, both investment balances and both CPF balances. BTO's CPF-first split cannot be computed until the CPF figures exist."
+      "name": "Enter the three balances on each tab",
+      "detail": "Cash, Investment and CPF OA, for Joseph and for Melissa. BTO's CPF-first split cannot be computed until both CPF OA figures exist."
     },
     {
       "name": "Keep logging in Monthly Overview",

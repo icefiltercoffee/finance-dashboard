@@ -26,15 +26,20 @@
 
 const KEY = "dashboard-state-v1";
 const MAX_FIELDS = 60;
-const MAX_BODY_BYTES = 16 * 1024;
+const MAX_BODY_BYTES = 64 * 1024;
 const KEY_RE = /^[A-Za-z0-9_]{1,48}$/;
+const SCOPE_RE = /^(joseph|melissa)$/;
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const MAX_IMPORT_MONTHS = 48;
+const MAX_CATS = 24;
+const CAT_RE = /^[A-Za-z0-9 &'()\-\/]{1,40}$/;
 
 const json = (obj, status) => new Response(JSON.stringify(obj), {
   status: status || 200,
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
 
-const empty = () => ({ values: {}, goalAmt: {}, updatedAt: null });
+const empty = () => ({ values: {}, goalAmt: {}, imports: {}, updatedAt: null });
 
 async function read(kv) {
   const raw = await kv.get(KEY);
@@ -44,11 +49,38 @@ async function read(kv) {
     return {
       values:   p && typeof p.values   === "object" && p.values   ? p.values   : {},
       goalAmt:  p && typeof p.goalAmt  === "object" && p.goalAmt  ? p.goalAmt  : {},
+      imports:  p && typeof p.imports  === "object" && p.imports  ? p.imports  : {},
       updatedAt: p ? p.updatedAt || null : null
     };
   } catch {
     return empty();                    // corrupt record: start clean, never throw
   }
+}
+
+/* An imported statement month. Deliberately narrow: a month, a total, a count
+   and category totals. Merchant lines, card numbers, filenames and any other
+   statement text are rejected here as well as never being sent — the schema is
+   the second line of defence behind the client. */
+function sanitiseImport(rec) {
+  if (!rec || typeof rec !== "object") return null;
+  const total = Number(rec.total);
+  const count = Number(rec.count);
+  if (!Number.isFinite(total) || total < 0) return null;
+  const cats = {};
+  const src = rec.cats && typeof rec.cats === "object" ? rec.cats : {};
+  for (const [k, v] of Object.entries(src)) {
+    if (!CAT_RE.test(k)) continue;
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
+    cats[k] = n;
+    if (Object.keys(cats).length >= MAX_CATS) break;
+  }
+  return {
+    total,
+    count: Number.isFinite(count) && count >= 0 ? Math.round(count) : 0,
+    cats,
+    at: typeof rec.at === "string" && rec.at.length <= 32 ? rec.at : new Date().toISOString()
+  };
 }
 
 /** Only finite numbers under sane keys are storable. Anything else is dropped
@@ -96,10 +128,28 @@ export async function onRequest(context) {
     const next = {
       values:  Object.assign({}, cur.values,  setVals),
       goalAmt: Object.assign({}, cur.goalAmt, setGoals),
+      imports: JSON.parse(JSON.stringify(cur.imports || {})),
       updatedAt: new Date().toISOString()
     };
     unset.forEach(k => { delete next.values[k]; });
     unsetG.forEach(k => { delete next.goalAmt[k]; });
+
+    /* setImports: [{scope, month, rec}] · unsetImports: [{scope, month}] */
+    for (const it of (Array.isArray(parsed?.setImports) ? parsed.setImports : [])) {
+      if (!it || !SCOPE_RE.test(it.scope || "") || !MONTH_RE.test(it.month || "")) continue;
+      const rec = sanitiseImport(it.rec);
+      if (!rec) continue;
+      next.imports[it.scope] = next.imports[it.scope] || {};
+      if (Object.keys(next.imports[it.scope]).length >= MAX_IMPORT_MONTHS
+          && !next.imports[it.scope][it.month]) continue;
+      next.imports[it.scope][it.month] = rec;
+    }
+    for (const it of (Array.isArray(parsed?.unsetImports) ? parsed.unsetImports : [])) {
+      if (!it || !SCOPE_RE.test(it.scope || "")) continue;
+      if (it.month === "*") { delete next.imports[it.scope]; continue; }
+      if (!MONTH_RE.test(it.month || "")) continue;
+      if (next.imports[it.scope]) delete next.imports[it.scope][it.month];
+    }
 
     if (Object.keys(next.values).length + Object.keys(next.goalAmt).length > MAX_FIELDS)
       return json({ error: "too-many-fields" }, 400);
