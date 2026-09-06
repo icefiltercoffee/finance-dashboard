@@ -49,9 +49,9 @@
   .signout{border:0; background:none; padding:0; font:inherit; font-size:11.5px; color:var(--ink-faint);
     cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
   .signout:hover{color:var(--clay-deep);}
-  .wrap{max-width:1400px; margin:0 auto; padding:24px clamp(16px,3vw,38px) 70px;}
+  .wrap{max-width:1400px; margin:0 auto; padding:20px clamp(16px,3vw,34px) 56px;}
   .topbar{display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
-          padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--line);}
+          padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid var(--line);}
   .brand{display:flex; align-items:center; gap:11px;}
   .brand-badge{width:36px; height:36px; border-radius:11px; flex:none;
     background:linear-gradient(150deg,var(--clay),var(--clay-deep)); display:flex; align-items:center;
@@ -76,8 +76,8 @@
   .tab[aria-selected="true"]{background:var(--clay); color:var(--black); font-weight:600; box-shadow:var(--shadow);}
 
   .card{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow);}
-  .pad{padding:18px 20px;}
-  .sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .pad{padding:16px 18px;}
+  .sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:12px; flex-wrap:wrap;}
   .sec-head h2{font-family:var(--serif); font-weight:500; font-size:18px; margin:0;}
   .sec-head .hint{font-size:11.5px; color:var(--ink-faint);}
   .sec-head .sp{flex:1;}
@@ -105,22 +105,22 @@
   select:focus, input[type=number]:focus{outline:none; border-color:var(--clay); box-shadow:0 0 0 3px var(--clay-soft);}
   input[type=number]{font-variant-numeric:tabular-nums;}
 
-  .controlrow{display:grid; grid-template-columns:minmax(230px,290px) 1fr; gap:16px; margin-bottom:16px;}
+  .controlrow{display:grid; grid-template-columns:minmax(230px,290px) 1fr; gap:14px; margin-bottom:14px;}
   .monthpick{display:flex; flex-direction:column; justify-content:center; gap:9px;}
   .monthpick .lbl{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);}
   .monthpick .row{display:flex; gap:8px;}
   .monthpick select{flex:1; min-width:0;}
-  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
-  .kpi{display:flex; flex-direction:column; gap:5px; padding:16px 18px;}
-  .kpi .ic{width:30px; height:30px; border-radius:9px; display:grid; place-items:center; margin-bottom:3px;}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .kpi{display:flex; flex-direction:column; gap:4px; padding:14px 16px;}
+  .kpi .ic{width:28px; height:28px; border-radius:9px; display:grid; place-items:center; margin-bottom:2px;}
   .kpi .kl{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint);}
-  .kpi .kv{font-family:var(--serif); font-weight:500; font-size:26px; line-height:1.05;}
+  .kpi .kv{font-family:var(--serif); font-weight:500; font-size:25px; line-height:1.05;}
   .kpi .kn{font-size:11px; color:var(--ink-faint); line-height:1.45;}
 
-  .row-map{display:grid; grid-template-columns:1.62fr 1fr; gap:16px; margin-bottom:16px;}
-  .row-three{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;}
-  .stack{display:grid; gap:16px;}
-  .stack.sb{margin-bottom:16px;}
+  .row-map{display:grid; grid-template-columns:1.62fr 1fr; gap:14px; margin-bottom:14px;}
+  .row-three{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px;}
+  .stack{display:grid; gap:14px;}
+  .stack.sb{margin-bottom:14px;}
 
   .compact table{font-size:11.5px;}
   .compact th,.compact td{padding:6px 6px;}
@@ -133,7 +133,6 @@
   .ev-node{cursor:grab;} .ev-node:active{cursor:grabbing;}
   .ev-node circle.hit{fill:transparent;}
   .ev-node.sel .ev-label{font-size:11px;}
-  .ev-node.sel .halo{opacity:.24;}
 
   .axis-slider{position:relative; margin-top:2px;}
   input[type=range]{-webkit-appearance:none; appearance:none; background:transparent; width:100%; height:20px;
@@ -159,25 +158,18 @@
     font-size:12.5px; color:var(--clay-deep);}
   .scenario-bar.on{display:flex;}
 
-  /* constellation */
-  .const-wrap{display:grid; grid-template-columns:1.5fr 1fr; gap:18px;}
-  .goal-node{cursor:pointer;}
-  .goal-node .halo{opacity:0; transition:opacity .25s;}
-  .goal-node:hover .halo,.goal-node.sel .halo{opacity:.22;}
-  .goal-name{font-size:11px; font-weight:600; fill:var(--ink); text-anchor:middle; pointer-events:none;}
-  .goal-sub{font-size:9.5px; fill:var(--ink-soft); text-anchor:middle; pointer-events:none;}
-  .orbit{fill:none; stroke:var(--line); stroke-width:1;}
-  .orbit-label{font-size:9px; fill:var(--ink-faint); letter-spacing:.06em; text-transform:uppercase;}
-  .drow{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-soft); font-size:13px;}
+  /* goal detail */
+  .const-wrap{display:grid; grid-template-columns:1.5fr 1fr; gap:14px;}
+  .drow{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line-soft); font-size:13px;}
   .drow:last-child{border-bottom:0;}
   .drow .l{color:var(--ink-soft);} .drow .v{font-weight:600; text-align:right;}
   .meter{height:6px; border-radius:3px; background:var(--paper-2); border:1px solid var(--line); overflow:hidden; margin-top:12px;}
   .meter>i{display:block; height:100%; background:linear-gradient(90deg,var(--clay),var(--caramel)); transition:width .5s cubic-bezier(.4,0,.2,1);}
 
   /* goal amount editors */
-  .goal-edit{display:grid; grid-template-columns:repeat(auto-fit,minmax(228px,1fr)); gap:13px;
-    margin-top:18px; padding-top:16px; border-top:1px solid var(--line-soft);}
-  .ge{background:var(--paper-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:13px 14px;}
+  .goal-edit{display:grid; grid-template-columns:repeat(auto-fit,minmax(228px,1fr)); gap:12px;
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--line-soft);}
+  .ge{background:var(--paper-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:12px 13px;}
   .ge .gh{display:flex; align-items:center; gap:8px; margin-bottom:9px;}
   .ge .gn{font-weight:600; font-size:13.5px; flex:1;}
   .ge .stepper{display:flex; align-items:center; gap:6px;}
@@ -891,11 +883,11 @@ function combinedSkeleton(){
         <div class="card pad monthpick" id="monthpick"></div>
         <div class="kpis" id="kpis"></div>
       </div>
-      <div class="const-wrap" style="margin-bottom:16px">
+      <div class="const-wrap" style="margin-bottom:14px">
         <div class="card pad" id="p-map"></div>
         <div class="card pad" id="p-goaldetail"><div id="goal-detail"></div></div>
       </div>
-      <div class="card pad" style="margin-bottom:16px">
+      <div class="card pad" style="margin-bottom:14px">
         <div class="sec-head"><h2>Funding the goals</h2>
           <span class="hint">click a milestone above to inspect it · steppers edit the amount</span></div>
         <div class="goal-edit" id="goal-edit"></div>
@@ -905,7 +897,6 @@ function combinedSkeleton(){
         <div class="card pad" id="p-bars"></div>
         <div class="card pad compact" id="p-salcpf"></div>
       </div>
-      <div class="card pad" style="margin:16px 0" id="p-cashflow"></div>
       <div class="stack sb">
         <div class="card pad" id="p-ask"></div>
         <div class="card pad" id="p-fill"></div>
@@ -923,7 +914,7 @@ function mountPerson(id){
   $("#view-"+id).innerHTML=combined?combinedSkeleton():personSkeleton({brief:sc.opts.brief});
   const foot=$("#foot"); if(foot) foot.textContent=M.raw.footer||"";
   renderIntegrity(); renderMonthPick(); renderMap(); renderBars(); renderAsk(); renderFill();
-  if(combined){ renderGoalEditors(); renderSalaryCpf(); renderCashflowChart(); renderLedgerExtras(); }
+  if(combined){ renderGoalEditors(); renderSalaryCpf(); renderLedgerExtras(); }
   refresh();
   requestAnimationFrame(drawTicks);
 }
@@ -956,7 +947,7 @@ function renderMonthPick(){
   if(!M.months.length){
     host.innerHTML=`<div class="lbl">Viewing period</div>
       <div style="font-size:13px;font-weight:600;margin:4px 0 6px">No ledger yet</div>
-      <div style="font-size:11px;color:var(--ink-faint);line-height:1.5">
+      <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.5">
         ${esc(M.scope.person)}'s source sheet has not been specified, so there are no months to pick.
         ${M.earnerTakeHome!=null?`Her permanent take-home is ${fmt(M.earnerTakeHome)} / month; spending remains unknown until a ledger is connected.`:"Nothing is shown as $0 — it is simply not known."}</div>`;
     return;
@@ -970,7 +961,7 @@ function renderMonthPick(){
       <select id="sel-year" aria-label="Year">${years.map(y=>
         `<option ${miY(cur?.idx||0)===y?"selected":""}>${y}</option>`).join("")}</select>
     </div>
-    <div style="font-size:11px;color:var(--ink-faint);line-height:1.5">
+    <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.5">
       ${cur?.partial?"Partial month — still in progress. ":""}${cur?.importOnly
         ? "From an attached statement — card spend only, so cash and GIRO are not in it."
         : (cur?.salaried
@@ -1117,7 +1108,7 @@ function drawChart(){
       <div><div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)">Cash net / month</div>
         <div class="num" style="font-family:var(--serif);font-size:25px;line-height:1.1;color:${pr.net<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(pr.net,{signed:true})}</div></div>
       <div style="flex:1"></div>
-      <div style="font-size:11px;color:var(--ink-faint);max-width:240px;line-height:1.5;text-align:right">
+      <div style="font-size:11.5px;color:var(--ink-faint);max-width:240px;line-height:1.5;text-align:right">
         ${esc(pr.B.label)} ${fmt(pr.B.income)} less ${fmt(pr.B.expense)} trailing spend${pr.known?"":" · shape only until balances are entered"}</div>
     </div>`;
 }
@@ -1188,7 +1179,7 @@ function renderScenarioBar(){
 /* ================= 6. BARS ================= */
 function renderBars(){
   const rec=monthRec(), end=M.months.findIndex(m=>m.key===rec?.key);
-  const win=M.months.slice(Math.max(0,end-2),end+1);
+  const win=M.months.slice(Math.max(0,end-5),end+1);
   const host=$("#p-bars");
   if(!win.length){host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2></div>
     <div class="empty"><div class="big">No ledger</div>
@@ -1216,7 +1207,7 @@ function renderBars(){
             fill="${m.cashFlow<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(m.cashFlow,{signed:true,compact:true})}</text>
       ${m.partial?`<text class="ax" x="${x0+sw+gap/2}" y="${pt-4}" text-anchor="middle">partial</text>`:""}</g>`;}).join("");
   const anySal=win.some(m=>m.salary>0);
-  host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2><span class="hint">last 3 months</span>
+  host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2><span class="hint">last 6 months</span>
       <span class="sp"></span><div class="legend">
         ${anySal?'<span><i style="background:var(--pine-deep)"></i>Salary</span>':""}
         <span><i style="background:var(--pine)"></i>Income</span>
@@ -1276,7 +1267,7 @@ function renderLiabilities(){
     ${items.length?donut(items,total,fmt(total,{compact:true}),"total owed")
       :`<div class="empty"><div class="big">${fmt(0)}</div><div>Nothing outstanding at ${miLong(at)}.</div></div>`}
     ${ph.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);
-      font-size:11px;color:var(--ink-faint)">${ph.length} unnamed placeholder${ph.length===1?"":"s"} reserved
+      font-size:11.5px;color:var(--ink-faint)">${ph.length} unnamed placeholder${ph.length===1?"":"s"} reserved
       (${ph.map(l=>esc(l.name)).join(", ")}) — no amounts assumed.</div>`:""}`;
 }
 function renderExpenseCats(){
@@ -1744,7 +1735,7 @@ function renderAskResults(opts){
       <span class="iv" style="color:${COL[t]}">${v===0?"—":fmt(v,{signed:true,compact:true})}</span></div>`).join("")}</div>
     ${o.tradeoff?`<div class="tradeoff"><span>Trade-off</span><span>${o.tradeoff}</span></div>`:""}
     <div class="o-foot">${o.preview?`<button class="btn" data-prev="${i}">Preview on map</button>`
-      :`<span style="font-size:11px;color:var(--ink-faint);align-self:center">no cash movement to preview</span>`}</div></div>`).join("");
+      :`<span style="font-size:11.5px;color:var(--ink-faint);align-self:center">no cash movement to preview</span>`}</div></div>`).join("");
   $$("[data-prev]",out).forEach(b=>b.onclick=()=>{
     const i=+b.dataset.prev,o=opts[i], already=S.preview&&S.preview.label===o.preview.label;
     S.preview=already?null:o.preview;
@@ -2427,7 +2418,7 @@ function renderGoalDetail(){
         <div class="drow"><span class="l">Held in</span><span class="v">Cash</span></div>
         <div class="drow"><span class="l">Cash balance</span><span class="v num">${cash!=null?fmt(cash):'<span class="unk">not set</span>'}</span></div>
       </div>
-      <div style="font-size:12px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
+      <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
         This is not a goal and has no deadline — it is a floor that must always be there. It sits at the centre
         because everything else orbits it. Select a goal to see its funding schedule.</div>`;
     return;
@@ -2449,9 +2440,8 @@ function renderGoalDetail(){
       <div class="drow"><span class="l">Cash per month</span><span class="v num">${fmt(r.cashPerMonth)}</span></div>
       <div class="drow"><span class="l">On schedule at ${miLabel(nowM)}</span><span class="v num">${fmt(funded)}</span></div>
       <div class="drow"><span class="l">Share of monthly net</span><span class="v num">${pr.net>0?Math.round(r.cashPerMonth/pr.net*100)+"%":'<span class="unk">no net to draw on</span>'}</span></div>
-      <div class="drow"><span class="l">Paid by</span><span class="v">${(r.g.payers||[]).join(" &amp; ")}</span></div>
     </div>
-    <div style="font-size:12px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
+    <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
       ${esc(r.g.note||"")} ${r.cpfUnknown?"CPF balances are blank, so this is costed as 100% cash — the worst case.":""}
       ${surplus<0?`Across all goals you are ${fmt(Math.abs(surplus))}/month short.`:""}</div>`;
 }
@@ -2510,10 +2500,7 @@ function renderPlanSummary(){
         <td class="r"><b>${fmt(pr.net)}</b></td></tr>
       <tr><td><b>Surplus / shortfall</b></td><td class="r"></td><td></td><td class="r"></td>
         <td class="r"><b style="color:${surplus<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(surplus,{signed:true})}</b></td></tr>
-    </table>
-    <div style="font-size:11.5px;color:var(--ink-faint);margin-top:11px;line-height:1.6">
-      Every per-month figure is derived from the deadline, not stored — change an amount or drag a milestone on the
-      cash map and this recomputes. ${M.ef?`The ${fmt(M.ef.amount)} emergency fund is excluded: it is a floor to hold, not a monthly contribution.`:""}</div></div>`;
+    </table></div>`;
 }
 
 /** Compact — sits beside Income vs Expenses on the Combined tab, so it skips
@@ -2528,60 +2515,13 @@ function renderSalaryCpf(){
       ${t?`<tr><td><b>${esc(t.name)}</b></td><td class="r"><b>${esc(t.gross)}</b></td>
         <td class="r"><b>${esc(t.cpf)}</b></td><td class="r"><b>${esc(t.takeHome)}</b></td></tr>`:""}
     </table>
-    <div style="margin-top:9px;color:var(--ink-faint);font-size:11px;line-height:1.55">${esc(d.salary?.note||"")}</div>`;
+    <div style="margin-top:9px;color:var(--ink-faint);font-size:11.5px;line-height:1.55">${esc(d.salary?.note||"")}</div>`;
 }
 
 /** Replaces the old "Monthly actuals" table: bars are each month's cash flow,
    the line is the running total since the ledger began. */
-function renderCashflowChart(){
-  const host=$("#p-cashflow"); if(!host) return;
-  const months=M.months, d=M.raw;
-  if(!months.length){
-    host.innerHTML=`<div class="sec-head"><h2>Monthly cash flow</h2></div>
-      <div class="empty"><div class="big">No ledger</div>
-      <div>${M.isPlaceholder?esc(M.scope.person)+"'s source sheet has not been specified yet.":"No monthly totals in the source."}</div></div>`;
-    return;
-  }
-  const W=900,H=280,pl=54,pr=20,pt=22,pb=40;
-  const vals=months.map(m=>m.cashFlow);
-  let run=0; const cums=vals.map(v=>run+=v);
-  const maxB=Math.max(1,...vals.map(Math.abs))*1.25;
-  const loC=Math.min(0,...cums), hiC=Math.max(0,...cums), padC=((hiC-loC)||2000)*.2;
-  const loC2=loC-padC, hiC2=hiC+padC;
-  const bw=(W-pl-pr)/months.length, bgap=bw*.3, bsw=bw-bgap;
-  const Yb=v=>pt+(1-(v+maxB)/(2*maxB))*(H-pt-pb);
-  const Yc=v=>pt+(1-(v-loC2)/(hiC2-loC2))*(H-pt-pb);
-  const zero=Yb(0);
-  const bars=months.map((m,i)=>{
-    const x=pl+i*bw+bgap/2, v=m.cashFlow, y=v>=0?Yb(v):zero, h=Math.max(1,Math.abs(Yb(v)-zero));
-    return `<rect x="${x}" y="${y}" width="${bsw}" height="${h}" rx="3" fill="${v<0?"var(--clay)":"var(--pine)"}" opacity=".88">
-      <title>${MONFULL[miM(m.idx)]} ${miY(m.idx)} cash flow ${fmt(v,{signed:true,cents:true})}</title></rect>
-      <text class="axt" x="${x+bsw/2}" y="${H-pb+16}" text-anchor="middle">${MON[miM(m.idx)]} ${String(miY(m.idx)).slice(2)}${m.partial?"*":""}</text>`;
-  }).join("");
-  const pts=months.map((m,i)=>[pl+i*bw+bw/2,Yc(cums[i])]);
-  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
-  const dots=pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="var(--caramel)" stroke="var(--paper)" stroke-width="1.5">
-    <title>${MONFULL[miM(months[i].idx)]} ${miY(months[i].idx)} running total ${fmt(cums[i],{signed:true,compact:true})}</title></circle>`).join("");
-  const last=cums[cums.length-1];
-  host.innerHTML=`<div class="sec-head"><h2>Monthly cash flow</h2>
-      <span class="hint">bars = that month's net · line = running total</span>
-      <span class="sp"></span><div class="legend">
-        <span><i style="background:var(--pine)"></i>Positive month</span>
-        <span><i style="background:var(--clay)"></i>Negative month</span>
-        <span><i style="background:var(--caramel)"></i>Running total</span></div></div>
-    <svg class="viz" viewBox="0 0 ${W} ${H}">
-      <line x1="${pl}" y1="${zero}" x2="${W-pr}" y2="${zero}" stroke="var(--ink-faint)"/>
-      ${bars}
-      <path d="${line}" fill="none" stroke="var(--caramel)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      ${dots}</svg>
-    <div style="font-size:11.5px;color:var(--ink-faint);margin-top:6px">
-      Running total is ${last<0?fmt(Math.abs(last))+" behind":fmt(last)+" ahead"} of zero across ${months.length} logged month${months.length===1?"":"s"}.
-      ${months.some(m=>m.partial)?" * partial month.":""} ${esc(d.employment?.note||"")}</div>`;
-}
-
 function renderLedgerExtras(){
   const host=$("#p-ledger"); if(!host) return;
-  const d=M.raw;
   host.innerHTML=`
     <div class="card pad">
       <div class="sec-head"><h2>Liabilities</h2></div>
@@ -2589,16 +2529,8 @@ function renderLedgerExtras(){
         ${M.liabilities.map(l=>`<tr><td>${esc(l.name)}</td>
           <td class="r">${l.placeholder?'<span class="unk">—</span>':fmt(l.principal)}</td>
           <td class="r">${l.placeholder?'<span class="unk">—</span>':fmt(liabilityAt(l,M.today))}</td>
-          <td style="color:var(--ink-faint);font-size:12px">${esc(l.note||"")}</td></tr>`).join("")}
+          <td style="color:var(--ink-faint);font-size:11.5px">${esc(l.note||"")}</td></tr>`).join("")}
       </table>
-    </div>
-    <div class="card pad">
-      <div class="sec-head"><h2>Standing commitments</h2></div>
-      <ul class="lst">${M.recurring.map(x=>`<li><span>${esc(x.name)}</span><span>${esc(x.detail)}</span></li>`).join("")}</ul>
-    </div>
-    <div class="card pad">
-      <div class="sec-head"><h2>Decisions</h2></div>
-      <ul class="lst">${(d.decisions||[]).map(x=>`<li><span>${esc(x.name)}</span><span>${esc(x.detail)}</span></li>`).join("")}</ul>
     </div>`;
 }
 
