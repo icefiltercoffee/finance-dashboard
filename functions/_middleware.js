@@ -18,6 +18,10 @@ const COOKIE = "fi_session";
 const SESSION_TTL_S = 7 * 24 * 60 * 60;      // 7 days
 const LOGIN_PATH = "/__auth/login";
 const LOGOUT_PATH = "/__auth/logout";
+// The one static file the PIN screen itself needs to paint before a session
+// exists. Decorative only — no figures, no data — so it's the sole exception
+// to "nothing static is served pre-auth" above.
+const PUBLIC_ASSET_PATH = "/assets/background.jpg";
 
 /* Rate limiting — best effort, no extra infrastructure.
    Counters live in the per-datacentre Cache API, so they are ephemeral and not
@@ -156,37 +160,34 @@ function loginPage(pinLength, status) {
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
+    color-scheme: dark;
     --serif:"Fraunces","Iowan Old Style",Georgia,serif;
     --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    /* Same Space / Atomic tokens as the dashboard itself (Ion = Finance's domain accent). */
+    --canvas:#0b0c16; --paper:#141726; --line:#2a2f47;
+    --ink:#f2eee2; --ink-soft:#a7abc7;
+    --clay:#4fc0c9; --neg:#e0836c; --black:#05060b;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
-  body{font-family:var(--sans); background:#241c12; -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.5;}
+  body{font-family:var(--sans); background:var(--canvas); -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.5;}
   .gate{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
-        background:#241c12; overflow:hidden; transition:opacity .7s ease, visibility .7s;}
+        background:var(--canvas); overflow:hidden; transition:opacity .7s ease, visibility .7s;}
   .gate::before{content:""; position:absolute; inset:0;
-    background:radial-gradient(900px 600px at 20% 10%, rgba(175,106,62,.30), transparent 60%),
-      radial-gradient(800px 520px at 85% 90%, rgba(94,107,77,.26), transparent 62%),
-      linear-gradient(180deg, rgba(38,26,14,.55), rgba(26,18,9,.88));}
+    background:url('assets/background.jpg') center top / cover no-repeat, var(--canvas);}
   .gate.hide{opacity:0; visibility:hidden;}
-  .gate-card{position:relative; z-index:2; width:min(88vw,340px); text-align:center; color:#f6ecda; padding:8px;}
-  .gate-mark{font-family:var(--serif); font-weight:500; font-size:15px; letter-spacing:.34em;
-             text-transform:uppercase; opacity:.78; margin-bottom:24px;}
-  .gate-title{font-family:var(--serif); font-weight:500; font-size:52px; line-height:1; margin:0 0 10px;}
-  .gate-sub{font-size:13.5px; opacity:.72; margin-bottom:34px;}
-  .pin{display:flex; gap:11px; justify-content:center; margin-bottom:22px;}
-  .pin i{width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(246,236,218,.55); display:block; transition:.2s;}
-  .pin i.on{background:#f6ecda; border-color:#f6ecda;}
-  .pin.bad i{border-color:#e08a6a;}
+  .gate-card{position:relative; z-index:2; width:min(88vw,360px); text-align:center; color:var(--ink);
+    padding:8px; margin:0 auto;}
+  .gate-title{font-family:var(--serif); font-weight:500; font-size:52px; line-height:1; margin:0 0 10px;
+              text-shadow:0 4px 24px rgba(0,0,0,.65), 0 1px 4px rgba(0,0,0,.85);}
+  .gate-sub{font-size:13.5px; color:var(--ink-soft); margin-bottom:34px; text-shadow:0 2px 12px rgba(0,0,0,.75), 0 1px 3px rgba(0,0,0,.9);}
+  .pin{display:flex; gap:11px; justify-content:center; margin-bottom:22px; filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));}
+  .pin i{width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(242,238,226,.85); display:block; transition:.2s;}
+  .pin i.on{background:var(--clay); border-color:var(--clay);}
+  .pin.bad i{border-color:var(--neg);}
   .pin.bad{animation:shake .38s;}
   @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}50%{transform:translateX(-4px)}}
-  .enter{appearance:none; border:0; cursor:pointer; font-family:var(--sans); font-size:14px; font-weight:500;
-         color:#241c12; background:#f6ecda; padding:12px 30px; border-radius:100px; transition:.2s;}
-  .enter:hover{transform:translateY(-1px); background:#fff;}
-  .enter[disabled]{opacity:.5; cursor:default; transform:none;}
-  .gate-lock{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; letter-spacing:.06em;
-             text-transform:uppercase; opacity:.55; margin-top:26px; color:#f6ecda;}
-  .err{min-height:17px; margin:-8px 0 14px; font-size:12.5px; color:#e8a488; opacity:0; transition:opacity .2s;}
+  .err{min-height:17px; margin:-8px 0 0; font-size:12.5px; color:var(--neg); opacity:0; transition:opacity .2s;}
   .err.on{opacity:1;}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
@@ -195,16 +196,13 @@ function loginPage(pinLength, status) {
 <body>
 <div class="gate" id="gate">
   <div class="gate-card">
-    <div class="gate-mark">Steven</div>
-    <h1 class="gate-title">Finance Intern</h1>
+    <h1 class="gate-title">Finance</h1>
     <div class="gate-sub">Enter your passcode to continue.</div>
     <label class="sr" for="pinInput">Passcode</label>
     <input class="sr" id="pinInput" type="text" inputmode="numeric" autocomplete="off"
            autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="${pinLength}">
     <div class="pin" id="pin">${'<i></i>'.repeat(pinLength)}</div>
     <div class="err" id="err" role="alert"></div>
-    <button class="enter" id="enterBtn">Enter</button>
-    <div class="gate-lock">&#128274; Private</div>
   </div>
 </div>
 <script>
@@ -213,7 +211,6 @@ function loginPage(pinLength, status) {
   var pins=[].slice.call(document.querySelectorAll('#pin i'));
   var pinEl=document.getElementById('pin');
   var input=document.getElementById('pinInput');
-  var btn=document.getElementById('enterBtn');
   var err=document.getElementById('err');
   var busy=false, digits='';
 
@@ -230,7 +227,7 @@ function loginPage(pinLength, status) {
 
   async function submit(){
     if(busy || digits.length!==LEN) { if(digits.length!==LEN) fail('Enter all '+LEN+' digits.'); return; }
-    busy=true; btn.disabled=true; clearErr();
+    busy=true; clearErr();
     try{
       var res=await fetch('${LOGIN_PATH}',{
         method:'POST', credentials:'same-origin',
@@ -248,7 +245,7 @@ function loginPage(pinLength, status) {
     }catch(e){
       fail('Network error. Try again.');
     }
-    busy=false; btn.disabled=false;
+    busy=false;
     input.value=''; input.focus();
   }
 
@@ -258,7 +255,6 @@ function loginPage(pinLength, status) {
     if(digits.length===LEN) setTimeout(submit,140);
   });
   input.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
-  btn.addEventListener('click',function(){ input.focus(); submit(); });
   document.addEventListener('click',function(){ if(!busy) input.focus(); });
   window.addEventListener('pageshow',function(){ input.focus(); });
   input.focus();
@@ -299,6 +295,14 @@ export async function onRequest(context) {
   // silently serving the dashboard to everyone.
   if (!PIN || !SECRET) {
     return json({ error: "Authentication is not configured." }, 503);
+  }
+
+  /* ---- the PIN screen's own background image: public, pre-auth ---- */
+  if (path === PUBLIC_ASSET_PATH && request.method === "GET") {
+    const response = await context.next();
+    const out = new Response(response.body, response);
+    out.headers.set("Cache-Control", "public, max-age=86400");
+    return out;
   }
 
   /* ---- logout: clear the cookie ---- */

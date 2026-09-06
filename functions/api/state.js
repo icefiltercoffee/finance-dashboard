@@ -32,6 +32,7 @@ const SCOPE_RE = /^(joseph|melissa)$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const MAX_IMPORT_MONTHS = 48;
 const MAX_CATS = 24;
+const MAX_MERCHANT_RULES = 240;
 const CAT_RE = /^[A-Za-z0-9 &'()\-\/]{1,40}$/;
 
 const json = (obj, status) => new Response(JSON.stringify(obj), {
@@ -39,7 +40,21 @@ const json = (obj, status) => new Response(JSON.stringify(obj), {
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
 
-const empty = () => ({ values: {}, goalAmt: {}, imports: {}, updatedAt: null });
+const empty = () => ({ values: {}, goalAmt: {}, imports: {}, merchantRules: [], updatedAt: null });
+
+function sanitiseMerchantRule(rule) {
+  if (!rule || typeof rule !== "object") return null;
+  const merchant = typeof rule.merchant === "string" ? rule.merchant.trim().slice(0, 80) : "";
+  const category = typeof rule.category === "string" && CAT_RE.test(rule.category) ? rule.category : "";
+  if (!merchant || !category) return null;
+  const keywords = Array.isArray(rule.keywords) ? rule.keywords
+    .filter(k => typeof k === "string" && /^[A-Z0-9 &.'-]{2,40}$/i.test(k))
+    .map(k => k.trim().toUpperCase()).slice(0, 8) : [];
+  const correctionCount = Math.max(1, Math.min(9999, Math.round(Number(rule.correctionCount) || 1)));
+  return { merchant: merchant.toUpperCase(), keywords, category, correctionCount,
+    lastCorrectedAt: typeof rule.lastCorrectedAt === "string" && rule.lastCorrectedAt.length <= 32
+      ? rule.lastCorrectedAt : new Date().toISOString() };
+}
 
 async function read(kv) {
   const raw = await kv.get(KEY);
@@ -50,6 +65,7 @@ async function read(kv) {
       values:   p && typeof p.values   === "object" && p.values   ? p.values   : {},
       goalAmt:  p && typeof p.goalAmt  === "object" && p.goalAmt  ? p.goalAmt  : {},
       imports:  p && typeof p.imports  === "object" && p.imports  ? p.imports  : {},
+      merchantRules: Array.isArray(p?.merchantRules) ? p.merchantRules.map(sanitiseMerchantRule).filter(Boolean).slice(0, MAX_MERCHANT_RULES) : [],
       updatedAt: p ? p.updatedAt || null : null
     };
   } catch {
@@ -79,6 +95,7 @@ function sanitiseImport(rec) {
     total,
     count: Number.isFinite(count) && count >= 0 ? Math.round(count) : 0,
     cats,
+    statementId: typeof rec.statementId === "string" && /^[a-f0-9]{64}$/.test(rec.statementId) ? rec.statementId : null,
     at: typeof rec.at === "string" && rec.at.length <= 32 ? rec.at : new Date().toISOString()
   };
 }
@@ -129,10 +146,19 @@ export async function onRequest(context) {
       values:  Object.assign({}, cur.values,  setVals),
       goalAmt: Object.assign({}, cur.goalAmt, setGoals),
       imports: JSON.parse(JSON.stringify(cur.imports || {})),
+      merchantRules: cur.merchantRules || [],
       updatedAt: new Date().toISOString()
     };
     unset.forEach(k => { delete next.values[k]; });
     unsetG.forEach(k => { delete next.goalAmt[k]; });
+
+    for (const raw of (Array.isArray(parsed?.upsertMerchantRules) ? parsed.upsertMerchantRules : [])) {
+      const rule = sanitiseMerchantRule(raw);
+      if (!rule) continue;
+      const index = next.merchantRules.findIndex(x => x.merchant === rule.merchant);
+      if (index >= 0) next.merchantRules[index] = rule;
+      else if (next.merchantRules.length < MAX_MERCHANT_RULES) next.merchantRules.push(rule);
+    }
 
     /* setImports: [{scope, month, rec}] · unsetImports: [{scope, month}] */
     for (const it of (Array.isArray(parsed?.setImports) ? parsed.setImports : [])) {

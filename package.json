@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run build && wrangler pages dev dist --port 4124",
     "dev:static": "python3 -m http.server 4124",
-    "build": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp -R data dist/",
+    "build": "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp -R data dist/ && cp -R assets dist/",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=finance-dashboard --commit-dirty=true"
   },
   "devDependencies": {

@@ -19,7 +19,8 @@
   },
   "employment": {
     "startedWork": null,
-    "note": "Not supplied. Until a start month is given, no salary is added to any ledger month for Melissa."
+    "permanentIncome": true,
+    "note": "Melissa has worked continuously for more than two years. Her confirmed take-home is treated as permanent income across all dashboard periods unless this record is changed."
   },
   "salary": {
     "source": "Confirmed by Joseph, 9 Aug 2026 (carried across from finance.json — not re-derived)",
