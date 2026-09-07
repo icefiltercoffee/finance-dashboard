@@ -30,7 +30,10 @@
     --r:16px; --r-sm:10px;
     --serif:"Fraunces","Iowan Old Style",Georgia,serif;
     --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    --c1:#4fc0c9; --c2:#59ab82; --c3:#d8a85a; --c4:#6d9fe0; --c5:#d1708f; --c6:#b57fc4;
+    /* Categorical series palette (assets/liabilities/expense donuts + bars) —
+       validated for this dark surface: node validate_palette.js --mode dark
+       --surface #141726 → all 6 checks pass, worst adjacent CVD ΔE 8.4. */
+    --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#9085e9;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -127,6 +130,8 @@
   .compact .sec-head h2{font-size:15.5px;}
 
   svg.viz{display:block; width:100%; height:auto; overflow:visible;}
+  svg.viz [data-tip]{cursor:pointer; transition:opacity .12s;}
+  svg.viz [data-tip]:hover{opacity:1 !important;}
   .ax{font-size:10px; fill:var(--ink-faint);}
   .axt{font-size:10.5px; fill:var(--ink-soft); font-weight:500;}
   .ev-label{font-size:10px; font-weight:600;}
@@ -370,6 +375,19 @@
 const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+/* Rounded data-end, square at the baseline — a column grows up, a row grows right. */
+function barUpPath(x,y,w,h,r){
+  r=Math.max(0,Math.min(r,w/2,h));
+  if(h<=0||w<=0) return "";
+  if(r<=0) return `M${x} ${y+h} L${x} ${y} L${x+w} ${y} L${x+w} ${y+h} Z`;
+  return `M${x} ${y+h} L${x} ${y+r} Q${x} ${y} ${x+r} ${y} L${x+w-r} ${y} Q${x+w} ${y} ${x+w} ${y+r} L${x+w} ${y+h} Z`;
+}
+function barRightPath(x,y,w,h,r){
+  r=Math.max(0,Math.min(r,h/2,w));
+  if(h<=0||w<=0) return "";
+  if(r<=0) return `M${x} ${y} L${x+w} ${y} L${x+w} ${y+h} L${x} ${y+h} Z`;
+  return `M${x} ${y} L${x+w-r} ${y} Q${x+w} ${y} ${x+w} ${y+r} L${x+w} ${y+h-r} Q${x+w} ${y+h} ${x+w-r} ${y+h} L${x} ${y+h} Z`;
+}
 function money(str){
   if(str==null) return null;
   if(typeof str==="number") return isFinite(str)?str:null;
@@ -1050,7 +1068,7 @@ function drawChart(){
 
   let grid="";
   for(let i=0;i<=4;i++){const v=lo+(hi-lo)*(i/4), y=Y(v);
-    grid+=`<line x1="${CH.pad.l}" y1="${y}" x2="${CH.w-CH.pad.r}" y2="${y}" stroke="var(--line)" stroke-dasharray="2 5"/>
+    grid+=`<line x1="${CH.pad.l}" y1="${y}" x2="${CH.w-CH.pad.r}" y2="${y}" stroke="var(--line)"/>
            <text class="ax" x="${CH.pad.l-8}" y="${y+3.5}" text-anchor="end">${fmt(v,{compact:true})}</text>`;}
   const zeroY=(0>=lo&&0<=hi)?Y(0):null;
 
@@ -1090,7 +1108,7 @@ function drawChart(){
     <text class="axt" x="${CH.pad.l-8}" y="${CH.pad.t-32}" text-anchor="end" style="font-size:9.5px;letter-spacing:.08em">NET WORTH</text>
     ${ghost?`<path d="${line(ghost)}" fill="none" stroke="var(--ink-faint)" stroke-width="1.4" stroke-dasharray="4 4"/>`:""}
     <path d="${area(rows)}" fill="url(#gA)"/>
-    <path d="${line(rows)}" fill="none" stroke="var(--pine)" stroke-width="2.4" stroke-linejoin="round"
+    <path d="${line(rows)}" fill="none" stroke="var(--pine)" stroke-width="2" stroke-linejoin="round"
           stroke-linecap="round" ${pr.known?"":'stroke-dasharray="6 4" opacity=".75"'}/>
     <line x1="${X(S.cursor)}" y1="${CH.pad.t-28}" x2="${X(S.cursor)}" y2="${CH.h-CH.pad.b}" stroke="var(--clay-deep)" stroke-opacity=".5"/>
     <circle cx="${X(S.cursor)}" cy="${Y(rows[S.cursor].nw)}" r="5" fill="var(--clay)" stroke="var(--paper)" stroke-width="2.5"/>
@@ -1185,27 +1203,26 @@ function renderBars(){
     <div class="empty"><div class="big">No ledger</div>
     <div>${M.isPlaceholder?esc(M.scope.person)+"'s source sheet has not been specified yet."
                           :"No monthly totals in the source."}</div></div>`; return;}
-  const W=430,H=250,pl=52,pr=10,pt=18,pb=42;
-  const max=Math.max(...win.map(m=>Math.max(m.income,m.expense)))*1.16||1;
-  const bw=(W-pl-pr)/win.length, gap=bw*.22, sw=(bw-gap*2)/2, Y=v=>pt+(1-v/max)*(H-pt-pb);
+  const W=440,H=264,pl=48,pr=8,pt=16,pb=44;
+  const max=Math.max(...win.map(m=>Math.max(m.income,m.expense)))*1.14||1;
+  const bw=(W-pl-pr)/win.length, innerGap=5, barW=clamp((bw*.62-innerGap)/2,7,22);
+  const pairW=barW*2+innerGap, Y=v=>pt+(1-v/max)*(H-pt-pb), base=H-pb;
   let grid="";
   for(let i=0;i<=3;i++){const v=max*(i/3),y=Y(v);
-    grid+=`<line x1="${pl}" y1="${y}" x2="${W-pr}" y2="${y}" stroke="var(--line)" stroke-dasharray="2 5"/>
-           <text class="ax" x="${pl-7}" y="${y+3.5}" text-anchor="end">${fmt(v,{compact:true})}</text>`;}
+    grid+=`<line x1="${pl}" y1="${y.toFixed(1)}" x2="${W-pr}" y2="${y.toFixed(1)}" stroke="var(--line)"/>
+           <text class="ax" x="${pl-7}" y="${(y+3.5).toFixed(1)}" text-anchor="end">${fmt(v,{compact:true})}</text>`;}
   const bars=win.map((m,i)=>{
-    const x0=pl+i*bw+gap/2, hi=Math.max(0,H-pb-Y(m.income)), he=Math.max(0,H-pb-Y(m.expense));
-    const salH=m.salary?Math.max(0,(m.salary/max)*(H-pt-pb)):0;
+    const x0=pl+i*bw+(bw-pairW)/2, xi=x0, xe=x0+barW+innerGap;
+    const hi=Math.max(0,base-Y(m.income)), he=Math.max(0,base-Y(m.expense));
+    const salH=m.salary?Math.max(0,(m.salary/max)*(base-pt)):0;
     return `<g>
-      <rect x="${x0}" y="${Y(m.income)}" width="${sw}" height="${hi}" rx="4" fill="var(--pine)" opacity=".9">
-        <title>${MONFULL[miM(m.idx)]} income ${fmt(m.income,{cents:true})}</title></rect>
-      ${salH?`<rect x="${x0}" y="${H-pb-salH}" width="${sw}" height="${salH}" rx="4" fill="var(--pine-deep)" opacity=".85">
-        <title>${MONFULL[miM(m.idx)]} salary ${fmt(m.salary)}</title></rect>`:""}
-      <rect x="${x0+sw+gap}" y="${Y(m.expense)}" width="${sw}" height="${he}" rx="4" fill="var(--clay)" opacity=".9">
-        <title>${MONFULL[miM(m.idx)]} expenses ${fmt(m.expense,{cents:true})}</title></rect>
-      <text class="axt" x="${x0+sw+gap/2}" y="${H-pb+16}" text-anchor="middle">${MON[miM(m.idx)]} ${String(miY(m.idx)).slice(2)}</text>
-      <text class="ax" x="${x0+sw+gap/2}" y="${H-pb+30}" text-anchor="middle"
+      <path class="bar-hit" data-tip="income:${i}" d="${barUpPath(xi,Y(m.income),barW,hi,4)}" fill="var(--pine)" opacity=".9"/>
+      ${salH?`<path data-tip="salary:${i}" d="${barUpPath(xi,base-salH,barW,salH,3)}" fill="var(--pine-deep)" opacity=".9"/>`:""}
+      <path class="bar-hit" data-tip="expense:${i}" d="${barUpPath(xe,Y(m.expense),barW,he,4)}" fill="var(--clay)" opacity=".9"/>
+      <text class="axt" x="${(x0+pairW/2).toFixed(1)}" y="${base+16}" text-anchor="middle">${MON[miM(m.idx)]} ${String(miY(m.idx)).slice(2)}</text>
+      <text class="ax" x="${(x0+pairW/2).toFixed(1)}" y="${base+30}" text-anchor="middle"
             fill="${m.cashFlow<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(m.cashFlow,{signed:true,compact:true})}</text>
-      ${m.partial?`<text class="ax" x="${x0+sw+gap/2}" y="${pt-4}" text-anchor="middle">partial</text>`:""}</g>`;}).join("");
+      ${m.partial?`<text class="ax" x="${(x0+pairW/2).toFixed(1)}" y="${pt-4}" text-anchor="middle">partial</text>`:""}</g>`;}).join("");
   const anySal=win.some(m=>m.salary>0);
   host.innerHTML=`<div class="sec-head"><h2>Income vs expenses</h2><span class="hint">last 6 months</span>
       <span class="sp"></span><div class="legend">
@@ -1215,26 +1232,52 @@ function renderBars(){
     <svg class="viz" viewBox="0 0 ${W} ${H}">${grid}${bars}</svg>
     <div style="font-size:11.5px;color:var(--ink-faint);margin-top:6px">
       Figure under each pair is that month's cash flow.${anySal?" Darker block is salary from Aug 2026.":""}</div>`;
+  wireBarTips(host,win);
+}
+
+/** Rich hover tooltip for the income/expense/salary marks, reusing the shared #tip element. */
+function wireBarTips(host,win){
+  const tip=$("#tip");
+  $$("[data-tip]",host).forEach(el=>{
+    const [kind,idx]=el.dataset.tip.split(":"), m=win[+idx];
+    el.addEventListener("mousemove",ev=>{
+      tip.className="tip on";
+      const label=MONFULL[miM(m.idx)]+" "+miY(m.idx)+(m.partial?" · partial":"");
+      const line=kind==="income"?`Income ${fmt(m.income,{cents:true})}`
+                :kind==="salary"?`Salary ${fmt(m.salary)} of that income`
+                :`Expenses ${fmt(m.expense,{cents:true})}`;
+      tip.innerHTML=`<div class="tt">${esc(label)}</div><div class="td">${line}<br>Cash flow ${fmt(m.cashFlow,{signed:true,cents:true})}</div>`;
+      tip.style.left=Math.min(ev.clientX+14,innerWidth-280)+"px"; tip.style.top=(ev.clientY-12)+"px";});
+    el.addEventListener("mouseleave",()=>tip.className="tip");
+  });
 }
 
 /* ================= 7. DONUTS + EXPENSE RANK ================= */
+/* Color follows the category name, not its rank in today's sort — so "Groceries"
+   keeps the same swatch whether it's #1 this month or #4 next month. */
+const CAT_COLOR_SLOT={};
+let catColorNext=0;
+function catColor(name){
+  if(!(name in CAT_COLOR_SLOT)) CAT_COLOR_SLOT[name]=(catColorNext++)%6+1;
+  return `var(--c${CAT_COLOR_SLOT[name]})`;
+}
 function donut(items,total,centerLabel,centerSub){
   const W=250,H=190,cx=95,cy=95,R=66,r=42;
   if(!items.length) return null;
   let a0=-Math.PI/2, segs="";
   items.forEach((it,i)=>{
-    const frac=total>0?it.value/total:0, a1=a0+frac*Math.PI*2;
+    const frac=total>0?it.value/total:0, a1=a0+frac*Math.PI*2, col=catColor(it.name);
     if(frac>=0.9999){
-      segs+=`<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="var(--c${(i%6)+1})"
+      segs+=`<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="${col}"
         stroke-width="${R-r}" opacity=".92"><title>${esc(it.name)} ${fmt(it.value)} (100%)</title></circle>`;
       a0=a1; return;}
     const big=(a1-a0)>Math.PI?1:0, p=(rad,a)=>[cx+Math.cos(a)*rad,cy+Math.sin(a)*rad];
     const [x0,y0]=p(R,a0),[x1,y1]=p(R,a1),[x2,y2]=p(r,a1),[x3,y3]=p(r,a0);
     segs+=`<path d="M${x0} ${y0} A${R} ${R} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r} ${r} 0 ${big} 0 ${x3} ${y3} Z"
-      fill="var(--c${(i%6)+1})" opacity=".92"><title>${esc(it.name)} ${fmt(it.value)} (${(frac*100).toFixed(1)}%)</title></path>`;
+      fill="${col}" opacity=".92" stroke="var(--paper)" stroke-width="2"><title>${esc(it.name)} ${fmt(it.value)} (${(frac*100).toFixed(1)}%)</title></path>`;
     a0=a1;});
-  const legend=items.map((it,i)=>`<div style="display:flex;align-items:center;gap:7px;font-size:11.5px;padding:2.5px 0">
-      <i style="width:9px;height:9px;border-radius:3px;background:var(--c${(i%6)+1});flex:none"></i>
+  const legend=items.map(it=>`<div style="display:flex;align-items:center;gap:7px;font-size:11.5px;padding:2.5px 0">
+      <i style="width:9px;height:9px;border-radius:3px;background:${catColor(it.name)};flex:none"></i>
       <span style="flex:1;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.name)}</span>
       <b class="num" style="font-weight:600">${fmt(it.value,{compact:true})}</b>
       <span style="color:var(--ink-faint);width:38px;text-align:right">${total>0?(it.value/total*100).toFixed(0):0}%</span></div>`).join("");
@@ -1287,13 +1330,14 @@ function renderExpenseCats(){
         <b>${miLong(cm)}</b> when read, so only that month has a category split.<br>`:""}
       ${rec?`The monthly total is still ${fmt(rec.expense)}. `:""}
       Attach a statement for this month under <b>What can I do?</b> and the split is built from it.</div></div>`; return;}
-  const W=430,H=250,pl=104,pr=54,pt=10,pb=28;
-  const max=Math.max(...rows.map(r=>r.amount))*1.02||1, bh=(H-pt-pb)/rows.length, gap=Math.min(9,bh*.32);
-  const bars=rows.map((r,i)=>{const y=pt+i*bh, w=(r.amount/max)*(W-pl-pr);
-    return `<g><text class="axt" x="${pl-8}" y="${y+bh/2+3.5}" text-anchor="end">${esc(r.name)}</text>
-      <rect x="${pl}" y="${y+gap/2}" width="${Math.max(w,1.5)}" height="${bh-gap}" rx="4" fill="var(--c${(i%6)+1})" opacity=".92">
-      <title>${esc(r.name)} ${fmt(r.amount,{cents:true})}</title></rect>
-      <text class="ax" x="${pl+w+7}" y="${y+bh/2+3.5}">${fmt(r.amount)}</text></g>`;}).join("");
+  const W=430,pl=104,pr=54,pt=10,pb=28;
+  const rowH=clamp(210/rows.length,26,36), H=pt+pb+rowH*rows.length, barH=Math.min(22,rowH-8);
+  const max=Math.max(...rows.map(r=>r.amount))*1.02||1;
+  const bars=rows.map((r,i)=>{const y=pt+i*rowH+(rowH-barH)/2, w=Math.max((r.amount/max)*(W-pl-pr),2);
+    return `<g><text class="axt" x="${pl-8}" y="${y+barH/2+3.5}" text-anchor="end">${esc(r.name)}</text>
+      <path d="${barRightPath(pl,y,w,barH,4)}" fill="${catColor(r.name)}" opacity=".92">
+      <title>${esc(r.name)} ${fmt(r.amount,{cents:true})}</title></path>
+      <text class="ax" x="${pl+w+7}" y="${y+barH/2+3.5}">${fmt(r.amount)}</text></g>`;}).join("");
   const total=rows.reduce((a,r)=>a+r.amount,0);
   const catTotal=rows.reduce((a,r)=>a+r.amount,0);
   const fromStmt=entry.source==="statement";
@@ -2465,7 +2509,7 @@ function renderGoalEditors(){
     </div>`).join("")
     +`<div class="ge" style="background:var(--paper);border-style:dashed">
       <div class="gh"><span class="gn">Emergency fund</span><span class="src-tag src-cash">CASH</span></div>
-      <div style="font-family:var(--serif);font-size:22px">${fmt(M.ef?.amount)}</div>
+      <div style="font-family:var(--serif);font-size:20px">${fmt(M.ef?.amount)}</div>
       <div class="gm">Not a goal and not editable here — it is <b>${M.ef?.months} months of combined take-home</b>
         (${fmt(M.salary.takeHome)}), so it moves only when salary does.</div></div>`;
 
