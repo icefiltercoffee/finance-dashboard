@@ -45,6 +45,14 @@
     "melissaMonthly": 4080.0,
     "expenseBasis": "trailing3"
   },
+  "assumptions": {
+    "_note": "Explicit modelling assumptions, not stated facts — adjust freely, the dashboard always discloses when it's using one.",
+    "parkingYieldAnnual": 0.03,
+    "parkingYieldSource": "Ballpark for Singapore T-bills / Singapore Savings Bonds as of 2026 — check the current auction/issue rate before relying on this.",
+    "msrCap": 0.30,
+    "tdsrCap": 0.55,
+    "affordabilityNote": "MSR/TDSR are computed against gross income (not take-home), per MAS/HDB rules. MSR applies only to HDB/EC housing loans; TDSR applies to all debt."
+  },
   "actuals": {
     "source": "Annual Overview tab (monthly totals) + Monthly Overview tab (category split for the selected month)",
     "readOn": "2026-08-09",
@@ -303,7 +311,8 @@
         "repayStarts": null,
         "startsOn": "2028-01",
         "placeholder": false,
-        "note": "$440,000 remaining, split with Melissa. Not drawn until Q1 2028, so $0 outstanding today. Monthly repayment not yet known. Excluded from the net-worth line because the property it buys has no recorded value — counting the debt without the asset would show a false collapse. It still appears in the liabilities chart once drawn, and as a dotted marker on the cash map.",
+        "estimatedMonthlyRepayment": null,
+        "note": "$440,000 remaining, split with Melissa. Not drawn until Q1 2028, so $0 outstanding today. Monthly repayment not yet known. Excluded from the net-worth line because the property it buys has no recorded value — counting the debt without the asset would show a false collapse. It still appears in the liabilities chart once drawn, and as a dotted marker on the cash map. Set estimatedMonthlyRepayment once a rate/tenure is known, to check it against MSR/TDSR.",
         "countsInNetWorth": false
       },
       {
@@ -362,7 +371,7 @@
           "Joseph",
           "Melissa"
         ],
-        "note": "Hard deadline March 2028. Prioritise CPF, then cash."
+        "note": "Hard deadline March 2028. Prioritise CPF, then cash. Worth checking CPF Housing Grant eligibility (income-tested, first-timer couples) with HDB/CPF Board before purchase — not yet confirmed either way."
       },
       {
         "key": "wedding",

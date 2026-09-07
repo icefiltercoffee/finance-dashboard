@@ -470,6 +470,7 @@ function buildModel(d){
     M.ef.amount=M.salary.takeHome*(M.ef.months||2);
 
   M.proj=d.projection||{};
+  M.assumptions=d.assumptions||{};
   return M;
 }
 
@@ -748,9 +749,20 @@ function basis(){
 }
 
 /* ---- the funding plan: derived from the timeline, never stored ---- */
+/** Ordinary-annuity monthly contribution needed to reach fv in n months at an
+ *  assumed annual yield — falls back to flat division at 0%/unset, which is
+ *  the old behaviour. This is the one place the parking-yield assumption
+ *  (data/finance.json → assumptions.parkingYieldAnnual) touches the numbers. */
+function savingsPMT(fv,months,annualRate){
+  if(fv<=0) return 0;
+  const r=(annualRate||0)/12;
+  if(r<=0) return fv/months;
+  return fv*r/(Math.pow(1+r,months)-1);
+}
 function fundingPlan(){
   const cpfAvail=cpfBalance();
   const monthlyCPF=M.salary.cpf||0;
+  const yieldRate=M.assumptions?.parkingYieldAnnual;
   const rows=M.goals.map(g=>{
     const amt=goalAmount(g);
     const months=Math.max(1,(g.due_i??M.today)-M.today);
@@ -765,11 +777,11 @@ function fundingPlan(){
       }
     }
     return {g, amt, months, due:g.due_i, usesCPF, cpfUnknown, cpfPart, cashPart,
-            perMonth:amt/months, cashPerMonth:cashPart/months};
+            perMonth:amt/months, cashPerMonth:savingsPMT(cashPart,months,yieldRate)};
   });
   const cashPerMonth=rows.reduce((a,r)=>a+r.cashPerMonth,0);
   const loanPerMonth=M.liabilities.filter(l=>l.repayMonthly&&l.repayIdx!=null).reduce((a,l)=>a+l.repayMonthly,0);
-  return {rows, cashPerMonth, loanPerMonth, cpfAvail, monthlyCPF};
+  return {rows, cashPerMonth, loanPerMonth, cpfAvail, monthlyCPF, yieldRate};
 }
 
 /** Funded-to-date is the plan applied to elapsed time, so the rings fill as you scrub. */
@@ -789,6 +801,25 @@ function liabilityAt(l,mIdx){
 }
 const liabilitiesAt=m=>M.liabilities.reduce((a,l)=>a+(liabilityAt(l,m)||0),0);
 const liabilitiesNW=m=>M.liabilities.reduce((a,l)=>a+(l.countsInNetWorth===false?0:(liabilityAt(l,m)||0)),0);
+
+/** MSR/TDSR against gross income, per MAS/HDB rules — never take-home. MSR is
+ *  HDB/EC housing loans only; TDSR is every debt obligation. Ceilings show even
+ *  with no repayment estimate yet; the pass/fail needs one entered. */
+function mortgageCheck(){
+  const m=M.liabilities.find(l=>l.key==="mortgage"); if(!m) return null;
+  const gross=M.salary.gross; if(!gross) return null;
+  const msrCap=M.assumptions?.msrCap??.30, tdsrCap=M.assumptions?.tdsrCap??.55;
+  const otherDebt=M.liabilities.filter(l=>l.key!==m.key&&l.repayMonthly&&l.repayIdx!=null)
+    .reduce((a,l)=>a+l.repayMonthly,0);
+  const msrCeiling=gross*msrCap, tdsrCeiling=Math.max(0,gross*tdsrCap-otherDebt);
+  const est=m.estimatedMonthlyRepayment;
+  const out={gross,otherDebt,msrCap,tdsrCap,msrCeiling,tdsrCeiling,est:est??null};
+  if(est!=null){
+    out.msr=est/gross; out.tdsr=(est+otherDebt)/gross;
+    out.msrOk=out.msr<=msrCap; out.tdsrOk=out.tdsr<=tdsrCap;
+  }
+  return out;
+}
 
 /* ---- net worth projection ---- */
 function project(scn){
@@ -1383,22 +1414,30 @@ function renderAsk(){
   const who=ACTIVE==="melissa"?"Melissa's":"my";
   const sg=[`Set ${who} cash balance to 12,000`,
             "Increase the wedding goal by 5k",
-            "Show June 2026",
-            "Can I afford a $4,000 trip?"];
+            "Should our emergency fund be in T-bills instead of cash?",
+            "Can we afford the mortgage when it starts?"];
   $("#sugg").innerHTML=sg.map(s=>`<button class="sugg">${esc(s)}</button>`).join("");
   $$("#sugg .sugg").forEach(b=>b.onclick=()=>{$("#ask").value=b.textContent; execute();});
   $("#ask-go").onclick=execute; $("#ask").onkeydown=e=>{if(e.key==="Enter") execute();};
 }
 
 /* ================= 8c. EXECUTE ======================================
-   This dashboard is a static page with no model behind it, so "Execute"
-   is a real command parser, not a language model pretending to be one.
-   It recognises a defined set of instruction shapes, does exactly what
-   they say, and says plainly when it does not understand — which is
-   worth more than a confident guess at what a sentence about money meant.
+   Two different jobs live behind one input box, deliberately split:
 
-   Anything that writes shared state is previewed before it is applied,
-   and can be undone straight afterwards. View changes apply at once. */
+   - Anything that WRITES shared state — a balance, a goal amount, a tab
+     switch — goes through a real command parser below, not a model. It
+     recognises a defined set of instruction shapes, does exactly what they
+     say, and says plainly when it does not understand. A mutation to a
+     dashboard everyone shares should never be a probabilistic guess.
+   - Anything that's a genuine QUESTION and isn't recognised as one of those
+     instructions is handed to an LLM (see askSteven()) grounded in a JSON
+     snapshot of exactly what's on screen — so it can actually reason about
+     what was asked instead of force-fitting it into a handful of templates.
+     If that call fails, it falls back to the old deterministic templates
+     rather than going silent.
+
+   Writes are previewed before they apply, and can be undone straight
+   afterwards. View changes and questions both happen at once. */
 
 const EXEC={pending:null, undo:null};
 
@@ -1569,8 +1608,9 @@ function execute(){
     renderExecPlan();
     return;
   }
-  // not an instruction — answer it as a question, exactly as before
-  renderAskResults(buildOptions(parseAsk(q),q));
+  // not an instruction — ask Steven. If the LLM is unreachable, fall back to
+  // the deterministic lever templates rather than showing nothing.
+  askSteven(q);
 }
 
 function applyViews(views){
@@ -1766,12 +1806,14 @@ function buildOptions(intent,q){
   }
   return opts.slice(0,3);
 }
-function renderAskResults(opts){
+function renderAskResults(opts,isFallback){
   const out=$("#ask-out"); if(!out) return;
   if(!opts){out.innerHTML=""; return;}
   const maxAbs=Math.max(...opts.flatMap(o=>o.impacts.map(i=>Math.abs(i[1]))),1);
   const COL={good:"var(--pine)",warn:"var(--caramel)",bad:"var(--neg)",neutral:"var(--line)"};
-  out.innerHTML=opts.map((o,i)=>`<div class="opt" data-opt="${i}" style="animation-delay:${i*80}ms">
+  out.innerHTML=(isFallback?`<div style="grid-column:1/-1;font-size:11.5px;color:var(--ink-faint);margin-bottom:-2px">
+      ${opts.length?"Steven's AI answer wasn't reachable, so here's the mechanical read instead:":""}</div>`:"")
+    +opts.map((o,i)=>`<div class="opt" data-opt="${i}" style="animation-delay:${i*80}ms">
     <div><span class="chip clay plain">Option ${i+1}</span></div>
     <div class="o-title">${o.title}</div><div class="o-why">${o.why}</div>
     <div class="impact">${o.impacts.map(([l,v,t])=>`<div class="imp-row"><span class="il">${esc(l)}</span>
@@ -1787,6 +1829,66 @@ function renderAskResults(opts){
     $$("[data-prev]",out).forEach(x=>x.textContent="Preview on map");
     if(!already) b.textContent="Clear preview";
     refresh(); $("#p-map").scrollIntoView({behavior:"smooth",block:"center"});});
+}
+
+/* ---- Ask Steven: the LLM path for genuine questions ----
+   The deterministic parser above still owns every action that writes shared
+   state — that stays regex + math, on purpose, so a mutation is never a
+   probabilistic guess. Only free-text QUESTIONS reach the model, grounded in
+   a JSON snapshot of exactly what's on screen. If the model is unreachable
+   this falls back to the old canned-template answer rather than going blank. */
+function buildAskContext(){
+  const pr=project(), plan=pr.plan;
+  const mc=mortgageCheck();
+  return {
+    country:"Singapore", currency:"SGD", scope:M.scope.person, viewingMonth:miLong(M.today+S.cursor),
+    balancesEntered:pr.known,
+    netWorthToday:pr.known?pr.rows[0].nw:null,
+    monthlyIncome:Math.round(pr.B.income), monthlyExpense:Math.round(pr.B.expense), monthlyNet:Math.round(pr.net),
+    combinedGrossMonthly:M.salary.gross, combinedTakeHomeMonthly:M.salary.takeHome,
+    goals:plan.rows.map(r=>({name:r.g.name, amount:r.amt, dueMonth:miLong(r.due), monthsLeft:r.months,
+      hardDeadline:!!r.g.hardDeadline, requiredCashPerMonth:Math.round(r.cashPerMonth),
+      fundedBy:r.g.fundedBy||[], cpfBalanceKnown:!r.cpfUnknown, note:r.g.note||null})),
+    goalCashPerMonthTotal:Math.round(plan.cashPerMonth),
+    loanRepaymentPerMonth:Math.round(plan.loanPerMonth),
+    surplusPerMonth:Math.round(pr.net-plan.cashPerMonth-plan.loanPerMonth),
+    emergencyFund:M.ef?{requiredAmount:M.ef.amount, basisMonths:M.ef.months, cashHeld:cashBalance()}:null,
+    liabilities:M.liabilities.filter(l=>!l.placeholder).map(l=>({name:l.name, outstandingToday:liabilityAt(l,M.today),
+      monthlyRepayment:l.repayMonthly, note:l.note||null})),
+    mortgageAffordability:mc,
+    balances:Object.fromEntries(M.balanceFields.map(f=>[f.label,balVal(f.key)])),
+    assumptionsInUse:{idleCashParkingYieldAnnual:M.assumptions?.parkingYieldAnnual??null,
+      note:"Applied to the cash portion of each goal's required monthly saving. CPF's own interest is not modelled."}
+  };
+}
+async function askSteven(q){
+  renderAskLoading(q);
+  try{
+    const r=await fetch("/api/ask",{method:"POST",credentials:"same-origin",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({question:q,context:buildAskContext()})});
+    if(!r.ok) throw new Error("llm-failed");
+    const data=await r.json();
+    if(!data.answer) throw new Error("llm-empty");
+    renderAskAnswer(data,q);
+  }catch(_){
+    renderAskResults(buildOptions(parseAsk(q),q),true);
+  }
+}
+function renderAskLoading(q){
+  const out=$("#ask-out"); if(!out) return;
+  out.innerHTML=`<div class="execbox"><div class="exec-h"><span class="chip clay plain">Thinking…</span>
+    <b>${esc(q)}</b></div></div>`;
+}
+function renderAskAnswer(data,q){
+  const out=$("#ask-out"); if(!out) return;
+  out.innerHTML=`<div class="opt" style="grid-column:1/-1">
+    <div><span class="chip pine plain">Steven · AI-generated, verify anything you'll act on</span></div>
+    <div class="o-why" style="font-size:14px;color:var(--ink);margin-top:8px">${esc(data.answer)}</div>
+    ${data.caveats&&data.caveats.length?`<div class="tradeoff" style="align-items:flex-start">
+      <span>Assuming</span><span>${data.caveats.map(esc).join(" · ")}</span></div>`:""}
+    <div class="o-foot"><button class="btn" id="ask-numbers">Show the numbers instead</button></div></div>`;
+  $("#ask-numbers").onclick=()=>renderAskResults(buildOptions(parseAsk(q),q));
 }
 
 /* ================= 8b. STATEMENT IMPORT =============================
@@ -2454,8 +2556,10 @@ function renderGoalDetail(){
   const pr=project();
   if(!r){
     const ef=M.ef, cash=cashBalance();
+    const thin=ef?.months!=null&&ef.months<3;
     host.innerHTML=`<div style="font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:6px">Emergency fund</div>
       <span class="chip ${cash!=null&&ef&&cash>=ef.amount?"pine":"clay"}">${cash==null?"cash balance not set":(cash>=ef.amount?"covered":"short")}</span>
+      ${thin?`<span class="chip grey">basis is thin</span>`:""}
       <div style="margin-top:12px">
         <div class="drow"><span class="l">Required</span><span class="v num">${fmt(ef?.amount)}</span></div>
         <div class="drow"><span class="l">Basis</span><span class="v">${ef?.months} months of combined take-home</span></div>
@@ -2464,7 +2568,10 @@ function renderGoalDetail(){
       </div>
       <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.65;margin-top:13px">
         This is not a goal and has no deadline — it is a floor that must always be there. It sits at the centre
-        because everything else orbits it. Select a goal to see its funding schedule.</div>`;
+        because everything else orbits it. Select a goal to see its funding schedule.
+        ${thin?`<br><br><b style="color:var(--caramel)">${ef.months} months is thinner than the usual 3–6 months of expenses guidance</b> — worth
+        revisiting, especially with a mortgage and a hard BTO deadline both approaching. This is a stated figure from the
+        data file, not something the dashboard is asserting on its own.`:""}</div>`;
     return;
   }
   const nowM=M.today+S.cursor, funded=fundedAt(r,nowM);
@@ -2544,7 +2651,12 @@ function renderPlanSummary(){
         <td class="r"><b>${fmt(pr.net)}</b></td></tr>
       <tr><td><b>Surplus / shortfall</b></td><td class="r"></td><td></td><td class="r"></td>
         <td class="r"><b style="color:${surplus<0?"var(--clay-deep)":"var(--pine-deep)"}">${fmt(surplus,{signed:true})}</b></td></tr>
-    </table></div>`;
+    </table>
+    ${plan.yieldRate?`<div style="font-size:11.5px;color:var(--ink-faint);margin-top:9px;line-height:1.55">
+      Cash figures assume idle savings earn <b>${(plan.yieldRate*100).toFixed(1)}% p.a.</b>
+      (${esc(M.assumptions.parkingYieldSource||"an assumption")}) — an assumption, not a fact; edit
+      <code>assumptions.parkingYieldAnnual</code> in the data file. CPF's own interest is not modelled, so the
+      CPF-funded share of BTO is understated rather than overstated.</div>`:""}</div>`;
 }
 
 /** Compact — sits beside Income vs Expenses on the Combined tab, so it skips
@@ -2566,6 +2678,7 @@ function renderSalaryCpf(){
    the line is the running total since the ledger began. */
 function renderLedgerExtras(){
   const host=$("#p-ledger"); if(!host) return;
+  const mc=mortgageCheck();
   host.innerHTML=`
     <div class="card pad">
       <div class="sec-head"><h2>Liabilities</h2></div>
@@ -2575,6 +2688,20 @@ function renderLedgerExtras(){
           <td class="r">${l.placeholder?'<span class="unk">—</span>':fmt(liabilityAt(l,M.today))}</td>
           <td style="color:var(--ink-faint);font-size:11.5px">${esc(l.note||"")}</td></tr>`).join("")}
       </table>
+      ${mc?`<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft)">
+        <div class="sec-head" style="margin-bottom:8px"><h2 style="font-size:14px">Mortgage affordability — MSR / TDSR</h2>
+          <span class="hint">against ${fmt(mc.gross)}/mo combined gross, not take-home</span></div>
+        <div class="drow"><span class="l">MSR ceiling (${(mc.msrCap*100).toFixed(0)}% of gross, HDB/EC loans)</span><span class="v num">${fmt(mc.msrCeiling)}/mo</span></div>
+        <div class="drow"><span class="l">TDSR ceiling (${(mc.tdsrCap*100).toFixed(0)}% of gross, less other debt)</span><span class="v num">${fmt(mc.tdsrCeiling)}/mo</span></div>
+        ${mc.est!=null?`
+        <div class="drow"><span class="l">Estimated repayment</span><span class="v num">${fmt(mc.est)}/mo</span></div>
+        <div class="drow"><span class="l">MSR</span><span class="v num" style="color:${mc.msrOk?"var(--pine-deep)":"var(--clay-deep)"}">${(mc.msr*100).toFixed(1)}% — ${mc.msrOk?"within":"over"} cap</span></div>
+        <div class="drow"><span class="l">TDSR</span><span class="v num" style="color:${mc.tdsrOk?"var(--pine-deep)":"var(--clay-deep)"}">${(mc.tdsr*100).toFixed(1)}% — ${mc.tdsrOk?"within":"over"} cap</span></div>`
+        :`<div style="font-size:11.5px;color:var(--ink-faint);margin-top:8px;line-height:1.55">
+        No repayment estimate entered yet — set <code>liabilities.rows[mortgage].estimatedMonthlyRepayment</code>
+        once a rate and tenure are known (HDB concessionary vs. bank loan changes this) and this checks it against
+        both caps automatically. Evaluated against today's income and today's other debt, not a 2028 projection.</div>`}
+        </div>`:""}
     </div>`;
 }
 
@@ -2586,7 +2713,9 @@ function renderFAQ(){
       <h1>What the Finance Intern actually does</h1>
       <p>It is a reporting and decision layer, not a bank. It reads one spreadsheet, keeps one honest picture of
       where the money is going, and tells Joseph and Melissa what decision is in front of them this month. It has
-      no access to any account, moves no money, and invents no figures.</p>
+      no access to any account, moves no money, and never invents one of <i>their</i> figures — a balance, a goal,
+      a date. Its one AI-backed feature (below) can still draw on general knowledge to answer a question, but it
+      always labels that separately from what it read off this page.</p>
     </div>
     <div class="faq-grid">
       <div class="card pad">
@@ -2659,6 +2788,24 @@ function renderFAQ(){
             <li><b>Emergency fund</b> ${fmt(M.ef?.amount)} in cash — not a goal, a floor that is always there.</li>
           </ul>
           Change an amount on the Combined tab or drag a date on the cash map and the whole schedule re-derives.</div>
+      </div>
+      <div class="card pad">
+        <h2 class="faq-q">"What can I do?" — where the AI sits</h2>
+        <div class="faq-a">
+          Two different jobs live behind that one box, deliberately split:
+          <ul>
+            <li><b>An instruction</b> — "set my cash balance to 12,000", "increase the wedding goal by 5k" —
+                is handled by a plain rule-based parser, not a model. It either matches a known shape exactly
+                or refuses with "not understood." A change to a dashboard the whole household relies on should
+                never be a probabilistic guess.</li>
+            <li><b>A genuine question</b> that isn't one of those instructions goes to an LLM, given a JSON
+                snapshot of exactly what's on screen — your goals, cash flow, liabilities, the MSR/TDSR check,
+                nothing else. It answers the actual question instead of forcing it into a fixed template, and it
+                may bring in general Singapore financial knowledge (CPF, MSR/TDSR, T-bills) when relevant — always
+                labelled "AI-generated," with its assumptions listed separately from your numbers.</li>
+          </ul>
+          If the AI call fails, it falls back to the older mechanical read rather than going blank — you can
+          also always ask it to "show the numbers instead."</div>
       </div>
       <div class="card pad">
         <h2 class="faq-q">What it will never do</h2>
