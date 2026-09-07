@@ -913,6 +913,7 @@ function personSkeleton(opts){
         <div class="card pad" id="p-ask"></div>
         <div class="card pad" id="p-fill"></div>
         ${opts.brief?`<div class="card pad" id="p-brief"></div>`:""}
+        <div class="card pad" id="p-insight"></div>
       </div>`;
 }
 
@@ -950,7 +951,8 @@ function combinedSkeleton(){
         <div class="card pad" id="p-ask"></div>
         <div class="card pad" id="p-fill"></div>
       </div>
-      <div class="stack" id="p-ledger"></div>`;
+      <div class="stack" id="p-ledger"></div>
+      <div class="card pad" style="margin-top:14px" id="p-insight"></div>`;
 }
 
 function mountPerson(id){
@@ -962,7 +964,7 @@ function mountPerson(id){
   const combined=id==="combined";
   $("#view-"+id).innerHTML=combined?combinedSkeleton():personSkeleton({brief:sc.opts.brief});
   const foot=$("#foot"); if(foot) foot.textContent=M.raw.footer||"";
-  renderIntegrity(); renderMonthPick(); renderMap(); renderBars(); renderAsk(); renderFill();
+  renderIntegrity(); renderMonthPick(); renderMap(); renderBars(); renderAsk(); renderFill(); renderSpendingInsight();
   if(combined){ renderGoalEditors(); renderSalaryCpf(); renderLedgerExtras(); }
   refresh();
   requestAnimationFrame(drawTicks);
@@ -1391,6 +1393,74 @@ function renderExpenseCats(){
         fromStmt?" on this statement":""}.</div>`;
   $$("#catsrc button").forEach(b=>b.onclick=()=>{
     S.catSource=b.dataset.src; renderExpenseCats();});
+}
+
+/* ================= 7b. SPENDING HABITS ================= */
+/* Every month you've either logged in the sheet or attached a statement for
+   has a category breakdown in M.catsByMonth (merged in applyImports()). This
+   is real spend, category totals only — never a transaction or merchant name
+   leaves the browser. On-demand (a button), not on every page load, so it
+   never calls the model without being asked. */
+function spendingMonths(){
+  return Object.entries(M.catsByMonth||{})
+    .map(([month,entry])=>({month, source:entry.source,
+      rows:(entry.alt?entry.alt.rows:entry.rows)||[]}))
+    .filter(m=>m.rows.length)
+    .sort((a,b)=>(parseWhen(a.month)||0)-(parseWhen(b.month)||0));
+}
+function renderSpendingInsight(){
+  const host=$("#p-insight"); if(!host) return;
+  const months=spendingMonths();
+  host.innerHTML=`<div class="sec-head"><h2>Spending habits</h2>
+      <span class="hint">${months.length} month${months.length===1?"":"s"} of category data available</span>
+      <span class="sp"></span>
+      <button class="btn primary" id="insight-go" ${months.length?"":"disabled"}>Analyse my spending</button></div>
+    <div id="insight-out">${months.length?`<div style="font-size:12.5px;color:var(--ink-faint)">
+        Reads back your spend by category ${months.length>1
+          ?`across ${MONFULL[miM(parseWhen(months[0].month))]} ${miY(parseWhen(months[0].month))}
+             – ${MONFULL[miM(parseWhen(months[months.length-1].month))]} ${miY(parseWhen(months[months.length-1].month))}`
+          :`for ${MONFULL[miM(parseWhen(months[0].month))]} ${miY(parseWhen(months[0].month))}`},
+        and suggests concrete cuts. Category totals only — no individual transaction ever leaves your browser.</div>`
+      :`<div class="empty"><div class="big">No category data yet</div>
+        <div>Attach at least one card statement, or wait for a month the sheet has a category split for, and this
+        fills in.</div></div>`}</div>`;
+  const btn=$("#insight-go");
+  if(btn) btn.onclick=()=>askSpendingInsight(months);
+}
+async function askSpendingInsight(months){
+  const out=$("#insight-out"); if(!out) return;
+  out.innerHTML=`<div class="execbox"><div class="exec-h"><span class="chip clay plain">Thinking…</span>
+    <b>Reading ${months.length} month${months.length===1?"":"s"} of category spend</b></div></div>`;
+  try{
+    const r=await fetch("/api/spending-insight",{method:"POST",credentials:"same-origin",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({scope:M.scope.person,
+        months:months.map(m=>({month:MONFULL[miM(parseWhen(m.month))]+" "+miY(parseWhen(m.month)),
+          source:m.source, rows:m.rows}))})});
+    if(!r.ok) throw new Error("failed");
+    const data=await r.json();
+    if(!data.summary) throw new Error("empty");
+    renderSpendingInsightResult(data);
+  }catch(_){
+    out.innerHTML=`<div class="execbox bad"><div class="exec-h"><span class="chip clay">Not available</span>
+      <b>Couldn't reach the analysis just now</b></div>
+      <div class="exec-note">Try again in a moment — nothing was changed and nothing was sent anywhere on failure.</div></div>`;
+  }
+}
+function renderSpendingInsightResult(data){
+  const out=$("#insight-out"); if(!out) return;
+  const totalSave=data.cuts.reduce((a,c)=>a+(c.estMonthlySaving||0),0);
+  out.innerHTML=`<div class="opt" style="grid-column:1/-1">
+    <div><span class="chip pine plain">Steven · AI-generated from ${data.monthsUsed||"your"} month${data.monthsUsed===1?"":"s"} of category totals</span></div>
+    <div class="o-why" style="font-size:14px;color:var(--ink);margin-top:8px">${esc(data.summary)}</div>
+    ${data.patterns&&data.patterns.length?`<div style="margin-top:12px">
+      <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px">What the pattern actually is</div>
+      <ul class="lst">${data.patterns.map(p=>`<li><span>${esc(p)}</span></li>`).join("")}</ul></div>`:""}
+    ${data.cuts&&data.cuts.length?`<div style="margin-top:12px">
+      <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px">What you could cut${totalSave?` — up to ${fmt(totalSave)}/month`:""}</div>
+      ${data.cuts.map(c=>`<div class="drow"><span class="l">${esc(c.area)}${c.note?` — ${esc(c.note)}`:""}</span>
+        <span class="v num">${c.estMonthlySaving!=null?fmt(c.estMonthlySaving)+"/mo":""}</span></div>`).join("")}</div>`:""}
+    </div>`;
 }
 
 /* ================= 8. ASK ================= */
