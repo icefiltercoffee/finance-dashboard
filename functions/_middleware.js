@@ -187,6 +187,9 @@ function loginPage(pinLength, status) {
   .pin.bad i{border-color:var(--neg);}
   .pin.bad{animation:shake .38s;}
   @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}50%{transform:translateX(-4px)}}
+  .gate-verse{position:absolute; top:9%; left:0; right:0; z-index:1; text-align:center;
+              font-family:var(--serif); font-style:italic; font-weight:500; font-size:18px;
+              letter-spacing:.01em; color:#f6ecda; opacity:.28; padding:0 28px; pointer-events:none;}
   .err{min-height:17px; margin:-8px 0 0; font-size:12.5px; color:var(--neg); opacity:0; transition:opacity .2s;}
   .err.on{opacity:1;}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
@@ -195,6 +198,7 @@ function loginPage(pinLength, status) {
 </head>
 <body>
 <div class="gate" id="gate">
+  <div class="gate-verse">If the oceans roar your greatness, so will I</div>
   <div class="gate-card">
     <h1 class="gate-title">Finance</h1>
     <div class="gate-sub">Enter your passcode to continue.</div>
