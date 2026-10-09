@@ -1448,6 +1448,7 @@ function renderSpendingInsight(){
   host.innerHTML=`<div class="sec-head"><h2>Spending habits</h2>
       <span class="hint">${months.length} month${months.length===1?"":"s"} of category data available</span>
       <span class="sp"></span>
+      ${ACTIVE!=="combined"?`<button class="btn" id="insight-stmt">Upload ${esc(M.scope.person)}'s statement</button>`:""}
       <button class="btn primary" id="insight-go" ${months.length?"":"disabled"}>Analyse my spending</button></div>
     <div id="insight-out">${months.length?`<div style="font-size:12.5px;color:var(--ink-faint)">
         Reads back your spend by category ${months.length>1
@@ -1460,6 +1461,13 @@ function renderSpendingInsight(){
         fills in.</div></div>`}</div>`;
   const btn=$("#insight-go");
   if(btn) btn.onclick=()=>askSpendingInsight(months);
+  // Same statement import as "What can I do?" — one parser, one review queue,
+  // one Expenses-by-category merge. This is only a second way in, per person.
+  const up=$("#insight-stmt");
+  if(up) up.onclick=()=>{
+    renderStmtPanel(true);
+    $("#stmt-panel")?.scrollIntoView({behavior:"smooth",block:"start"});
+  };
 }
 async function askSpendingInsight(months){
   const out=$("#insight-out"); if(!out) return;
