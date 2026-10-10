@@ -246,6 +246,13 @@ type **Secret** (encrypted), for the **Production** environment (and Preview if 
 | `FINANCE_PIN` | Your 4-digit PIN. The login screen draws one dot per digit, so a 4-digit PIN keeps the original design. Longer works — you just get more dots. |
 | `SESSION_SECRET` | A long random string used to sign the session cookie. Generate one with `openssl rand -base64 48`. Changing it invalidates every existing session. |
 
+**Optional — statement classification.** `ANTHROPIC_API_KEY` (Secret) lets *Classify Needs Review*
+send the unresolved merchant lines of a statement to Claude for that one request. Nothing is
+stored or logged; the statement file itself never leaves the browser. There is no OpenAI fallback
+for statements (Joseph, 2026-10-10). Without the key, lines stay in Needs Review for manual sorting.
+(`OPENAI_API_KEY` is still used by *What can I do* and *Spending habits*, which receive only
+category totals.)
+
 Neither value is ever sent to the browser, written to `finance.json`, committed to git, or
 placed in `wrangler.toml`. The only thing the login page discloses is how many digits to draw.
 

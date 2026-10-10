@@ -2607,13 +2607,13 @@ function renderStmtReview(){
     $$(".stmt-line",host).filter(row=>!row.hidden).forEach(row=>{const line=p.months[row.dataset.month].lines[+row.dataset.line]; line.cat=cat; line.source="human"; $("[data-cat]",row).value=cat;}); recalc();};
   $("#stmt-ai").onclick=async()=>{const lines=Object.values(p.months).flatMap(g=>g.lines).filter(l=>l.cat===CAT_DEFAULT);
     if(!lines.length){setStmtStatus("Nothing needs AI classification.","grey"); return;}
-    setStmtStatus("Classifying unresolved merchants…","grey");
+    setStmtStatus("Claude is reading the unresolved merchant lines — they are not stored…","grey");
     try{const r=await fetch("/api/classify",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({merchants:lines.map(l=>l.merchant),categories:CATEGORIES,examples:(S.merchantRules||[]).slice(-12)})});
       if(!r.ok) throw new Error(); const out=await r.json();
       (out.items||[]).forEach(x=>{const line=lines.find(l=>l.merchant===x.merchant); if(line&&CATEGORIES.includes(x.category)){line.cat=x.category; line.source="ai"; line.remember=false;}});
       recalc(); setStmtStatus("AI suggestions are ready for your review. Nothing has been saved.","pine"); renderStmtReview();
-    }catch(_){setStmtStatus("AI is unavailable. Unresolved transactions remain in Needs Review.","clay");}
+    }catch(_){setStmtStatus("Claude is unavailable. Unresolved transactions remain in Needs Review for you to sort.","clay");}
   };
   $("#stmt-discard").onclick=()=>{STMT.parsed=null; setStmtStatus("Discarded. Nothing was saved.","grey"); renderStmtReview();};
   $("#stmt-save").onclick=async()=>{
