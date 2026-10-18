@@ -352,6 +352,39 @@
   .tip .tt{font-weight:600; margin-bottom:3px;}
   .tip .td{opacity:.8;}
 
+  /* Credit cards (Joseph tab, under Spending habits). Tiles reuse the .opt
+     surface; the cap track mirrors Miles Pilot's: it drains as spend rises. */
+  .ccards{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;}
+  @media (max-width:1180px){ .ccards{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:620px){ .ccards{grid-template-columns:minmax(0,1fr);} }
+  .ccard{background:var(--paper-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:14px;
+    display:flex; flex-direction:column; gap:12px; animation:rise .42s cubic-bezier(.22,1,.36,1) both;}
+  .ccard .pic{aspect-ratio:1.586; border-radius:12px; overflow:hidden; background:var(--paper);
+    box-shadow:var(--shadow);}
+  .ccard .pic img{width:100%; height:100%; object-fit:cover; display:block;}
+  .ccard .pic.face{display:flex; flex-direction:column; justify-content:space-between; padding:16px 18px;
+    background:linear-gradient(140deg,#262b45,#11131f 70%); border:1px solid var(--line);}
+  .ccard .pic.face .fb{font-family:var(--serif); font-size:20px; font-weight:500; letter-spacing:-.01em;}
+  .ccard .pic.face .fn{font-size:11px; color:var(--ink-faint); letter-spacing:.06em; text-transform:uppercase;}
+  .ccard .ct{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+  .ccard h3{font-family:var(--serif); font-weight:500; font-size:16px; margin:0; line-height:1.2;}
+  .ccard .iss{font-size:11.5px; color:var(--ink-faint);}
+  .ccard .cap-top{display:flex; justify-content:space-between; gap:10px; font-size:12px; color:var(--ink-faint);}
+  .ccard .cap-top b{color:var(--ink); font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .ccard .track{height:4px; border-radius:2px; background:var(--line); margin-top:7px; overflow:hidden;}
+  .ccard .track i{display:block; height:100%; background:var(--pine); transform-origin:left;
+    transition:transform .4s cubic-bezier(.22,1,.36,1);}
+  .ccard .track i.warn{background:var(--caramel);} .ccard .track i.no{background:var(--neg);}
+  .ccard .fields{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px 12px; font-size:11.5px; color:var(--ink-faint);}
+  .ccard .fields label{display:flex; flex-direction:column; gap:4px; min-width:0;}
+  .ccard .fields label.wide{grid-column:1/-1;}
+  .ccard .fields .in{display:flex; align-items:center; gap:6px; background:var(--paper); border:1px solid var(--line);
+    border-radius:var(--r-sm); padding:0 10px; color:var(--ink-faint); font-size:12.5px;}
+  .ccard .fields .in:focus-within{border-color:var(--clay); box-shadow:0 0 0 3px var(--clay-soft);}
+  .ccard .fields input{flex:1; min-width:0; width:100%; border:0; background:none; outline:none; font:inherit; font-size:13.5px;
+    color:var(--ink); padding:8px 0; font-variant-numeric:tabular-nums;}
+  .ccard .note{font-size:11px; color:var(--ink-faint); line-height:1.45;}
+
   @media (max-width:1180px){
     .row-map{grid-template-columns:1fr;} .row-three{grid-template-columns:1fr;}
     .const-wrap{grid-template-columns:1fr;}
@@ -698,7 +731,7 @@ async function syncOnFocus(){
     S.balances=j.values||{}; S.goalAmt=j.goalAmt||{}; S.imports=j.imports||{}; S.merchantRules=j.merchantRules||[];
     SYNC.at=j.updatedAt; setSync("server",null); cacheLocal(); applyImports();
     if(!/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||"")){
-      renderFill(); refresh();
+      renderFill(); refresh(); renderCards();
     }
   }catch(_){/* transient — the chip only changes on a failed write */}
 }
@@ -914,6 +947,7 @@ function personSkeleton(opts){
         <div class="card pad" id="p-fill"></div>
         ${opts.brief?`<div class="card pad" id="p-brief"></div>`:""}
         <div class="card pad" id="p-insight"></div>
+        ${opts.cards?`<div class="card pad" id="p-cards"></div>`:""}
       </div>`;
 }
 
@@ -962,9 +996,9 @@ function mountPerson(id){
   S.cursor=0; S.shifts={}; S.preview=null; S.selectedGoal=null;
   S.month=M.months.length?M.months[M.months.length-1].key:null;
   const combined=id==="combined";
-  $("#view-"+id).innerHTML=combined?combinedSkeleton():personSkeleton({brief:sc.opts.brief});
+  $("#view-"+id).innerHTML=combined?combinedSkeleton():personSkeleton({brief:sc.opts.brief, cards:id==="joseph"});
   const foot=$("#foot"); if(foot) foot.textContent=M.raw.footer||"";
-  renderIntegrity(); renderMonthPick(); renderMap(); renderBars(); renderAsk(); renderFill(); renderSpendingInsight();
+  renderIntegrity(); renderMonthPick(); renderMap(); renderBars(); renderAsk(); renderFill(); renderSpendingInsight(); renderCards();
   if(combined){ renderGoalEditors(); renderSalaryCpf(); renderLedgerExtras(); }
   refresh();
   requestAnimationFrame(drawTicks);
@@ -1461,6 +1495,105 @@ function renderSpendingInsightResult(data){
       ${data.cuts.map(c=>`<div class="drow"><span class="l">${esc(c.area)}${c.note?` — ${esc(c.note)}`:""}</span>
         <span class="v num">${c.estMonthlySaving!=null?fmt(c.estMonthlySaving)+"/mo":""}</span></div>`).join("")}</div>`:""}
     </div>`;
+}
+
+/* ================= 7c. CREDIT CARDS (Joseph tab only) =================
+   One tile per card: hero image, a monthly limit and statement day Joseph
+   types in, and a spend track like Miles Pilot's that drains as spend rises.
+   All three numbers are typed, never derived — nothing renders until he enters
+   it. They ride the same /api/state store as the balances (cc_<id>_* keys), so
+   they sync across devices. Spend is stamped with the period it was typed in
+   (_per, yyyymmdd); once the statement day rolls over it reads as a new period
+   at S$0 rather than carrying last month's figure forward. */
+const CARDS=[
+  {id:"citiRewards",    name:"Citi Rewards",    iss:"Citibank",  img:"assets/cards/citi-rewards.jpg"},
+  {id:"hsbcRevolution", name:"HSBC Revolution", iss:"HSBC",      img:"assets/cards/hsbc-revolution.jpg"},
+  {id:"krisflyerUob",   name:"KrisFlyer UOB",   iss:"UOB",       img:"assets/cards/krisflyer-uob.jpg"},
+  {id:"mari",           name:"Mari Credit Card",iss:"MariBank",  img:"assets/cards/mari.webp"},
+  {id:"trustFreedom",   name:"Trust Freedom",   iss:"Trust Bank",img:null},
+  {id:"uobLadys",       name:"UOB Lady's",      iss:"UOB",       img:"assets/cards/uob-ladys.jpg"}
+];
+const ccKey=(id,f)=>`cc_${id}_${f}`;
+const ccGet=(id,f)=>{const v=S.balances[ccKey(id,f)]; return v==null?null:Number(v);};
+const ymd=d=>d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
+const ordinal=n=>n+(n%100>=11&&n%100<=13?"th":({1:"st",2:"nd",3:"rd"}[n%10]||"th"));
+/* Statement day d (1–28): the period resets on the d-th, as on Miles Pilot.
+   No day set: a calendar month. */
+function ccPeriod(day,now=new Date()){
+  const y=now.getFullYear(), m=now.getMonth(), d=day||1;
+  const start=now.getDate()>=d?new Date(y,m,d):new Date(y,m-1,d);
+  const next=new Date(start.getFullYear(),start.getMonth()+1,d);
+  const days=Math.round((next-new Date(y,m,now.getDate()))/864e5);
+  return {start:ymd(start), next, days};
+}
+function ccSpent(c){
+  const p=ccPeriod(ccGet(c.id,"day"));
+  const v=ccGet(c.id,"spent"), per=ccGet(c.id,"per");
+  return v!=null&&per===p.start?v:null;
+}
+const ccNum=s=>{const n=Number(String(s).replace(/[^0-9.]/g,"")); return String(s).trim()===""||!isFinite(n)?null:n;};
+function ccCapHtml(c){
+  const lim=ccGet(c.id,"lim"), spent=ccSpent(c)||0, day=ccGet(c.id,"day"), p=ccPeriod(day);
+  const left=lim!=null?Math.max(0,lim-spent):null, frac=lim?left/lim:0;
+  const tone=frac>.5?"":frac>.2?"warn":"no";
+  const top=lim!=null
+    ?`<span>Monthly limit</span><b>${left>0?`S$${nf(left)} left`:spent>lim?`S$${nf(spent-lim)} over`:"Limit reached"}</b>`
+    :`<span>Monthly limit</span><b class="unk">not set</b>`;
+  const resets=next=>`${next.getDate()} ${MONFULL[next.getMonth()].slice(0,3)}`;
+  const note=day
+    ?`Statement on the ${ordinal(day)} · resets ${resets(p.next)}, ${p.days} day${p.days===1?"":"s"} away`
+    :"Statement day not set — counting the calendar month";
+  return `<div class="cap-top">${top}</div>
+    <div class="track"><i class="${lim!=null?tone:""}" style="transform:scaleX(${lim!=null?frac:0})"></i></div>
+    <div class="note" style="margin-top:6px">${esc(note)}</div>`;
+}
+const nf=n=>Math.round(n).toLocaleString("en-SG");
+function renderCards(){
+  const host=$("#p-cards"); if(!host) return;
+  host.innerHTML=`<div class="sec-head"><h2>Credit cards</h2>
+      <span class="hint">type each card's limit, statement day and spend — saved with the rest of the dashboard</span></div>
+    <div class="ccards">${CARDS.map((c,i)=>{
+      const lim=ccGet(c.id,"lim"), day=ccGet(c.id,"day"), spent=ccSpent(c);
+      return `<div class="ccard" data-cc="${c.id}" style="animation-delay:${i*40}ms">
+        ${c.img?`<div class="pic"><img src="${c.img}" alt="${esc(c.name)} card" loading="lazy"></div>`
+          :`<div class="pic face" role="img" aria-label="${esc(c.name)} card"><span class="fn">${esc(c.iss)}</span>
+              <span class="fb">${esc(c.name)}</span></div>`}
+        <div class="ct"><h3>${esc(c.name)}</h3><span class="iss">${esc(c.iss)}</span></div>
+        <div class="cap">${ccCapHtml(c)}</div>
+        <div class="fields">
+          <label>Monthly limit<span class="in">S$<input inputmode="decimal" autocomplete="off" data-f="lim"
+            value="${lim!=null?nf(lim):""}" placeholder="Set" aria-label="${esc(c.name)} monthly limit"></span></label>
+          <label>Statement day<span class="in"><input inputmode="numeric" maxlength="2" autocomplete="off" data-f="day"
+            value="${day||""}" placeholder="1–28" aria-label="${esc(c.name)} statement day"></span></label>
+          <label class="wide">Spent this ${day?"statement period":"month"}<span class="in">S$<input inputmode="decimal"
+            autocomplete="off" data-f="spent" value="${spent!=null?nf(spent):""}" placeholder="0"
+            aria-label="${esc(c.name)} spent this period"></span></label>
+        </div></div>`;}).join("")}</div>`;
+  $$("#p-cards .ccard").forEach(tile=>{
+    const c=CARDS.find(x=>x.id===tile.dataset.cc);
+    const paint=()=>{tile.querySelector(".cap").innerHTML=ccCapHtml(c);};
+    tile.querySelectorAll("input").forEach(inp=>{
+      inp.oninput=()=>{
+        const f=inp.dataset.f; let n=ccNum(inp.value);
+        if(f==="day"&&n!=null){n=Math.round(n); if(n<1||n>28) n=null;}
+        const patch={set:{},unset:[]};
+        const put=(k,v)=>{const key=ccKey(c.id,k);
+          if(v==null){delete S.balances[key]; patch.unset.push(key);} else {S.balances[key]=v; patch.set[key]=v;}};
+        if(f==="day"){
+          const keep=ccSpent(c);      // a new statement day must not wipe spend typed this period
+          put("day",n);
+          if(keep!=null) put("per",ccPeriod(n).start);
+          const lbl=tile.querySelector('[data-f="spent"]').closest("label").firstChild;
+          lbl.textContent=`Spent this ${n?"statement period":"month"}`;
+        }else if(f==="spent"){
+          put("spent",n); put("per",n==null?null:ccPeriod(ccGet(c.id,"day")).start);
+        }else put(f,n);
+        queueSave(patch); paint();
+      };
+      inp.onblur=()=>{const n=ccGet(c.id,inp.dataset.f==="spent"?"spent":inp.dataset.f);
+        if(inp.dataset.f!=="day"&&n!=null) inp.value=nf(inp.dataset.f==="spent"?(ccSpent(c)??0):n);};
+    });
+  });
 }
 
 /* ================= 8. ASK ================= */
