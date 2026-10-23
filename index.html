@@ -385,6 +385,38 @@
     color:var(--ink); padding:8px 0; font-variant-numeric:tabular-nums;}
   .ccard .note{font-size:11px; color:var(--ink-faint); line-height:1.45;}
 
+  /* Spending habits on Joseph's tab: Miles Pilot's engine (2026-10-18). */
+  .mp-status{font-size:12px; color:var(--ink-soft); line-height:1.7; margin-bottom:6px;}
+  .mp-status .chip{margin-right:4px;}
+  .mp-cards{font-size:11.5px; color:var(--ink-faint);}
+  .mp-note{font-size:12px; color:var(--ink-soft); line-height:1.6; border:1px solid var(--line); border-radius:10px;
+    padding:11px 13px; margin:10px 0 0; background:var(--paper-2);}
+  .mp-note .btn{margin-left:6px;}
+  .mp-err{color:var(--neg); font-size:11.5px; margin-top:6px;}
+  .mp-mig{margin-top:10px; max-height:220px; overflow:auto; border:1px solid var(--line); border-radius:8px;}
+  .mp-mig>div{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) auto; gap:10px; padding:6px 10px;
+    border-bottom:1px solid var(--line-soft); font-size:11.5px;}
+  .mp-mig>div:last-child{border-bottom:0;}
+  .mp-mig input{font:inherit; font-size:11.5px; padding:3px 6px; border:1px solid var(--line); border-radius:6px;
+    background:var(--paper); color:var(--ink); width:170px; max-width:60%;}
+  .mp-mig>div>span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .mp-sum{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--ink-soft); margin-bottom:6px;}
+  .stmt-lines-in.mp-lines{max-height:460px;}
+  .stmt-lines-in.mp-lines>div.mp-line{display:block; padding:9px 11px;}
+  .mp-line[hidden]{display:none!important;}
+  .mp-l1{display:flex; justify-content:space-between; gap:12px; font-size:12.5px;}
+  .mp-m{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink);}
+  .mp-l2{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:5px; font-size:11px; color:var(--ink-faint);}
+  .stmt-lines-in .mp-l2 select{max-width:260px;}
+  .mp-bucket{border:1px solid var(--line); border-radius:999px; padding:1px 8px; color:var(--ink-soft);}
+  .mp-l3{margin-top:4px; font-size:11.5px; color:var(--ink-soft);}
+  .mp-used{color:var(--ink-faint);}
+  .mp-lift{color:var(--pine); font-weight:600;}
+  .mp-teach{margin-top:7px; padding:7px 9px; border-radius:8px; background:var(--clay-soft); font-size:11.5px;
+    color:var(--ink-soft); display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .mp-teach input{font:inherit; font-size:11.5px; padding:4px 7px; border:1px solid var(--line); border-radius:6px;
+    background:var(--paper); color:var(--ink); width:180px; max-width:100%;}
+
   @media (max-width:1180px){
     .row-map{grid-template-columns:1fr;} .row-three{grid-template-columns:1fr;}
     .const-wrap{grid-template-columns:1fr;}
@@ -1396,7 +1428,7 @@ function renderExpenseCats(){
       <div>${cm!=null?`The Monthly Overview tab computes one month at a time and was set to
         <b>${miLong(cm)}</b> when read, so only that month has a category split.<br>`:""}
       ${rec?`The monthly total is still ${fmt(rec.expense)}. `:""}
-      Attach a statement for this month under <b>What can I do?</b> and the split is built from it.</div></div>`; return;}
+      ${ACTIVE==="joseph"?"Upload a statement for this month under <b>Spending habits</b>":"Attach a statement for this month under <b>What can I do?</b>"} and the split is built from it.</div></div>`; return;}
   const W=430,pl=104,pr=54,pt=10,pb=28;
   const rowH=clamp(210/rows.length,26,36), H=pt+pb+rowH*rows.length, barH=Math.min(22,rowH-8);
   const max=Math.max(...rows.map(r=>r.amount))*1.02||1;
@@ -1443,6 +1475,7 @@ function spendingMonths(){
     .sort((a,b)=>(parseWhen(a.month)||0)-(parseWhen(b.month)||0));
 }
 function renderSpendingInsight(){
+  if(ACTIVE==="joseph") return renderMilesSpending();      // Miles Pilot's engine — section 7b-J
   const host=$("#p-insight"); if(!host) return;
   const months=spendingMonths();
   host.innerHTML=`<div class="sec-head"><h2>Spending habits</h2>
@@ -1505,6 +1538,407 @@ function renderSpendingInsightResult(data){
     </div>`;
 }
 
+/* ================= 7b-J. SPENDING HABITS · JOSEPH — Miles Pilot's spending engine =================
+   Joseph, 2026-10-18: on his tab, Spending habits is a statement review run by Miles Pilot's
+   spending engine. One engine and one learning store for both dashboards:
+   - the engine is milespilot.net/engine.js, loaded through /api/miles/script/ (with Miles Pilot's
+     card-settings schema), so each line reads exactly as it would in Miles Pilot;
+   - learned merchant rules live in Miles Pilot's D1. A correction here is saved to his private
+     Miles Pilot profile AND suggested as a shared rule (live for everyone only after he approves
+     it as admin), and a rule he teaches in Miles Pilot classifies his statements here;
+   - unknown merchants go straight to Needs Review; he sorts each once and that answer becomes a
+     learned rule. No AI is asked (Joseph, 2026-10-18: no API key), so /api/classify is not called.
+   Finance's own keyword list (CAT_RULES) and the KV merchantRules no longer classify his
+   statements; Melissa's tab still uses both. Category totals still feed Expenses by category. */
+const MILES={status:"idle", promise:null, rules:null, rulesError:null,
+  state:{sharedMappings:[], learnedMappings:[], regulars:[], accountState:"local", strategyRules:[]}};
+/* Engine category → this dashboard's own category (the sheet's taxonomy). */
+const MILES_BUCKET={dining:"Food & Drinks", bakery:"Food & Drinks", fast_food:"Food & Drinks", groceries:"Groceries",
+  ride_hailing:"Transport", petrol:"Transport", travel:"Travel", insurance:"Insurance", telco:"Handphone Bills",
+  fitness:"Gym Membership", charity:"Firstfruits", pharmacy:"Shopping", fashion:"Shopping", beauty:"Shopping",
+  retail:"Shopping", online_shopping:"Shopping", local_jewellery:"Shopping", entertainment:"Miscellaneous"};
+const milesReady=()=>MILES.status==="ready"&&!!window.MilesEngine&&!!window.MilesProfile;
+
+function loadScriptOnce(src){
+  return new Promise((ok,bad)=>{const s=document.createElement("script"); s.src=src; s.async=false;
+    s.onload=ok; s.onerror=()=>bad(new Error(src)); document.head.appendChild(s);});
+}
+function milesLoad(){
+  if(MILES.promise) return MILES.promise;
+  MILES.status="loading";
+  MILES.promise=(async()=>{
+    try{
+      if(!window.MilesProfile) await loadScriptOnce("/api/miles/script/profile.js");
+      if(!window.MilesEngine) await loadScriptOnce("/api/miles/script/engine.js");
+      if(!window.MilesEngine||!window.MilesProfile) throw new Error("engine");
+      MilesEngine.bindState(MILES.state);
+    }catch(_){ MILES.status="failed"; MILES.promise=null; return false; }
+    await milesRefreshRules();
+    MILES.status="ready";
+    return true;
+  })();
+  return MILES.promise;
+}
+/* Learned + shared rules and card settings, live from Miles Pilot. If they cannot be read the
+   engine still runs on what it knows, says so, and teaching is switched off. */
+async function milesRefreshRules(){
+  try{
+    const r=await fetch("/api/miles/rules",{credentials:"same-origin"});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){ MILES.rulesError=data.error||("http-"+r.status); MILES.rules={migration:data.migration||null}; return; }
+    MILES.rules=data; MILES.rulesError=null;
+    MILES.state.learnedMappings=Array.isArray(data.learned)?data.learned:[];
+    MILES.state.sharedMappings=Array.isArray(data.shared)?data.shared:[];
+  }catch(_){ MILES.rulesError="miles-unreachable"; }
+}
+/* Joseph's six cards as the engine knows them, personalised with his Miles Pilot card settings.
+   Mari is a cashback card (compared only where its cashback beats miles); Trust Freedom is not
+   in Miles Pilot's card data, so it is never recommended. */
+function milesCards(){
+  const settings=(MILES.rules&&MILES.rules.settings)||MilesProfile.defaults();
+  const p=MilesProfile.personalise(MilesEngine.cards,MilesEngine.bonusRows,settings);
+  const bySlug={}; p.cards.forEach(c=>{bySlug[c.slug]=c;});
+  const mine=CARDS.map(c=>({fin:c, eng:c.engine?bySlug[c.engine]||null:null}));
+  const statementDays={};
+  mine.forEach(x=>{const d=ccGet(x.fin.id,"day"); if(x.eng&&d) statementDays[x.eng.id]=d;});
+  return {settings, rows:p.rows, mine, statementDays,
+    pool:mine.filter(x=>x.eng&&!x.eng.is_reference_only).map(x=>x.eng),
+    cashback:mine.filter(x=>x.eng&&x.eng.is_reference_only).map(x=>x.eng)};
+}
+function milesBucket(info){
+  if(!info||!info.known) return CAT_DEFAULT;
+  if(info.category) return MILES_BUCKET[info.category]||"Miscellaneous";
+  const t=info.tags||{};
+  if(t.travel||t.airline||t.sia||t.travelAgency) return "Travel";
+  if(t.transportCat||t.publicTransport||t.parking||t.toll||t.evCharging) return "Transport";
+  if(t.dining||t.foodDelivery) return "Food & Drinks";
+  if(t.groceries) return "Groceries";
+  if(t.shopping||t.retailStore) return "Shopping";
+  return "Miscellaneous";
+}
+const milesLabel=k=>(window.MilesEngine&&MilesEngine.LEARNED[k]?MilesEngine.LEARNED[k].label:k);
+function milesLineCat(line){
+  const st=STMT.lineState[line.idx];
+  if(st&&st.override) return st.override==="__review"?CAT_DEFAULT:(MILES_BUCKET[st.override]||"Miscellaneous");
+  return milesBucket(line.info);
+}
+function milesTotals(months){
+  Object.values(months).forEach(g=>{
+    g.total=0; g.count=g.lines.length; g.cats={};
+    g.lines.forEach(l=>{l.cat=milesLineCat(l); g.total+=l.amount; g.cats[l.cat]=(g.cats[l.cat]||0)+l.amount;});
+    g.total=Math.round(g.total*100)/100;
+    Object.keys(g.cats).forEach(k=>{g.cats[k]=Math.round(g.cats[k]*100)/100;});
+  });
+}
+/* Reads every row through the engine, oldest first, so bonus caps fill in the order the spend
+   happened (as Miles Pilot's own statement review does), then groups by month. */
+function milesGroup(rows){
+  let reviewed=null;
+  if(milesReady()){
+    const k=milesCards();
+    const usedEng=STMT.card?(k.mine.find(x=>x.fin.id===STMT.card)||{}).eng:null;
+    const order=rows.map((r,i)=>i).sort((a,b)=>{const A=rows[a].when,B=rows[b].when;
+      return (A.y-B.y)||(A.m-B.m)||(A.d-B.d)||(a-b);});
+    const res=MilesEngine.reviewEntries(order.map(i=>({merchant:rows[i].merchant,amount:rows[i].amount})), k.pool,
+      {bonusRows:k.rows, cashbackCards:k.cashback, statementDays:k.statementDays,
+       usedCard:usedEng&&!usedEng.is_reference_only?usedEng:null});
+    reviewed=new Array(rows.length); order.forEach((i,j)=>{reviewed[i]=res[j];});
+  }
+  const out={};
+  rows.forEach((r,idx)=>{
+    const key=r.when.y+"-"+String(r.when.m+1).padStart(2,"0");
+    const g=out[key]||(out[key]={total:0,count:0,cats:{},lines:[]});
+    const e=reviewed?reviewed[idx]:null;
+    g.lines.push({idx, merchant:r.merchant, amount:r.amount, day:r.when.d,
+      info:e?{known:e.known, category:e.category, mcc:e.mcc, mccAssumed:e.mccAssumed, readable:e.readable, learned:e.learned, tags:e.tags}:null,
+      best:e?e.best:null, actual:e?e.actual:null, phrase:e?MilesEngine.merchantPhrase(r.merchant):""});
+  });
+  milesTotals(out);
+  Object.values(out).forEach(g=>g.lines.sort((a,b)=>b.amount-a.amount));
+  return out;
+}
+function milesRebuild(){
+  const p=STMT.parsed; if(!p||p.scope!=="joseph"||!STMT.rows) return;
+  p.months=milesGroup(STMT.rows);
+}
+
+/* ---- status line: where the engine and the rules came from, and when (R5) ---- */
+function milesStatusHtml(){
+  if(MILES.status==="loading"||MILES.status==="idle")
+    return `<span class="chip grey">Loading</span> Loading Miles Pilot's engine…`;
+  if(!milesReady())
+    return `<span class="chip clay">Engine unavailable</span> Miles Pilot's engine could not be loaded, so statements can
+      still be read but not classified: every line lands in Needs Review. <button class="linkbtn" id="mp-retry">Retry</button>`;
+  const k=milesCards(), r=MILES.rules||{};
+  const dates=k.pool.concat(k.cashback).map(c=>c.last_verified_date).filter(Boolean).sort();
+  const lady=k.settings&&k.settings.ladyCategory;
+  const cards=k.mine.map(x=>!x.eng?`${esc(x.fin.name)} <span class="unk">(not in Miles Pilot's card data — never recommended)</span>`
+    :x.eng.is_reference_only?`${esc(x.fin.name)} <span class="unk">(cashback — shown only where it beats miles)</span>`
+    :esc(x.fin.name)+(x.eng.slug==="uob-ladys"?` <span class="unk">(${lady?esc(lady.replace(/_/g," "))+" selected":"category not set in Miles Pilot"})</span>`:"")).join(" · ");
+  const rules=MILES.rulesError
+    ?`<span class="chip clay">Learned rules unavailable</span> ${MILES.rulesError==="miles-unconfigured"
+        ?"This dashboard has no Miles Pilot service token yet (MILES_SERVICE_TOKEN), so"
+        :"Miles Pilot's learning store could not be reached, so"} the engine runs on its built-in knowledge and corrections cannot be taught.`
+    :`Learned rules: <b>${(r.learned||[]).length}</b> private · <b>${(r.shared||[]).length}</b> shared · <b>${(r.pending||[]).length}</b> suggestion${(r.pending||[]).length===1?"":"s"} awaiting your approval
+      <span class="unk">— read from Miles Pilot ${r.observed_at?new Date(r.observed_at).toLocaleString("en-SG",{timeZone:"Asia/Singapore",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+" SGT":""}</span>`;
+  return `<div><span class="chip pine plain">Miles Pilot engine</span> <span class="unk">${esc(r.engine_source||"milespilot.net/engine.js")}${dates.length?` · card data checked ${esc(dates[0])}${dates[dates.length-1]!==dates[0]?" to "+esc(dates[dates.length-1]):""}`:""}</span></div>
+    <div>${rules}</div><div class="mp-cards">Compared: ${cards}</div>`;
+}
+function paintMilesStatus(){
+  const el=$("#mp-status"); if(!el) return;
+  el.innerHTML=milesStatusHtml();
+  const retry=$("#mp-retry"); if(retry) retry.onclick=()=>{paintMilesStatus(); milesLoad().then(()=>{paintMilesStatus(); renderMilesMigration(); milesRebuild(); renderStmtReview();});};
+}
+
+/* ---- the Spending habits card on Joseph's tab ---- */
+function renderMilesSpending(){
+  const host=$("#p-insight"); if(!host) return;
+  host.innerHTML=`<div class="sec-head"><h2>Spending habits</h2>
+      <span class="hint">statement review on Miles Pilot's spending engine — category, MCC and the card that earns most, one learning store with milespilot.net</span>
+      <span class="sp"></span>
+      <button class="btn" id="insight-stmt">Upload ${esc(M.scope.person)}'s statement</button></div>
+    <div class="mp-status" id="mp-status"></div>
+    <div id="mp-migrate"></div>
+    <div id="stmt-panel"></div>`;
+  $("#insight-stmt").onclick=()=>{
+    renderStmtPanel(true);
+    $("#stmt-panel")?.scrollIntoView({behavior:"smooth",block:"start"});
+  };
+  renderStmtPanel(false);
+  paintMilesStatus();
+  milesLoad().then(()=>{ if(ACTIVE!=="joseph") return; paintMilesStatus(); renderMilesMigration(); });
+}
+
+/* ---- one-time move of Finance's old KV merchant rules into Miles Pilot ---- */
+const MIG_CATEGORY={"Food & Drinks":"dining", "Groceries":"groceries", "Travel":"travel", "Insurance":"insurance",
+  "Handphone Bills":"telco", "Gym Membership":"fitness", "Firstfruits":"charity"};
+function milesMigrationPlan(){
+  const moved=new Map(), skipped=[];
+  (S.merchantRules||[]).forEach(r=>{
+    const phrase=MilesEngine.merchantPhrase(r.merchant);
+    let category=MIG_CATEGORY[r.category]||null, reason=null;
+    const read=MilesEngine.classifyMerchant(r.merchant).category;
+    if(r.category==="Shopping") category=["online_shopping","retail","fashion","beauty","pharmacy","local_jewellery"].includes(read)?read:"retail";
+    if(r.category==="Transport"){ category=["ride_hailing","petrol"].includes(read)?read:null;
+      if(!category) reason="public transport, parking and tolls are read from the merchant; there is no taught category for them"; }
+    if(!category&&!reason) reason=`“${r.category}” has no matching Miles Pilot category`;
+    const rule=category&&MilesEngine.sanitiseMerchantMapping({phrase,category});
+    if(rule) moved.set(rule.phrase,{...rule, from:r.category, merchant:r.merchant});
+    else skipped.push({merchant:r.merchant, from:r.category, reason:reason||"no usable merchant phrase"});
+  });
+  return {moved:[...moved.values()], skipped};
+}
+function renderMilesMigration(open){
+  const host=$("#mp-migrate"); if(!host) return;
+  const old=(S.merchantRules||[]).length;
+  const done=MILES.rules&&MILES.rules.migration;
+  if(!old||!milesReady()){host.innerHTML=""; return;}
+  if(done){
+    host.innerHTML=`<div class="mp-note">${done.moved} of Finance's ${old} earlier merchant rule${old===1?"":"s"} ${done.moved===1?"was":"were"} moved into Miles Pilot on
+      ${esc(new Date(done.at).toLocaleDateString("en-SG",{timeZone:"Asia/Singapore",day:"numeric",month:"short",year:"numeric"}))}: ${done.learned} learned, ${done.submitted} suggested as shared rules.
+      Finance's own rules no longer classify your statements (Melissa's tab still uses them).</div>`;
+    return;
+  }
+  if(MILES.rulesError){host.innerHTML=`<div class="mp-note">Finance holds ${old} earlier merchant rule${old===1?"":"s"}. They can be moved into Miles Pilot once its learning store is reachable.</div>`; return;}
+  const plan=milesMigrationPlan();
+  host.innerHTML=`<div class="mp-note"><b>${old} merchant rule${old===1?"":"s"} taught on this dashboard before</b> no longer classify your statements.
+      Move them into Miles Pilot's learning store so the correction is not lost — each one is saved to your private profile and suggested as a shared rule.
+      <button class="btn sm" id="mp-mig-open">${open?"Hide":"Review the move"}</button>
+    ${open?`<div class="mp-mig">
+      ${plan.moved.map((m,i)=>`<div><span>${esc(m.merchant)}</span><span><input data-mig="${i}" value="${esc(m.phrase)}" aria-label="Phrase for ${esc(m.merchant)}"> → <b>${esc(milesLabel(m.category))}</b></span><span class="stmt-dim">was ${esc(m.from)}</span></div>`).join("")}
+      ${plan.skipped.map(m=>`<div class="skip"><span>${esc(m.merchant)}</span><span class="unk">not moved: ${esc(m.reason)}</span><span class="stmt-dim">was ${esc(m.from)}</span></div>`).join("")}
+      </div>
+      <div class="stmt-actions"><button class="btn primary" id="mp-mig-go" ${plan.moved.length?"":"disabled"}>Move ${plan.moved.length} rule${plan.moved.length===1?"":"s"} into Miles Pilot</button>
+      <span class="stmt-dim">Edit a phrase to the words your statements actually show. The old rules stay stored for Melissa's tab; nothing is deleted.</span></div>`:""}</div>`;
+  $("#mp-mig-open").onclick=()=>renderMilesMigration(!open);
+  const go=$("#mp-mig-go");
+  if(go) go.onclick=async()=>{
+    const rules=plan.moved.map((m,i)=>MilesEngine.sanitiseMerchantMapping({phrase:($(`[data-mig="${i}"]`,host)||{}).value||m.phrase, category:m.category}));
+    if(rules.some(r=>!r)){ host.querySelector(".mp-note").insertAdjacentHTML("beforeend",`<div class="mp-err">Every phrase needs 3 to 60 characters.</div>`); return; }
+    go.disabled=true; go.textContent="Moving…";
+    try{
+      const r=await fetch("/api/miles/learn",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({migration:true, rules})});
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok||!data.ok) throw new Error(data.error||"failed");
+      await milesRefreshRules(); paintMilesStatus(); renderMilesMigration(); milesRebuild(); renderStmtReview();
+    }catch(e){ go.disabled=false; go.textContent="Retry the move";
+      host.querySelector(".mp-note").insertAdjacentHTML("beforeend",`<div class="mp-err">Not moved: ${esc(e.message)}. Nothing was changed.</div>`); }
+  };
+}
+
+/* ---- teaching ---- */
+async function milesTeach(idx, phrase, category){
+  const p=STMT.parsed; if(!p) return;
+  const line=Object.values(p.months).flatMap(g=>g.lines).find(l=>l.idx===idx);
+  const rule=MilesEngine.sanitiseMerchantMapping({phrase,category});
+  if(!rule){ setStmtStatus("Use a merchant phrase of 3 to 60 characters, and pick a category.","clay"); return; }
+  if(line&&!(" "+line.merchant.toLowerCase()+" ").includes(rule.phrase)){
+    setStmtStatus(`“${esc(rule.phrase)}” does not appear in “${esc(line.merchant)}”, so it would never match this line. Shorten it to words the statement shows.`,"clay"); return; }
+  STMT.lineState[idx]={...(STMT.lineState[idx]||{}), override:category, taught:false, phrase:rule.phrase};
+  setStmtStatus(`Teaching Miles Pilot that “${esc(rule.phrase)}” is ${esc(milesLabel(category))}…`,"grey");
+  let data={};
+  try{
+    const r=await fetch("/api/miles/learn",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({rules:[rule]})});
+    data=await r.json().catch(()=>({}));
+    if(!r.ok||!data.ok) throw new Error(data.error||("http "+r.status));
+  }catch(e){
+    setStmtStatus(`Not taught (${esc(e.message)}). This line keeps your category for this statement only; retry when Miles Pilot is reachable.`,"clay");
+    milesTotals(p.months); renderMilesReview(); return;
+  }
+  STMT.lineState[idx].taught=true;
+  MILES.state.learnedMappings=MILES.state.learnedMappings.filter(x=>x.phrase!==rule.phrase).concat([{...rule, learned_at:data.observed_at}]);
+  milesRebuild();
+  const shared=data.submitted?" and suggested as a shared rule, awaiting your approval in Miles Pilot"
+    :(data.alreadyShared||[]).length?" (it is already a shared rule)":(data.alreadyPending||[]).length?" (its shared suggestion is already awaiting approval)":"";
+  setStmtStatus(`Taught: “${esc(rule.phrase)}” now reads as ${esc(milesLabel(category))} on both dashboards. Saved to your private Miles Pilot profile${shared}.${data.submitError?" "+esc(data.submitError):""}`,"pine");
+  renderMilesReview();
+  milesRefreshRules().then(paintMilesStatus);
+}
+
+/* ---- the review itself ---- */
+function milesCardHtml(l){
+  const st=STMT.lineState[l.idx]||{};
+  if(!l.info) return `<span class="unk">card unavailable — engine not loaded</span>`;
+  if(st.override&&st.override!=="__review"&&!st.taught) return `<span class="unk">teach the correction to re-check the card</span>`;
+  if(!l.info.known&&!st.taught) return `<span class="unk">unknown merchant — pick its category once and it is learned</span>`;
+  const b=l.best; if(!b) return `<span class="unk">no card compared</span>`;
+  const mpd=MilesEngine.mpd2(b.mpd);
+  let h=b.miles>0
+    ?`Best: <b>${esc(b.card)}</b> · ${mpd} mpd · ${nf(b.miles)} mi${b.cardup?` <span class="unk">via CardUp, S$${esc(b.cardup_fee_sgd)} fee</span>`:""}`
+    :`<span class="unk">None of your cards earns miles on this</span>`;
+  if(l.actual){ const lift=Math.round((b.miles||0)-(l.actual.miles||0));
+    h+=` <span class="mp-used">· ${esc(l.actual.card)} earned ${nf(l.actual.miles)} mi${lift>0&&b.slug!==l.actual.slug?` <b class="mp-lift">+${nf(lift)}</b>`:""}</span>`; }
+  if(b.cashback_alt) h+=` <span class="mp-used">· ${esc(b.cashback_alt.card)} cashback is worth more here</span>`;
+  return `<span title="${esc(b.why||"")}">${h}</span>`;
+}
+function milesLineHtml(l,k){
+  const st=STMT.lineState[l.idx]||{}, info=l.info;
+  const cur=st.override||(info&&info.category)||(info&&info.known?"__engine":"__review");
+  const opts=window.MilesEngine?MilesEngine.LEARNED_CATEGORIES:[];
+  const select=info?`<select data-cat aria-label="Category for ${esc(l.merchant)}">
+      <option value="__review" ${cur==="__review"?"selected":""}>Needs Review</option>
+      ${info.known&&!info.category?`<option value="__engine" ${cur==="__engine"?"selected":""}>as read: ${esc(info.readable)} → ${esc(milesBucket(info))}</option>`:""}
+      ${opts.map(c=>`<option value="${c}" ${c===cur?"selected":""}>${esc(milesLabel(c))} → ${esc(MILES_BUCKET[c]||"Miscellaneous")}</option>`).join("")}
+    </select>`:`<span class="unk">engine unavailable</span>`;
+  const mcc=info&&info.mcc!=null?`MCC ${info.mcc}${info.mccAssumed?` <span class="unk">assumed</span>`:""}`:`<span class="unk">MCC unknown</span>`;
+  const tag=st.taught?`<span class="stmt-learning">taught</span>`:info&&info.learned?`<span class="stmt-learning">learned rule</span>`
+    :l.cat===CAT_DEFAULT?`<span class="chip clay plain">Needs Review</span>`:"";
+  let teach="";
+  const canTeach=!MILES.rulesError&&milesReady();
+  if(st.override&&st.override!=="__review"&&!st.taught){
+    teach=`<div class="mp-teach">${canTeach?`Teach both dashboards: statements containing
+      <input data-phrase value="${esc(st.phrase||l.phrase)}" aria-label="Merchant phrase"> are <b>${esc(milesLabel(st.override))}</b>
+      <button class="btn sm primary" data-teach>Teach</button>
+      <span class="stmt-dim">saved to your private Miles Pilot profile and suggested as a shared rule</span>`
+      :`<span class="unk">Kept for this statement only — teaching is off while Miles Pilot's learning store is unavailable.</span>`}</div>`;
+  }
+  return `<div class="mp-line" data-month="${esc(k)}" data-idx="${l.idx}" data-review="${l.cat===CAT_DEFAULT?1:0}">
+    <div class="mp-l1"><span class="mp-m">${esc(l.merchant)}</span><span class="num">${fmt(l.amount,{cents:true})}</span></div>
+    <div class="mp-l2">${select}<span>${mcc}</span>${l.cat===CAT_DEFAULT?"":`<span class="mp-bucket">${esc(l.cat)}</span>`}${tag}</div>
+    <div class="mp-l3">${milesCardHtml(l)}</div>${teach}</div>`;
+}
+function renderMilesReview(){
+  const host=$("#stmt-review"); if(!host) return;
+  const p=STMT.parsed;
+  if(!p||p.scope!=="joseph"){host.innerHTML=""; return;}
+  const keys=Object.keys(p.months).sort();
+  if(!keys.length){host.innerHTML=""; return;}
+  const scrolls={}; $$(".stmt-lines-in",host).forEach(el=>{scrolls[el.dataset.m]=el.scrollTop;});
+  const existing=(S.imports&&S.imports.joseph)||{};
+  const all=Object.values(p.months).flatMap(g=>g.lines);
+  const review=all.filter(l=>l.cat===CAT_DEFAULT).length;
+  const modelled=all.filter(l=>l.best&&l.info&&(l.info.known||(STMT.lineState[l.idx]||{}).taught));
+  const bestMi=modelled.reduce((a,l)=>a+(l.best.miles||0),0);
+  const usedMi=modelled.filter(l=>l.actual).reduce((a,l)=>a+(l.actual.miles||0),0);
+  const used=STMT.card?CARDS.find(c=>c.id===STMT.card):null;
+  const usedModelled=used&&modelled.some(l=>l.actual);
+  host.innerHTML=`<div class="stmt-review">
+    <div class="stmt-review-h">Read from the file${p.period?" · dated into "+esc(p.period):""} · classified by Miles Pilot's engine
+      — nothing is saved until you say so</div>
+    ${p.dropped?`<div style="font-size:11.5px;color:var(--clay-deep);margin-bottom:9px;line-height:1.5">
+      ${p.dropped} row${p.dropped===1?"":"s"} fell outside ${esc(p.period)} and ${p.dropped===1?"was":"were"} left out.
+      If that looks wrong, pick a different period and read the file again.</div>`:""}
+    ${milesReady()?`<div class="mp-sum">
+      <span><b>${all.length}</b> line${all.length===1?"":"s"} · <b>${review}</b> in Needs Review</span>
+      <span>Best card each time: <b>${nf(bestMi)}</b> mi${usedModelled?` · on ${esc(used.name)}: <b>${nf(usedMi)}</b> mi`
+        :used?` · <span class="unk">${esc(used.name)} is not a miles card in the engine, so it is not compared</span>`
+        :` · <span class="unk">pick the card this statement is for to compare</span>`}</span>
+      <span class="unk">Modelled with today's card rules from the statement descriptions, caps starting empty — not bank-posted miles.</span></div>`
+      :`<div class="mp-err">Miles Pilot's engine is not loaded, so lines are not classified. They are all in Needs Review.</div>`}
+    <div class="stmt-tools"><input id="stmt-search" placeholder="Filter merchant" value="${esc(STMT.filter||"")}">
+      <button class="btn" id="mp-only-review" aria-pressed="${STMT.onlyReview?"true":"false"}">${STMT.onlyReview?"Show all lines":`Needs Review only (${review})`}</button></div>
+    ${keys.map(k=>{const g=p.months[k], cats=Object.entries(g.cats).sort((a,b)=>b[1]-a[1]);
+      const idx=parseWhen(k), replacing=existing[k]!=null, picked=!(STMT.unpicked||{})[k];
+      return `<div class="stmt-month">
+        <div class="stmt-month-h">
+          <label><input type="checkbox" class="stmt-pick" data-m="${esc(k)}" ${picked?"checked":""}>
+            <b>${miLong(idx)}</b></label>
+          <span class="num">${fmt(g.total)}</span>
+          <span class="stmt-dim">${g.count} transaction${g.count===1?"":"s"}</span>
+          ${replacing?`<span class="chip clay">replaces a saved month</span>`:""}
+        </div>
+        <div class="stmt-cats">${cats.map(([c,v])=>`<span class="stmt-cat"><b>${esc(c)}</b> ${fmt(v)}</span>`).join("")}</div>
+        <details class="stmt-lines" open><summary>${g.lines.length} transaction${g.lines.length===1?"":"s"} — category, MCC and best card for each; a correction teaches Miles Pilot</summary>
+          <div class="stmt-lines-in mp-lines" data-m="${esc(k)}">${g.lines.map(l=>milesLineHtml(l,k)).join("")}</div>
+          <div class="stmt-dim" style="margin-top:8px">Merchant lines exist only in this browser. Only the month totals you save, and the merchant phrases you choose to teach, leave this page.</div>
+        </details>
+      </div>`;}).join("")}
+    <div class="stmt-actions">
+      <button class="btn primary" id="stmt-save">Save the ticked months</button>
+      <button class="btn" id="stmt-discard">Discard</button>
+      <span class="stmt-dim">Saves the month, the count and the category totals — nothing else.</span>
+    </div>
+  </div>`;
+  $$(".stmt-lines-in",host).forEach(el=>{if(scrolls[el.dataset.m]) el.scrollTop=scrolls[el.dataset.m];});
+
+  const applyFilter=()=>{const q=(STMT.filter||"").trim().toUpperCase();
+    $$(".mp-line",host).forEach(row=>{const line=p.months[row.dataset.month].lines.find(l=>l.idx===+row.dataset.idx);
+      row.hidden=(!!q&&!line.merchant.toUpperCase().includes(q))||(STMT.onlyReview&&row.dataset.review!=="1");});};
+  applyFilter();
+  $("#stmt-search").oninput=e=>{STMT.filter=e.target.value; applyFilter();};
+  $("#mp-only-review").onclick=()=>{STMT.onlyReview=!STMT.onlyReview; renderMilesReview();};
+  $$(".stmt-pick",host).forEach(c=>c.onchange=()=>{STMT.unpicked=STMT.unpicked||{}; STMT.unpicked[c.dataset.m]=!c.checked;});
+  $$(".mp-line",host).forEach(row=>{
+    const idx=+row.dataset.idx;
+    const sel=$("[data-cat]",row);
+    if(sel) sel.onchange=e=>{
+      const v=e.target.value, st=STMT.lineState[idx]||{};
+      if(v==="__engine") delete STMT.lineState[idx];
+      else STMT.lineState[idx]={override:v, taught:false, phrase:st.phrase};
+      milesTotals(p.months); renderMilesReview();
+    };
+    const phrase=()=>($("[data-phrase]",row)||{}).value||"";
+    const teach=$("[data-teach]",row); if(teach) teach.onclick=()=>milesTeach(idx,phrase(),STMT.lineState[idx].override);
+  });
+  $("#stmt-discard").onclick=()=>{STMT.parsed=null; STMT.rows=null; setStmtStatus("Discarded. Nothing was saved.","grey"); renderMilesReview();};
+  $("#stmt-save").onclick=async()=>{
+    const picked=$$(".stmt-pick",host).filter(c=>c.checked).map(c=>c.dataset.m);
+    if(!picked.length){setStmtStatus("Tick at least one month to save.","clay"); return;}
+    const saved=(S.imports&&S.imports.joseph)||{};
+    const toSave=picked.filter(k=>saved[k]?.statementId!==p.statementId);
+    if(!toSave.length){setStmtStatus("This statement was already saved. Nothing was added twice.","grey"); return;}
+    milesTotals(p.months);
+    const sets=toSave.map(k=>{const g=p.months[k];
+      S.imports.joseph=S.imports.joseph||{};
+      const rec={total:g.total,count:g.count,cats:g.cats,statementId:p.statementId,at:new Date().toISOString()};
+      S.imports.joseph[k]=rec;                       // note: g.lines is NOT included
+      return {scope:"joseph",month:k,rec};});
+    queueSave({setImports:sets});
+    applyImports();
+    setStmtStatus("Saving securely…","grey");
+    if(!await flushSave()){
+      queueSave({setImports:sets});
+      setStmtStatus("Not confirmed on the shared dashboard yet. Keep this page open and retry when the sync chip is green.","clay");
+      return;
+    }
+    STMT.parsed=null; STMT.rows=null;
+    setStmtStatus(`Saved ${toSave.length} month${toSave.length===1?"":"s"}${toSave.length!==picked.length?"; duplicate month skipped":""}. The statement itself was never stored.`,"pine");
+    renderMonthPick(); renderStmtPanel(true); refresh();
+  };
+}
+
 /* ================= 7c. CREDIT CARDS (Joseph tab only) =================
    One tile per card: hero image, a monthly limit and statement day Joseph
    types in, and a spend track like Miles Pilot's that drains as spend rises.
@@ -1514,13 +1948,14 @@ function renderSpendingInsightResult(data){
    (_per, yyyymmdd); once the statement day rolls over it reads as a new period
    at S$0 rather than carrying last month's figure forward. */
 const CARDS=[
-  {id:"citiRewards",    name:"Citi Rewards",    iss:"Citibank",  img:"assets/cards/citi-rewards.jpg"},
-  {id:"hsbcRevolution", name:"HSBC Revolution", iss:"HSBC",      img:"assets/cards/hsbc-revolution.jpg"},
-  {id:"krisflyerUob",   name:"KrisFlyer UOB",   iss:"UOB",       img:"assets/cards/krisflyer-uob.jpg"},
-  {id:"mari",           name:"Mari Credit Card",iss:"MariBank",  img:"assets/cards/mari.webp"},
-  {id:"trustFreedom",   name:"Trust Freedom",   iss:"Trust Bank",img:"assets/cards/trust-freedom.jpg"},
-  {id:"uobLadys",       name:"UOB Lady's",      iss:"UOB",       img:"assets/cards/uob-ladys.jpg"}
+  {id:"citiRewards",    name:"Citi Rewards",    iss:"Citibank",  img:"assets/cards/citi-rewards.jpg",   engine:"citi-rewards"},
+  {id:"hsbcRevolution", name:"HSBC Revolution", iss:"HSBC",      img:"assets/cards/hsbc-revolution.jpg",engine:"hsbc-revolution"},
+  {id:"krisflyerUob",   name:"KrisFlyer UOB",   iss:"UOB",       img:"assets/cards/krisflyer-uob.jpg",  engine:"krisflyer-uob"},
+  {id:"mari",           name:"Mari Credit Card",iss:"MariBank",  img:"assets/cards/mari.webp",          engine:"mari-credit-card"},
+  {id:"trustFreedom",   name:"Trust Freedom",   iss:"Trust Bank",img:"assets/cards/trust-freedom.jpg",  engine:null},
+  {id:"uobLadys",       name:"UOB Lady's",      iss:"UOB",       img:"assets/cards/uob-ladys.jpg",      engine:"uob-ladys"}
 ];
+/* engine: the card's slug in Miles Pilot's engine (null = not in its card data). */
 const ccKey=(id,f)=>`cc_${id}_${f}`;
 const ccGet=(id,f)=>{const v=S.balances[ccKey(id,f)]; return v==null?null:Number(v);};
 const ymd=d=>d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
@@ -1615,11 +2050,14 @@ function renderAsk(){
       placeholder="Set my cash balance to 12,000 — or ask: can I afford a $4,000 trip?">
       <button class="btn primary ask-go" id="ask-go">Execute</button></div>
     <div class="ask-suggest" id="sugg"></div>
-    <div id="stmt-panel"></div>
+    ${ACTIVE==="joseph"?"":`<div id="stmt-panel"></div>`}
     <div class="options" id="ask-out"></div>`;
+  // On Joseph's tab the statement panel lives in Spending habits (Miles Pilot's engine).
   $("#stmt-open").onclick=()=>{
-    const open=$("#stmt-panel").dataset.open==="1";
+    const panel=$("#stmt-panel"); if(!panel) return;
+    const open=panel.dataset.open==="1";
     renderStmtPanel(!open);
+    if(!open&&ACTIVE==="joseph") panel.scrollIntoView({behavior:"smooth",block:"start"});
   };
   renderStmtPanel($("#stmt-panel")?.dataset.open==="1");
   const who=ACTIVE==="melissa"?"Melissa's":"my";
@@ -2114,7 +2552,8 @@ function renderAskAnswer(data,q){
 const PDFJS_URL="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 const PDFJS_WORKER="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
-const STMT={parsed:null, busy:false, needsPassword:false, note:"", range:null};
+const STMT={parsed:null, busy:false, needsPassword:false, note:"", range:null,
+  rows:null, card:"", lineState:{}, filter:"", onlyReview:false, unpicked:{}};   // the last five: Joseph's tab only
 
 /* ---- statement period ----------------------------------------------------
    Card statements straddle two calendar months and often print day+month with
@@ -2405,8 +2844,14 @@ async function runStatement(){
     }else{
       inferYears(rows,text);
     }
-    const months=groupByMonth(rows), statementId=await statementFingerprint(rows);
-    STMT.parsed={months,statementId,how,count:rows.length,period,dropped};
+    let months;
+    if(ACTIVE==="joseph"){            // Miles Pilot's engine classifies Joseph's lines (7b-J)
+      await milesLoad();
+      STMT.rows=rows; STMT.lineState={}; STMT.unpicked={}; STMT.filter=""; STMT.onlyReview=false;
+      months=milesGroup(rows);
+    }else months=groupByMonth(rows);
+    const statementId=await statementFingerprint(rows);
+    STMT.parsed={months,statementId,how,count:rows.length,period,dropped,scope:ACTIVE};
     STMT.needsPassword=false;
     setStmtStatus(`Read ${rows.length} purchase${rows.length===1?"":"s"} via ${how}`
       +(period?` and dated into ${esc(period)}`:"")+`. The file has been closed.`
@@ -2496,12 +2941,19 @@ function renderStmtPanel(open){
   host.innerHTML=`<div class="stmt-box">
     <div class="stmt-head"><b>Attach a statement — ${esc(M.scope.person)}</b>
       <span class="chip pine">Read in this browser only</span></div>
-    <div class="stmt-note">
+    <div class="stmt-note">${ACTIVE==="joseph"?`
+      Pick a credit-card statement and the page reads it here. Miles Pilot's spending engine gives each
+      purchase a category and MCC and says which of your cards would have earned the most.
+      <b>The file is never uploaded, stored or sent anywhere</b> — it is read in this tab and the copy is
+      dropped as soon as it has been parsed. Only the figures you choose to save leave this page: a month,
+      a transaction count and the category totals. Merchant names are not saved here; the only exception
+      is a merchant phrase you choose to teach (saved to your private Miles Pilot profile and suggested as a
+      shared rule). A merchant the engine does not know goes to Needs Review: sort it once and it is learned.`:`
       Pick a credit-card statement and the page reads it here, sorts the purchases into categories and
       totals them by month. <b>The file is never uploaded, stored or sent anywhere</b> — it is read in
       this tab and the copy is dropped as soon as it has been parsed. Only the figures you choose to
       save leave this page: a month, a transaction count and the category totals. Merchant names stay
-      on this screen and are never saved.
+      on this screen and are never saved.`}
       <br>CSV, TXT, or a PDF with selectable text. A scanned or photographed statement cannot be read.
       <br><b>Set the period to the two months the statement covers.</b> Statements print dates without a
       year, so this is what fixes each purchase to the right month — each row lands in whichever of the
@@ -2520,6 +2972,10 @@ function renderStmtPanel(open){
           <option value="auto" ${STMT.range==="auto"?"selected":""}>Detect from the file</option>
         </select>
       </label>
+      ${ACTIVE==="joseph"?`<label class="stmt-period"><span>Card</span>
+        <select id="stmt-card" aria-label="Card this statement is for"><option value="">Not sure</option>
+          ${CARDS.map(c=>`<option value="${c.id}" ${STMT.card===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}
+        </select></label>`:""}
       <button class="btn primary" id="stmt-run">Read statement</button>
     </div>
     <div class="stmt-status ${STMT.note?.tone||"grey"}" id="stmt-status">${STMT.note?.text||"Nothing read yet."}</div>
@@ -2540,6 +2996,8 @@ function renderStmtPanel(open){
     $("#stmt-name").textContent=f?f.name:"No file chosen";
   };
   $("#stmt-range").onchange=e=>{STMT.range=e.target.value;};   // survives the panel re-rendering
+  const cardSel=$("#stmt-card");
+  if(cardSel) cardSel.onchange=e=>{STMT.card=e.target.value; milesRebuild(); renderStmtReview();};
   $("#stmt-run").onclick=runStatement;
   $$("[data-delimp]",host).forEach(b=>b.onclick=()=>{
     const k=b.dataset.delimp;
@@ -2551,9 +3009,10 @@ function renderStmtPanel(open){
 }
 
 function renderStmtReview(){
+  if(ACTIVE==="joseph") return renderMilesReview();         // Miles Pilot's engine — section 7b-J
   const host=$("#stmt-review"); if(!host) return;
   const p=STMT.parsed;
-  if(!p){host.innerHTML=""; return;}
+  if(!p||(p.scope&&p.scope!==ACTIVE)){host.innerHTML=""; return;}
   const keys=Object.keys(p.months).sort();
   if(!keys.length){host.innerHTML=""; return;}
   const existing=(S.imports&&S.imports[ACTIVE])||{};
@@ -2566,8 +3025,7 @@ function renderStmtReview(){
       If that looks wrong, pick a different period and read the file again.</div>`:""}
     <div class="stmt-tools"><input id="stmt-search" placeholder="Filter merchant">
       <select id="stmt-bulk-cat"><option value="">Bulk change category…</option>${CATEGORIES.concat([CAT_DEFAULT]).map(c=>`<option>${esc(c)}</option>`).join("")}</select>
-      <button class="btn" id="stmt-bulk-apply">Apply to filtered</button>
-      <button class="btn" id="stmt-ai">Classify Needs Review</button></div>
+      <button class="btn" id="stmt-bulk-apply">Apply to filtered</button></div>
     ${keys.map(k=>{const g=p.months[k], cats=Object.entries(g.cats).sort((a,b)=>b[1]-a[1]);
       const idx=parseWhen(k), replacing=existing[k]!=null;
       return `<div class="stmt-month">
@@ -2605,16 +3063,6 @@ function renderStmtReview(){
     const line=p.months[row.dataset.month].lines[+row.dataset.line]; row.hidden=!!q&&!line.merchant.toUpperCase().includes(q);});};
   $("#stmt-bulk-apply").onclick=()=>{const cat=$("#stmt-bulk-cat").value; if(!cat) return;
     $$(".stmt-line",host).filter(row=>!row.hidden).forEach(row=>{const line=p.months[row.dataset.month].lines[+row.dataset.line]; line.cat=cat; line.source="human"; $("[data-cat]",row).value=cat;}); recalc();};
-  $("#stmt-ai").onclick=async()=>{const lines=Object.values(p.months).flatMap(g=>g.lines).filter(l=>l.cat===CAT_DEFAULT);
-    if(!lines.length){setStmtStatus("Nothing needs AI classification.","grey"); return;}
-    setStmtStatus("Claude is reading the unresolved merchant lines — they are not stored…","grey");
-    try{const r=await fetch("/api/classify",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({merchants:lines.map(l=>l.merchant),categories:CATEGORIES,examples:(S.merchantRules||[]).slice(-12)})});
-      if(!r.ok) throw new Error(); const out=await r.json();
-      (out.items||[]).forEach(x=>{const line=lines.find(l=>l.merchant===x.merchant); if(line&&CATEGORIES.includes(x.category)){line.cat=x.category; line.source="ai"; line.remember=false;}});
-      recalc(); setStmtStatus("AI suggestions are ready for your review. Nothing has been saved.","pine"); renderStmtReview();
-    }catch(_){setStmtStatus("Claude is unavailable. Unresolved transactions remain in Needs Review for you to sort.","clay");}
-  };
   $("#stmt-discard").onclick=()=>{STMT.parsed=null; setStmtStatus("Discarded. Nothing was saved.","grey"); renderStmtReview();};
   $("#stmt-save").onclick=async()=>{
     const picked=$$(".stmt-pick",host).filter(c=>c.checked).map(c=>c.dataset.m);

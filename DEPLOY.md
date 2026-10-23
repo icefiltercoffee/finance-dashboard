@@ -200,6 +200,31 @@ Combined adds both people's imports together. Importing happens on a person's ow
 **Goals** and **FAQ** always run on the combined model, because goals are household-scale
 and are held once, in `finance.json`. They are not duplicated into Melissa's file.
 
+### Spending habits on Joseph's tab — Miles Pilot's spending engine
+
+Since 2026-10-18 (Joseph's decision, recorded in CONTRACT §5) Joseph's Spending habits is a
+statement review run by **Miles Pilot's engine**, not by this dashboard's own keyword list. The
+statement panel moves into that card on his tab (*Attach Statement* and *Upload Joseph's
+statement* both open it). Each line shows the engine's category, the MCC (marked *assumed* when
+inferred from the category) and the card among his six that earns most, plus what the card he
+picks for the statement earned. Mari is compared only as cashback; Trust Freedom is not in Miles
+Pilot's card data and is never recommended.
+
+- **One engine.** `engine.js` and `lib/profile.js` are fetched from Miles Pilot on every load
+  through `/api/miles/script/` — never copied here.
+- **One learning store.** Learned merchant rules live in Miles Pilot's D1. A correction (or a
+  confirmed Claude guess) is sent server-to-server to Miles Pilot's `/service/learn`, which
+  saves it to Joseph's private Miles Pilot profile **and** files a shared-rule suggestion that
+  only goes live after he approves it as admin. Rules taught in Miles Pilot apply here.
+- **Unknown merchants** go straight to Needs Review. Joseph sorts each one once and that answer
+  becomes a learned rule. No AI is asked (Joseph, 2026-10-18: no API key).
+- **Category totals** still map onto the sheet's categories and feed Expenses by category. Only
+  the month, count and totals are saved here; merchant lines are not, except a phrase he chooses
+  to teach (sent to Miles Pilot).
+- **Old KV merchant rules** no longer classify his statements. A one-time *Move into Miles
+  Pilot* control copies them across; the KV copy stays because Melissa's tab still uses it.
+- Melissa's and the Combined tab keep the previous Spending habits (*Analyse my spending*).
+
 ### Connecting Melissa's sheet later
 
 1. Fill `actuals.months`, `actuals.incomeByCategory` and `actuals.expenseByCategory` in
@@ -219,6 +244,7 @@ the "Ledger is Joseph's only" flag clears itself.
 | `index.html` | Template + renderer (Finance Intern). Contains **no figures**. |
 | `functions/_middleware.js` | Server-side PIN gate. Runs before every request, including `/data/finance.json`. |
 | `functions/api/state.js` | Shared store for typed balances and goal amounts, in KV. Behind the gate. |
+| `functions/api/miles/*`, `functions/_lib/miles.js` | Bridge to Miles Pilot's spending engine: engine script proxy, learned rules, teaching. Behind the gate; the service token never reaches the browser. |
 | `.dev.vars` | Local secrets. **Gitignored — never commit.** |
 | `data/finance.json` | **Joseph's dataset**, plus the household facts (goals, liabilities, emergency fund). Sourced from the Drive workbook. The main monthly diff. |
 | `data/finance-melissa.json` | **Melissa's dataset.** Placeholder — her source sheet has not been specified yet, so every ledger figure is `null`. Her salary is carried across from `finance.json`. Set `"placeholder": false` once it is real. |
@@ -246,12 +272,19 @@ type **Secret** (encrypted), for the **Production** environment (and Preview if 
 | `FINANCE_PIN` | Your 4-digit PIN. The login screen draws one dot per digit, so a 4-digit PIN keeps the original design. Longer works — you just get more dots. |
 | `SESSION_SECRET` | A long random string used to sign the session cookie. Generate one with `openssl rand -base64 48`. Changing it invalidates every existing session. |
 
-**Optional — statement classification.** `ANTHROPIC_API_KEY` (Secret) lets *Classify Needs Review*
-send the unresolved merchant lines of a statement to Claude for that one request. Nothing is
-stored or logged; the statement file itself never leaves the browser. There is no OpenAI fallback
-for statements (Joseph, 2026-10-10). Without the key, lines stay in Needs Review for manual sorting.
-(`OPENAI_API_KEY` is still used by *What can I do* and *Spending habits*, which receive only
-category totals.)
+**Statement classification by AI: off.** The *Classify Needs Review* button was removed on
+2026-10-18 (Joseph will not create an API key); no statement review calls `/api/classify`.
+`functions/api/classify.js` is still in the repo, unused, and returns 503 without `ANTHROPIC_API_KEY`.
+Unresolved lines stay in Needs Review for manual sorting.
+(`OPENAI_API_KEY` is still used by *What can I do* and by *Spending habits* on the Melissa and
+Combined tabs, which receive only category totals.)
+
+**Miles Pilot spending engine (Joseph's tab).** Two values:
+
+| Name | Value |
+|---|---|
+| `MILES_SERVICE_TOKEN` | Secret. Must equal Miles Pilot's `FINANCE_SERVICE_TOKEN`. Generate once with `openssl rand -hex 32` and set it on both projects. Without it the engine still classifies, but learned rules are unavailable and corrections cannot be taught (the panel says so). |
+| `MILES_PILOT_ORIGIN` | Plain variable, optional. Defaults to `https://milespilot.net`; set to a local Miles Pilot origin only for development. |
 
 Neither value is ever sent to the browser, written to `finance.json`, committed to git, or
 placed in `wrangler.toml`. The only thing the login page discloses is how many digits to draw.
